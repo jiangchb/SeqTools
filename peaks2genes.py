@@ -73,8 +73,13 @@ print "\n. I found", count_summits, "summits."
 #
 # For each summit, find the closest genes
 #
+chr_sumsite_stats = {}
+
 fout = open("p2g." + outname + ".txt", "w")
 for chr in chr_site_score:
+    if chr not in chr_sumsite_stats:
+        chr_sumsite_stats[chr] = {}
+    
     for sumsite in chr_site_score[chr]:
         min_up = None 
         closest_up = ""
@@ -104,7 +109,24 @@ for chr in chr_site_score:
         if min_down == None:
             min_down = "n/a"
         #print chr, sumsite, chr_site_score[chr][sumsite], closest_up, min_up, closest_down, min_down
+        chr_sumsite_stats[chr][sumsite] = (min_up, closest_up, min_down, closest_down)
         fout.write(chr + "\t" + sumsite.__str__() + "\t" + chr_site_score[chr][sumsite].__str__() + "\t" + closest_up + "\t" + min_up.__str__() + "\t" + closest_down + "\t -" + min_down.__str__() + "\n")
 fout.close()
 
+#
+# Plot stats about the peak-gene mappings
+#
+from plot_histogram import *
+
+# Distribution of distances
+up_distances = []
+down_distances = []
+for chr in chr_sumsite_stats:
+    for sumsite in chr_sumsite_stats[chr]:
+        if chr_sumsite_stats[chr][sumsite][0] != "n/a":
+            up_distances.append( int( chr_sumsite_stats[chr][sumsite][0]) )
+        if chr_sumsite_stats[chr][sumsite][2] != "n/a":
+            down_distances.append( int( chr_sumsite_stats[chr][sumsite][2]) )
+plot_histogram(up_distances, outname + "up", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=10000)
+plot_histogram(down_distances, outname + "down", xlab="min. distaance to gene", ylab="proportion of summits", fixed_max=10000)
 
