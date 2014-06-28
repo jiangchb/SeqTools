@@ -117,8 +117,6 @@ fout.close()
 # Plot stats about the peak-gene mappings
 #
 from plot_histogram import *
-
-# Distribution of distances
 up_distances = []
 down_distances = []
 for chr in chr_sumsite_stats:
@@ -127,6 +125,22 @@ for chr in chr_sumsite_stats:
             up_distances.append( int( chr_sumsite_stats[chr][sumsite][0]) )
         if chr_sumsite_stats[chr][sumsite][2] != "n/a":
             down_distances.append( int( chr_sumsite_stats[chr][sumsite][2]) )
-plot_histogram(up_distances, outname + "up", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=5000)
-plot_histogram(down_distances, outname + "down", xlab="min. distaance to gene", ylab="proportion of summits", fixed_max=5000)
+        
+plot_histogram(up_distances + down_distances, outname + ".dist", xlab="min. distance to gene", ylab="proportion of summits",)
+plot_histogram(up_distances + down_distances, outname + ".dist.2k", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=2000)
+
+from plot_scatter import *
+distances = []
+scores = []
+for chr in chr_sumsite_stats:
+    for sumsite in chr_sumsite_stats[chr]:
+        ds = []
+        if chr_sumsite_stats[chr][sumsite][0] != "n/a":
+            ds.append( int( chr_sumsite_stats[chr][sumsite][0]) )
+        if chr_sumsite_stats[chr][sumsite][2] != "n/a":
+            ds.append( int( chr_sumsite_stats[chr][sumsite][2]) )
+        distances.append( min(ds) )
+        scores.append( chr_site_score[chr][sumsite] )
+
+scatter1(distances, scores, outname + ".dist-v-score", xlab="min. distance to gene", ylab="summit score")
 

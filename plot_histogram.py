@@ -44,27 +44,20 @@ def set_params(data, fixed_max=None, fixed_nbins=None):
     if fixed_max != None:
         maxval = float(fixed_max)
     else:
-        maxval = None  
-        if maxval == None:
-            maxval = max(data)
-        if max(data) > maxval:
-            maxval = max(data)
+        maxval = max(data)
     
-    minval = None  
-    if minval == None:
-        minval = min(data)
-    if min(data) < minval:
-        minval = min(data)
-    
+    minval = min(data)
+
     if fixed_nbins != None:
         plot_params["NBINS"] = int( fixed_nbins )
     else:
         plot_params["NBINS"] = 20
     plot_params["MIN_BIN_FLOOR"] = minval - (minval)
-    plot_params["MIN_BIN_CEILING"] = maxval + (1.01 * maxval)
-    plot_params["BIN_SIZE"] = (plot_params["MIN_BIN_CEILING"] - plot_params["MIN_BIN_FLOOR"]) / plot_params["NBINS"]
+    plot_params["MAX_BIN_CEILING"] = (1.01 * maxval)
     
-    print "\n. Dynamic plot parameters: minimum value=", plot_params["MIN_BIN_FLOOR"], "max. value=", plot_params["MIN_BIN_CEILING"], "bin width=", plot_params["BIN_SIZE"]
+    plot_params["BIN_SIZE"] = (plot_params["MAX_BIN_CEILING"] - plot_params["MIN_BIN_FLOOR"]) / plot_params["NBINS"]
+    
+    print "\n. Dynamic plot parameters: minimum value=", plot_params["MIN_BIN_FLOOR"], "max. value=", plot_params["MAX_BIN_CEILING"], "bin width=", plot_params["BIN_SIZE"]
 
     return plot_params
 
@@ -72,7 +65,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     bins = [] # a list of bin floors
     for i in range(0, plot_params["NBINS"]):
         bins.append(plot_params["MIN_BIN_FLOOR"] + i*plot_params["BIN_SIZE"] )
- 
+     
     bin_values = {} # key = bin index, value = count of values in that bin
     for i in range(0, plot_params["NBINS"]):
         bin_values[i] = 0
@@ -89,7 +82,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     for i in bin_values:
         normalized_bin_values[i] = float(bin_values[i]) / values.__len__()
         
-    tablepath = "barplot.table." + filekeyword + ".txt"
+    tablepath = filekeyword + ".table.txt"
     fout = open(tablepath, "w")
     for i in range(0, plot_params["NBINS"]):
         if i < plot_params["NBINS"]-1:
@@ -105,7 +98,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     fout.write("\n")
     fout.close()
 
-    pdfpath = "barplot." + filekeyword + ".pdf"
+    pdfpath = filekeyword + ".pdf"
     cranstr = "pdf(\"" + pdfpath + "\", width=8, height=4);\n"    
     cranstr += "bars <- read.table(\"" + tablepath + "\", header=T, sep=\"\\t\")\n"
 
@@ -123,7 +116,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     cranstr += "text(barx, par(\"usr\")[3]-0.05, labels=bins, srt=45, adj=1, xpd=TRUE, cex=0.9)\n"
     #cranstr += "axis(1, at=barx, labels = FALSE)\n"
     cranstr += "axis(2)\n"
-    cranpath = "barplot." + filekeyword + ".cran"
+    cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")
     fout.write( cranstr )
     fout.close()
@@ -133,7 +126,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
 def plot_histogram(data, keyword, xlab="", ylab="", fixed_max=None, fixed_nbins=None):
     """data is an array of floating point values"""
     plot_params = set_params(data, fixed_max=fixed_max, fixed_nbins=fixed_nbins)
-    barplot1(data, "histogram." + keyword, plot_params, xlab=xlab, ylab=ylab)
+    barplot1(data, keyword + ".histo", plot_params, xlab=xlab, ylab=ylab)
     
     
     
