@@ -127,6 +127,6 @@ for chr in chr_sumsite_stats:
             up_distances.append( int( chr_sumsite_stats[chr][sumsite][0]) )
         if chr_sumsite_stats[chr][sumsite][2] != "n/a":
             down_distances.append( int( chr_sumsite_stats[chr][sumsite][2]) )
-plot_histogram(up_distances, outname + "up", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=10000)
-plot_histogram(down_distances, outname + "down", xlab="min. distaance to gene", ylab="proportion of summits", fixed_max=10000)
+plot_histogram(up_distances, outname + "up", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=5000)
+plot_histogram(down_distances, outname + "down", xlab="min. distaance to gene", ylab="proportion of summits", fixed_max=5000)
 

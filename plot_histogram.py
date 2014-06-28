@@ -38,11 +38,11 @@ def var(set):
 def stderr(set):
     return (sd(set) / math.sqrt( set.__len__() ) )
 
-def set_params(data, fixed_max=None):
+def set_params(data, fixed_max=None, fixed_nbins=None):
     """Determines min, max, and bar size based on the input data."""
 
     if fixed_max != None:
-        maxval = fixed_max
+        maxval = float(fixed_max)
     else:
         maxval = None  
         if maxval == None:
@@ -56,7 +56,10 @@ def set_params(data, fixed_max=None):
     if min(data) < minval:
         minval = min(data)
     
-    plot_params["NBINS"] = 20
+    if fixed_nbins != None:
+        plot_params["NBINS"] = int( fixed_nbins )
+    else:
+        plot_params["NBINS"] = 20
     plot_params["MIN_BIN_FLOOR"] = minval - (minval)
     plot_params["MIN_BIN_CEILING"] = maxval + (1.01 * maxval)
     plot_params["BIN_SIZE"] = (plot_params["MIN_BIN_CEILING"] - plot_params["MIN_BIN_FLOOR"]) / plot_params["NBINS"]
@@ -109,11 +112,17 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     # X axis labels:
     cranstr += "bins <- c("
     for i in range(0, plot_params["NBINS"]):
-        cranstr += bins[i].__str__() + ","
+        cranstr += "'" + bins[i].__str__() 
+        if i == plot_params["NBINS"]-1:
+            cranstr += "+"
+        cranstr += "',"
     cranstr = re.sub(",$", "", cranstr)
     cranstr += ");\n"
     
-    cranstr += "barx = barplot(as.matrix(bars), beside=TRUE, ylim=range(0,1.0), names.arg=bins, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\");\n"
+    cranstr += "barx = barplot(as.matrix(bars),axes = FALSE, axisnames = FALSE, beside=TRUE, ylim=range(0,1.0), xlab=\"" + xlab + "\", ylab=\"" + ylab + "\");\n"
+    cranstr += "text(barx, par(\"usr\")[3]-0.05, labels=bins, srt=45, adj=1, xpd=TRUE, cex=0.9)\n"
+    #cranstr += "axis(1, at=barx, labels = FALSE)\n"
+    cranstr += "axis(2)\n"
     cranpath = "barplot." + filekeyword + ".cran"
     fout = open(cranpath, "w")
     fout.write( cranstr )
@@ -121,9 +130,9 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     
     os.system("r --no-save < " + cranpath)
 
-def plot_histogram(data, keyword, xlab="", ylab="", fixed_max=None):
+def plot_histogram(data, keyword, xlab="", ylab="", fixed_max=None, fixed_nbins=None):
     """data is an array of floating point values"""
-    plot_params = set_params(data, fixed_max=fixed_max)
+    plot_params = set_params(data, fixed_max=fixed_max, fixed_nbins=fixed_nbins)
     barplot1(data, "histogram." + keyword, plot_params, xlab=xlab, ylab=ylab)
     
     
