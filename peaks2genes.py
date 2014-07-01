@@ -169,7 +169,7 @@ def write_gn2pk(gene_peaks, repid):
         for summit in gene_peaks[gene]:
             #fout.write(summit[0].__str__() + "\t")
             fout.write(summit[1].__str__() + "\t")
-            fout.write(summit[2].__str__() + "\t")
+            fout.write( (-1*summit[2]).__str__() + "\t")
         fout.write("\n")
     fout.close()
 
@@ -196,9 +196,42 @@ def resolve_replicates(replicate_gn2pk):
                         break
                 if missing == False:
                     good_genes.append( gene )
+    
+    gene_best_score = {}
+    for gene in (good_genes + bad_genes):
+        summits = []
+        for rep in replicate_gn2pk:
+            if gene in replicate_gn2pk[rep]:
+                summits += replicate_gn2pk[rep][gene]
+        max_score = find_max_peak( summits )
+        gene_best_score[gene] = max_score
     print "\n." + good_genes.__len__().__str__() + " have ChIP peaks in all replicates."
     print "\n." + bad_genes.__len__().__str__() + " don't have peaks in all replicates."
-                
+        
+    good_genes_scores = []
+    fout = open(outname + ".genes.union.txt", "w")
+    for gene in good_genes:
+        fout.write( gene + "\t" + gene_best_score[gene].__str__() + "\n")
+        good_genes_scores.append( gene_best_score[gene] )
+    fout.close()
+    
+    bad_genes_scores = []
+    fout = open(outname + ".genes.disunion.txt", "w")
+    for gene in bad_genes:
+        fout.write(gene + "\t" + gene_best_score[gene].__str__() +  "\n")
+        bad_genes_scores.append( gene_best_score[gene] )
+    fout.close()
+
+    print "\n. Union genes summit score, mean= ", "%.3f"%mean(good_genes_scores), "sd=", "%.3f"%sd(good_genes_scores)
+    print "\n. Disunion genes summit score, mean= ", "%.3f"%mean(bad_genes_scores), "sd=", "%.3f"%sd(bad_genes_scores)
+
+def find_max_peak(summits):
+    """Returns the summit score for the best peak in the list. THe list 'summits' is a 5-tuple, created in the method read_replicate."""
+    max_score = 0
+    for s in summits:
+        if float(s[2]) > max_score:
+            max_score = float(s[2])
+    return max_score
 #
 # Plot stats about the peak-gene mappings
 #
