@@ -38,6 +38,13 @@ def var(set):
 def stderr(set):
     return (sd(set) / math.sqrt( set.__len__() ) )
 
+def roundup(x, step):
+    """Rounds the value x up the nearest step, where step could, e.g., be 100 or 1000"""
+    return int(math.ceil(x / float(step))) * step
+
+def rounddown(x, step):
+    return int(math.floor(x / float(step))) * step
+
 def set_params(data, fixed_max=None, fixed_nbins=None):
     """Determines min, max, and bar size based on the input data."""
 
@@ -52,12 +59,38 @@ def set_params(data, fixed_max=None, fixed_nbins=None):
         plot_params["NBINS"] = int( fixed_nbins )
     else:
         plot_params["NBINS"] = 20
-    plot_params["MIN_BIN_FLOOR"] = minval - (minval)
+    plot_params["MIN_BIN_FLOOR"] = minval
+    if plot_params["MIN_BIN_FLOOR"] > 0.0:
+        plot_params["MIN_BIN_FLOOR"] = 0.0
     plot_params["MAX_BIN_CEILING"] = (1.01 * maxval)
+
+    val_range = plot_params["MAX_BIN_CEILING"] - plot_params["MIN_BIN_FLOOR"]
     
-    plot_params["BIN_SIZE"] = (plot_params["MAX_BIN_CEILING"] - plot_params["MIN_BIN_FLOOR"]) / plot_params["NBINS"]
+    plot_params["BIN_SIZE"] = val_range / plot_params["NBINS"]
     
-    print "\n. Dynamic plot parameters: minimum value=", plot_params["MIN_BIN_FLOOR"], "max. value=", plot_params["MAX_BIN_CEILING"], "bin width=", plot_params["BIN_SIZE"]
+    # Now adjust the bin size to be a nice round number
+    if plot_params["BIN_SIZE"] < 100:
+        plot_params["BIN_SIZE"] = roundup(plot_params["BIN_SIZE"], 10)
+        plot_params["MIN_BIN_FLOOR"] = rounddown( plot_params["MIN_BIN_FLOOR"], 10)
+        plot_params["MAX_BIN_CEILING"] = roundup( plot_params["MAX_BIN_CEILING"], 10)
+    elif plot_params["BIN_SIZE"] < 1000:
+        plot_params["BIN_SIZE"] = roundup(plot_params["BIN_SIZE"], 100)
+        plot_params["MIN_BIN_FLOOR"] = rounddown( plot_params["MIN_BIN_FLOOR"], 100)
+        plot_params["MAX_BIN_CEILING"] = roundup( plot_params["MAX_BIN_CEILING"], 100)
+    elif plot_params["BIN_SIZE"] < 10000:
+        plot_params["BIN_SIZE"] = roundup(plot_params["BIN_SIZE"], 500)
+        plot_params["MIN_BIN_FLOOR"] = rounddown( plot_params["MIN_BIN_FLOOR"], 500)
+        plot_params["MAX_BIN_CEILING"] = roundup( plot_params["MAX_BIN_CEILING"], 500)
+    
+    n_neg_bins = int( roundup( abs(plot_params["MIN_BIN_FLOOR"]) / plot_params["BIN_SIZE"], 1.0) )
+    n_pos_bins = int( roundup( abs(plot_params["MAX_BIN_CEILING"]) / plot_params["BIN_SIZE"], 1.0) )
+    plot_params["NBINS"] = n_neg_bins + n_pos_bins
+    
+    if plot_params["MIN_BIN_FLOOR"] < 0.0:
+        plot_params["MIN_BIN_FLOOR"] = n_neg_bins * plot_params["BIN_SIZE"] * -1
+    plot_params["MAX_BIN_CEILING"] = n_pos_bins * plot_params["BIN_SIZE"]
+    
+    print "\n. Dynamic plot parameters: N bins=",plot_params["NBINS"], "minimum value=", plot_params["MIN_BIN_FLOOR"], "max. value=", plot_params["MAX_BIN_CEILING"], "bin width=", plot_params["BIN_SIZE"]
 
     return plot_params
 

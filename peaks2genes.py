@@ -48,7 +48,7 @@ def read_gff(gffpath):
     count_genes = 0
     for chr in chr_gene_sites:
         count_genes += chr_gene_sites[chr].keys().__len__()
-    print "\n. I found", count_genes, "genes."
+    print "\n. I found", count_genes, "genes " in gffpath + "."
     
     return chr_gene_sites
     
@@ -73,7 +73,7 @@ def read_replicate(summitpath, chr_gene_sites):
     count_summits = 0
     for chr in chr_site_score:
         count_summits += chr_site_score[chr].keys().__len__()
-    print "\n. I found", count_summits, "summits."
+    print "\n. I found", count_summits, "summits in " + summitpath + "."
     
     #
     # For each summit, find the closest genes
@@ -100,17 +100,13 @@ def read_replicate(summitpath, chr_gene_sites):
                         min_up = d
                         closest_up = gene
                 elif stop <= sumsite:
-                    d = sumsite - stop
+                    d = -1*(sumsite - stop)
                     if min_down == None:
                         min_down = d
                         closest_down = gene
-                    if min_down > d:
+                    if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
                         min_down = d
                         closest_down = gene
-            if min_up == None:
-                min_up = "n/a"
-            if min_down == None:
-                min_down = "n/a"
             #print chr, sumsite, chr_site_score[chr][sumsite], closest_up, min_up, closest_down, min_down
             chr_sumsite_stats[chr][sumsite] = (min_up, closest_up, min_down, closest_down, chr_site_score[chr][sumsite])    
     return chr_sumsite_stats
@@ -124,25 +120,24 @@ def map_genes(chr_sumsite_stats):
             upd = chr_sumsite_stats[chr][sumsite][0]
             downgene = chr_sumsite_stats[chr][sumsite][3]
             downd = chr_sumsite_stats[chr][sumsite][2]
-            if upd != "n/a":
+            if upd != None:
                 if upgene not in gene_peaks:
                     gene_peaks[ upgene ] = [] # continue here
                 gene_peaks[ upgene ].append(  (sumsite,int(upd),chr_sumsite_stats[chr][sumsite][4])  )       
-            if downd != "n/a":
+            if downd != None:
                 if downgene not in gene_peaks:
                     gene_peaks[ downgene ] = [] # continue here
-                gene_peaks[ downgene ].append(  (sumsite,-1*(int(downd)),chr_sumsite_stats[chr][sumsite][4])  )       
+                gene_peaks[ downgene ].append(  (sumsite,(int(downd)),chr_sumsite_stats[chr][sumsite][4])  )       
     
     # sort peaks by distance to gene
     for gene in gene_peaks:
         summits = gene_peaks[gene]
         hashed_summits = {}
         for s in summits:
-            if s[1] != "n/a":
-                d = abs( int(s[1]) )
-                if d in hashed_summits:
-                    d += 1
-                hashed_summits[d] = s
+            d = abs( int(s[1]) )
+            if d in hashed_summits:
+                d += 1
+            hashed_summits[d] = s
         keys = hashed_summits.keys()
         keys.sort()
         gene_peaks[gene] = []
@@ -201,39 +196,52 @@ def resolve_replicates(replicate_gn2pk):
                         break
                 if missing == False:
                     good_genes.append( gene )
-    print "204:", good_genes.__len__()
-    print "205:", bad_genes.__len__()
-    exit()
+    print "\n." + good_genes.__len__().__str__() + " have ChIP peaks in all replicates."
+    print "\n." + bad_genes.__len__().__str__() + " don't have peaks in all replicates."
                 
 #
 # Plot stats about the peak-gene mappings
 #
-def make_plots():
+def make_plots(chr_sumsite_stats, repid):
     up_distances = []
     down_distances = []
     for chr in chr_sumsite_stats:
         for sumsite in chr_sumsite_stats[chr]:
-            if chr_sumsite_stats[chr][sumsite][0] != "n/a":
+            if chr_sumsite_stats[chr][sumsite][0] != None:
                 up_distances.append( int( chr_sumsite_stats[chr][sumsite][0]) )
-            if chr_sumsite_stats[chr][sumsite][2] != "n/a":
+            if chr_sumsite_stats[chr][sumsite][2] != None:
                 down_distances.append( int( chr_sumsite_stats[chr][sumsite][2]) )
-            
-    plot_histogram(up_distances + down_distances, outname + ".dist", xlab="min. distance to gene", ylab="proportion of summits",)
-    plot_histogram(up_distances + down_distances, outname + ".dist.2k", xlab="min. distance to gene", ylab="proportion of summits", fixed_max=2000)
     
+    # for debugging:
+    #print up_distances
+    #print down_distances
+    #exit()
+    
+    plot_histogram(up_distances + down_distances, outname + ".rep" + repid.__str__() + ".dist", xlab="min. distance to gene", ylab="proportion of summits",)    
     
     distances = []
     scores = []
     for chr in chr_sumsite_stats:
         for sumsite in chr_sumsite_stats[chr]:
-            ds = []
-            if chr_sumsite_stats[chr][sumsite][0] != "n/a":
-                ds.append( int( chr_sumsite_stats[chr][sumsite][0]) )
-            if chr_sumsite_stats[chr][sumsite][2] != "n/a":
-                ds.append( int( chr_sumsite_stats[chr][sumsite][2]) )
-            distances.append( min(ds) )
-            scores.append( chr_site_score[chr][sumsite] )
-    scatter1(distances, scores, outname + ".dist-v-score", xlab="min. distance to gene", ylab="summit score")
+            upd = None
+            if chr_sumsite_stats[chr][sumsite][0] != None:
+                upd = int( chr_sumsite_stats[chr][sumsite][0])
+            dd = None
+            if chr_sumsite_stats[chr][sumsite][2] != None:
+                dd = int( chr_sumsite_stats[chr][sumsite][2])
+            this_d = None
+            if dd == None and upd != None:
+                this_d = upd
+            elif dd != None and upd == None:
+                this_d = dd
+            elif dd != None and upd != None:
+                if abs(dd) < upd:
+                    this_d = dd
+                else:
+                    this_d = upd
+            distances.append( this_d )
+            scores.append( float( chr_sumsite_stats[chr][sumsite][4]) )
+    scatter1(distances, scores, outname + ".rep" + repid.__str__() + ".dist-v-score", xlab="min. distance to gene", ylab="summit score")
 
 ####################
 #
@@ -249,11 +257,10 @@ for ii in range(0, summitpaths.__len__() ):
     write_pk2gn( replicate_pk2gn[spath], ii )
     replicate_gn2pk[spath] = map_genes(replicate_pk2gn[spath])
     write_gn2pk( replicate_gn2pk[spath], ii)
+    
+    make_plots(replicate_pk2gn[spath], ii)
 
 resolve_replicates( replicate_gn2pk )
-
-
-# make_plots
     
 
 
