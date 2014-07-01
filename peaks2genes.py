@@ -197,29 +197,27 @@ def resolve_replicates(replicate_gn2pk):
                 if missing == False:
                     good_genes.append( gene )
     
-    gene_best_score = {}
+    gene_best_scores = {} # key = gene, value = array of scores for this rep
     for gene in (good_genes + bad_genes):
-        summits = []
+        gene_best_scores[gene] = []
         for rep in replicate_gn2pk:
             if gene in replicate_gn2pk[rep]:
-                summits += replicate_gn2pk[rep][gene]
-        max_score = find_max_peak( summits )
-        gene_best_score[gene] = max_score
+                gene_best_scores[gene].append( find_max_peak(replicate_gn2pk[rep][gene]) )
     print "\n." + good_genes.__len__().__str__() + " have ChIP peaks in all replicates."
     print "\n." + bad_genes.__len__().__str__() + " don't have peaks in all replicates."
         
     good_genes_scores = []
     fout = open(outname + ".genes.union.txt", "w")
     for gene in good_genes:
-        fout.write( gene + "\t" + gene_best_score[gene].__str__() + "\n")
-        good_genes_scores.append( gene_best_score[gene] )
+        fout.write( gene + "\t" + "\t".join( map(str,gene_best_scores[gene]) ) + "\n")
+        good_genes_scores.append( max(gene_best_scores[gene]) )
     fout.close()
     
     bad_genes_scores = []
     fout = open(outname + ".genes.disunion.txt", "w")
     for gene in bad_genes:
-        fout.write(gene + "\t" + gene_best_score[gene].__str__() +  "\n")
-        bad_genes_scores.append( gene_best_score[gene] )
+        fout.write(gene + "\t" + "\t".join( map(str, gene_best_scores[gene]) ) +  "\n")
+        bad_genes_scores.append( max(gene_best_scores[gene]) )
     fout.close()
 
     print "\n. Union genes summit score, mean= ", "%.3f"%mean(good_genes_scores), "sd=", "%.3f"%sd(good_genes_scores)
