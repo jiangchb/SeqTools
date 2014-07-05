@@ -8,11 +8,24 @@ from plot_scatter import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
+#################################################################
+#
+# User Input:
+#
+
 # peakpath is the filepath to a *_summits.bed
 summitpaths = ap.getList("--summits")
+
 # the file containing features of the genome
 gffpath = ap.getArg("--gff")
+
+# outname will be used as a keyword in output file names.
 outname = ap.getArg("--name") # A unique name for the output
+
+#
+#
+#################################################################
+
 
 def splash():
     print "============================================"
@@ -39,10 +52,14 @@ def read_gff(gffpath):
             chr = tokens[0]
             start = int( tokens[3] )
             stop = int( tokens[4] )
+            strand = tokens[6]
             gene = tokens[8].split(";")[0].split("=")[1]
             if chr not in chr_gene_sites:
                 chr_gene_sites[chr] = {}
-            chr_gene_sites[chr][gene] = (start, stop)
+            if strand == "+":
+                chr_gene_sites[chr][gene] = (start, stop)
+            else: # antisense strand
+                chr_gene_sites[chr][gene] = (stop, start)
     fin.close() 
     
     count_genes = 0
@@ -52,7 +69,7 @@ def read_gff(gffpath):
     
     return chr_gene_sites
     
-def read_replicate(summitpath, chr_gene_sites):
+def build_pk2gn(summitpath, chr_gene_sites):
     """Returns chr_sumsite_stats."""
     #
     # Build a library of summit peaks
@@ -91,28 +108,37 @@ def read_replicate(summitpath, chr_gene_sites):
             for gene in chr_gene_sites[chr]:
                 start = chr_gene_sites[chr][gene][0]
                 stop = chr_gene_sites[chr][gene][1]
-                if start >= sumsite:
-                    d = start - sumsite
+                d = start - sumsite
+                
+                """Sense direction, and upstream"""
+                if start < stop and start >= sumsite:
+                    
                     if min_up == None:
                         min_up = d
                         closest_up = gene
                     if min_up > d:
                         min_up = d
                         closest_up = gene
-                elif stop <= sumsite:
-                    d = -1*(sumsite - stop)
+                elif start > stop and start <= sumsite:
+                    """Antisense and downstream"""
                     if min_down == None:
                         min_down = d
                         closest_down = gene
                     if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
                         min_down = d
                         closest_down = gene
+                        
+                """Note: this ignores the cases where the summit is inside a
+                coding region. It also ignores the cases where the nearest gene
+                is in the wrong sense orientation, such that the gene's stop site
+                is placed between the start site and the peak summit."""
+            
             #print chr, sumsite, chr_site_score[chr][sumsite], closest_up, min_up, closest_down, min_down
             chr_sumsite_stats[chr][sumsite] = (min_up, closest_up, min_down, closest_down, chr_site_score[chr][sumsite])    
     return chr_sumsite_stats
 
-def map_genes(chr_sumsite_stats):
-    """Returns gene_peaks: gene_peaks[gene] = [ (summit site,distance to gene,summit score), (n2), (n3) ]"""
+def build_gn2pk(chr_sumsite_stats):
+    """Returns gene_peaks: gene_peaks[gene] = [ (summit site, distance to gene, summit score), (n2), (n3) ]"""
     gene_peaks = {}
     for chr in chr_sumsite_stats:
         for sumsite in chr_sumsite_stats[chr]:
@@ -123,11 +149,11 @@ def map_genes(chr_sumsite_stats):
             if upd != None:
                 if upgene not in gene_peaks:
                     gene_peaks[ upgene ] = [] # continue here
-                gene_peaks[ upgene ].append(  (sumsite,int(upd),chr_sumsite_stats[chr][sumsite][4])  )       
+                gene_peaks[ upgene ].append(  (sumsite, -1*int(upd), chr_sumsite_stats[chr][sumsite][4])  )       
             if downd != None:
                 if downgene not in gene_peaks:
                     gene_peaks[ downgene ] = [] # continue here
-                gene_peaks[ downgene ].append(  (sumsite,(int(downd)),chr_sumsite_stats[chr][sumsite][4])  )       
+                gene_peaks[ downgene ].append(  (sumsite, -1*int(downd), chr_sumsite_stats[chr][sumsite][4])  )       
     
     # sort peaks by distance to gene
     for gene in gene_peaks:
@@ -169,7 +195,7 @@ def write_gn2pk(gene_peaks, repid):
         for summit in gene_peaks[gene]:
             #fout.write(summit[0].__str__() + "\t")
             fout.write(summit[1].__str__() + "\t")
-            fout.write( (-1*summit[2]).__str__() + "\t")
+            fout.write( summit[2].__str__() + "\t")
         fout.write("\n")
     fout.close()
 
@@ -203,8 +229,6 @@ def resolve_replicates(replicate_gn2pk):
         for rep in replicate_gn2pk:
             if gene in replicate_gn2pk[rep]:
                 gene_best_scores[gene].append( find_max_peak(replicate_gn2pk[rep][gene]) )
-    print "\n." + good_genes.__len__().__str__() + " have ChIP peaks in all replicates."
-    print "\n." + bad_genes.__len__().__str__() + " don't have peaks in all replicates."
         
     good_genes_scores = []
     fout = open(outname + ".genes.union.txt", "w")
@@ -220,6 +244,19 @@ def resolve_replicates(replicate_gn2pk):
         bad_genes_scores.append( max(gene_best_scores[gene]) )
     fout.close()
 
+    fout = open(outname + ".peak_replicates.txt", "w")
+    fout.write("=============================================\n")
+    fout.write("Summary for " + outname + "\n\n")
+    fout.write("I found " + (good_genes.__len__() + bad_genes.__len__()).__str__() + " total ChIP-Seq peaks.\n.")
+    fout.write(good_genes.__len__().__str__() + " have ChIP peaks in all replicates.\n")
+    fout.write(bad_genes.__len__().__str__() + " don't have peaks in all replicates.\n")
+    fout.write("Union genes summit score, mean= " + "%.3f"%mean(good_genes_scores) + "sd=" + "%.3f"%sd(good_genes_scores) + "\n")
+    fout.write("Disunion genes summit score, mean= " + "%.3f"%mean(bad_genes_scores) + "sd=" + "%.3f"%sd(bad_genes_scores) + "\n")
+    fout.write("\n")
+    fout.close()
+
+    print "\n." + good_genes.__len__().__str__() + " have ChIP peaks in all replicates."
+    print "\n." + bad_genes.__len__().__str__() + " don't have peaks in all replicates."
     print "\n. Union genes summit score, mean= ", "%.3f"%mean(good_genes_scores), "sd=", "%.3f"%sd(good_genes_scores)
     print "\n. Disunion genes summit score, mean= ", "%.3f"%mean(bad_genes_scores), "sd=", "%.3f"%sd(bad_genes_scores)
 
@@ -279,14 +316,17 @@ def make_plots(chr_sumsite_stats, repid):
 # main
 chr_gene_sites = read_gff(gffpath)
 
-"""Read data for each replicate."""
 replicate_pk2gn = {}
 replicate_gn2pk = {} 
 for ii in range(0, summitpaths.__len__() ):
     spath = summitpaths[ii]
-    replicate_pk2gn[spath] = read_replicate( spath, chr_gene_sites )
+    
+    """Parse data and build peak-2-gene library."""
+    replicate_pk2gn[spath] = build_pk2gn( spath, chr_gene_sites )
     write_pk2gn( replicate_pk2gn[spath], ii )
-    replicate_gn2pk[spath] = map_genes(replicate_pk2gn[spath])
+    
+    """Also build gene-2-peak library."""
+    replicate_gn2pk[spath] = build_gn2pk(replicate_pk2gn[spath])
     write_gn2pk( replicate_gn2pk[spath], ii)
     
     make_plots(replicate_pk2gn[spath], ii)
