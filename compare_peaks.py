@@ -10,7 +10,7 @@ from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
 runids = ap.getList("--runids") # a list of runid names
-runid = ap.getArg("--runid") # the runid for this peak comparison
+runid = ap.getArg("--runid") # the (output) runid for this peak comparison
 pillarspath = ap.getArg("--pillars") # a file containing G
 orf_names = {}
 
@@ -64,19 +64,25 @@ def get_orf(genename):
 def make_output(runid_reps):
     print "\n. Building the output matrix..."
     """Also plots a venn diagram"""
-    seen_genes = []
-    runid_rep_gene_pkcount = {}
-    columns = []
+    
+    #
+    # Fill these data structures...
+    #
+    seen_genes = [] # a list of orfnames that we've seen in any context
+    runid_rep_gene_pkcount = {} # key = runid, value = hash, key = rep, value = hash, key = gene (orfname), value = count of peaks for this gene
+
+    #
+    # gn2pk.txt
+    #
     for t in runid_reps:
         if t not in runid_rep_gene_pkcount:
             runid_rep_gene_pkcount[t] = {}
-        for rep in runid_reps[t]:
-            print "\n-->", t, rep
-            columns.append(t + ":" + rep.__str__())
-            
+        for rep in runid_reps[t]:            
             if rep not in runid_rep_gene_pkcount[t]:
                 runid_rep_gene_pkcount[t][rep] = {}
-            fin = open(t + ".rep" + rep.__str__() + ".gn2pk.txt")
+            gn2pk_path = t + ".rep" + rep.__str__() + ".gn2pk.txt"
+            print "\n. Reading the gene-2-peak file", gn2pk_path
+            fin = open(gn2pk_path)
             lines = fin.readlines()
             for l in lines:
                 if l.__len__() > 2:
@@ -87,13 +93,19 @@ def make_output(runid_reps):
                     peak_count = int( tokens[1] )
                     runid_rep_gene_pkcount[t][rep][orfname] = peak_count
 
+    #
+    # Write peak_count...xls 
+    #
     outpath = "peak_count." + runid + ".xls"
     print "\n. Writing", outpath
+    columns = []
+    for t in runid_reps:
+        for rep in runid_reps[t]:
+            columns.append(t + ":" + rep.__str__())
     fout = open(outpath, "w")
     fout.write(".\t")
     fout.write( "\t".join(columns) )
-    fout.write("\n")
-        
+    fout.write("\n") 
     runid_genes = {} # key = runid, value = list of gene IDs that are in all replicates of the runid ID
     runid_rep_genes = {} # key = runid, value = hash, key = rep, value = list of genes in that replicate
     for ii in range(0, seen_genes.__len__()):
@@ -120,11 +132,28 @@ def make_output(runid_reps):
         fout.write("\n")    
     fout.close()
 
+    #
+    # Write summarized, new, gn2pk.txt
+    #
+    gn2pk_outpath = runid + ".rep0.gn2pk.txt"
+    fout = open(gn2pk_outpath, "w")
+    for ii in range(0, seen_genes.__len__()):
+        in_all = True
+        for t in runid_genes:
+            if ii not in runid_genes[t]:
+                in_all = False
+                break
+        if in_all:
+            fout.write( seen_genes[ii] + "\t1\n")
+    fout.close()
+
+    #
+    # Plot Venn Diagrams
+    #
     for t in runid_reps:
         plot_venn_diagram(runid_rep_genes[t], t)
     plot_venn_diagram(runid_genes, runid)
 
-    
 #########################################
 #
 # main

@@ -32,8 +32,8 @@ def plot_venn_diagram(data, filekeyword):
         set1 = set( data[k[1]] )
         set2 = set( data[k[2]] )
         venn3( [set0, set1, set2], (k[0], k[1], k[2]) )
-        print "\n. Writing a 3-way Venn diagram to", filekeyword + ".venn.png"
-        f.savefig(filekeyword + ".venn.png")
+        print "\n. Writing a 3-way Venn diagram to", filekeyword + ".venn.pdf"
+        f.savefig(filekeyword + ".venn.pdf", format="pdf")
 
     # 2-way Venn:
     if data.keys().__len__() == 2:
@@ -43,5 +43,5 @@ def plot_venn_diagram(data, filekeyword):
         set0 = set( data[k[0]] )
         set1 = set( data[k[1]] )
         venn2( [set0, set1], (k[0], k[1]) )
-        print "\n. Writing a 2-way Venn diagram to", filekeyword + ".venn.png"
-        f.savefig(filekeyword + ".venn.png")
+        print "\n. Writing a 2-way Venn diagram to", filekeyword + ".venn.pdf"
+        f.savefig(filekeyword + ".venn.pdf", format="pdf")
