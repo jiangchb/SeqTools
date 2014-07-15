@@ -93,83 +93,37 @@ def make_output(runid_reps):
     fout.write(".\t")
     fout.write( "\t".join(columns) )
     fout.write("\n")
-    
-    #print "87: seen_genes", seen_genes
-    
-    runid_genes = {} # key = runid ID, value = list of gene IDs that are in all replicates of the runid ID
+        
+    runid_genes = {} # key = runid, value = list of gene IDs that are in all replicates of the runid ID
+    runid_rep_genes = {} # key = runid, value = hash, key = rep, value = list of genes in that replicate
     for ii in range(0, seen_genes.__len__()):
         gene = seen_genes[ii]
         fout.write(gene + "\t")
         for t in runid_reps:
             if t not in runid_genes:
                 runid_genes[t] = []
+                runid_rep_genes[t] = {}
             row_sum = 0.0
             rep_sum = 0.0
             for rep in runid_reps[t]:
+                if "rep" + rep.__str__() not in runid_rep_genes[t]:
+                    runid_rep_genes[t]["rep" + rep.__str__()] = []
                 if gene in runid_rep_gene_pkcount[t][rep]:
                     fout.write( "%d"%runid_rep_gene_pkcount[t][rep][gene] + "\t" )
                     row_sum += runid_rep_gene_pkcount[t][rep][gene]
                     rep_sum += 1.0 / runid_reps[t].__len__()
+                    runid_rep_genes[t]["rep" + rep.__str__()].append( ii )
                 else:
                     fout.write( "0\t")
-            if rep_sum >= 1.0:
+            if rep_sum >= 1.0: # eliminate peaks that don't exist in all replicates
                 runid_genes[t].append( ii )
         fout.write("\n")    
     fout.close()
 
+    for t in runid_reps:
+        plot_venn_diagram(runid_rep_genes[t], t)
     plot_venn_diagram(runid_genes, runid)
-    
-#     in_all = [] # a list of genes with peaks in all runids:
-#     for ii in range(0, seen_genes.__len__()):
-#         foundit = True
-#         for t in runid_genes:
-#             if ii not in runid_genes[t]:
-#                 foundit = False
-#                 break
-#         if foundit == True:
-#             in_all.append( ii )
-    
 
-    #tt_overlap = compute_venn( runid_genes, in_all )
-    #print "\n. 124:", tt_overlap
-    #print "\n. 125:", in_all
-    #plot_venn_diagram( tt_overlap, in_all.__len__(), "peak_count.venn." + runid)
-    
-    
-#
-# depricated
-#
-def compute_venn( runid_genes, in_all ):
-    """This method prepares data for the method plot_venn_diagram.
-    runid_genes[runid] = list of genes with peaks in this runid
-    in_all = list of genes with peaks in all runids (i.e., the center of the Venn diagram."""
-    runids = runid_genes.keys()
-    runids.sort()
-    
-    """Compute all the 2-way overlaps"""
-    runid_runid_overlap = {} # key = runid, value = hash, key = runid, value = count of overlap
-    for t in runid_genes:
-        runid_runid_overlap[t] = {}
-        for s in runid_genes:
-            count = 0
-            for ii in runid_genes[t]:
-                if ii in runid_genes[s]:
-                    count += 1
-            runid_runid_overlap[t][s] = count
-    outpath = "peak_count.venn_table." + runid + ".xls"
-    print "\n. Writing", outpath
-    fout = open(outpath, "w")
-    fout.write(".\t")
-    fout.write( "\t".join( runids ) )
-    fout.write("\n")
-    for t in runids:
-        fout.write(t + "\t")
-        for s in runids:
-            fout.write( runid_runid_overlap[t][s].__str__() + "\t")
-        fout.write("\n")
-    fout.close() 
-    
-    return runid_runid_overlap
     
 #########################################
 #
