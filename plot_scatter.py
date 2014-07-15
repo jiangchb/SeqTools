@@ -18,7 +18,7 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab=""):
     cranstr = re.sub(",$", "", cranstr)
     cranstr += ");\n"
     
-    cranstr += "plot(x, y, log='y', xlab=\"" + xlab + "\", ylab=\"" + ylab + "\");\n"
+    cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\");\n"
     cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")
     fout.write( cranstr )

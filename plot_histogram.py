@@ -69,7 +69,11 @@ def set_params(data, fixed_max=None, fixed_nbins=None):
     plot_params["BIN_SIZE"] = val_range / plot_params["NBINS"]
     
     # Now adjust the bin size to be a nice round number
-    if plot_params["BIN_SIZE"] < 100:
+    if plot_params["BIN_SIZE"] <= 10:
+        plot_params["BIN_SIZE"] = roundup(plot_params["BIN_SIZE"], 1)
+        plot_params["MIN_BIN_FLOOR"] = rounddown( plot_params["MIN_BIN_FLOOR"], 1)
+        plot_params["MAX_BIN_CEILING"] = roundup( plot_params["MAX_BIN_CEILING"], 1)
+    elif plot_params["BIN_SIZE"] < 100:
         plot_params["BIN_SIZE"] = roundup(plot_params["BIN_SIZE"], 10)
         plot_params["MIN_BIN_FLOOR"] = rounddown( plot_params["MIN_BIN_FLOOR"], 10)
         plot_params["MAX_BIN_CEILING"] = roundup( plot_params["MAX_BIN_CEILING"], 10)
@@ -160,7 +164,4 @@ def plot_histogram(data, keyword, xlab="", ylab="", fixed_max=None, fixed_nbins=
     """data is an array of floating point values"""
     plot_params = set_params(data, fixed_max=fixed_max, fixed_nbins=fixed_nbins)
     barplot1(data, keyword + ".histo", plot_params, xlab=xlab, ylab=ylab)
-    
-    
-    
     
