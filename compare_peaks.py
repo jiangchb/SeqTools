@@ -32,7 +32,7 @@ def get_runid_reps():
         repid = 0
         foundit = True
         while(foundit == True):
-            if os.path.exists(t + ".rep" + repid.__str__() + ".gn2pk.txt"):
+            if os.path.exists(t + ".rep" + repid.__str__() + ".gn2sm.txt"):
                 runid_reps[t].append( repid )
                 repid += 1
             else:
@@ -72,7 +72,7 @@ def make_output(runid_reps):
     runid_rep_gene_pkcount = {} # key = runid, value = hash, key = rep, value = hash, key = gene (orfname), value = count of peaks for this gene
 
     #
-    # gn2pk.txt
+    # Read gn2sm.txt
     #
     for t in runid_reps:
         if t not in runid_rep_gene_pkcount:
@@ -80,9 +80,9 @@ def make_output(runid_reps):
         for rep in runid_reps[t]:            
             if rep not in runid_rep_gene_pkcount[t]:
                 runid_rep_gene_pkcount[t][rep] = {}
-            gn2pk_path = t + ".rep" + rep.__str__() + ".gn2pk.txt"
-            print "\n. Reading the gene-2-peak file", gn2pk_path
-            fin = open(gn2pk_path)
+            gn2sm_path = t + ".rep" + rep.__str__() + ".gn2sm.txt"
+            print "\n. Reading the gene-2-summit file", gn2sm_path
+            fin = open(gn2sm_path)
             lines = fin.readlines()
             for l in lines:
                 if l.__len__() > 2:
@@ -133,10 +133,10 @@ def make_output(runid_reps):
     fout.close()
 
     #
-    # Write summarized, new, gn2pk.txt
+    # Write summarized, new, gn2sm.txt
     #
-    gn2pk_outpath = runid + ".rep0.gn2pk.txt"
-    fout = open(gn2pk_outpath, "w")
+    gn2sm_outpath = runid + ".rep0.gn2sm.txt"
+    fout = open(gn2sm_outpath, "w")
     for ii in range(0, seen_genes.__len__()):
         in_all = True
         for t in runid_genes:
@@ -145,6 +145,30 @@ def make_output(runid_reps):
                 break
         if in_all:
             fout.write( seen_genes[ii] + "\t1\n")
+    fout.close()
+
+    #
+    # Write union / disunion gene lists
+    #
+    good_genes = []
+    runids = runid_genes.keys()
+    good_genes = list( set(runid_genes[runids[0]]) & set(runid_genes[runids[1]]) )
+    if runids.__len__() > 2:
+        for ii in range(2, runids.__len__()):
+            good_genes = list( set(good_genes) & set(runid_genes[runids[2]]) )
+    
+    bad_genes = list( set([ii for ii in range(0,seen_genes.__len__())]) - set(good_genes) )
+          
+    print "\n. Genes in the disunion are listed in", runid + ".genes.union.txt"
+    fout = open(runid + ".genes.disunion.txt", "w")
+    for g in bad_genes:
+        fout.write(seen_genes[g] + "\n")
+    fout.close()
+
+    print "\n. Genes in the union are listed in", runid + ".genes.union.txt"    
+    fout = open(runid + ".genes.union.txt", "w")
+    for g in good_genes:
+        fout.write(seen_genes[g] + "\n")
     fout.close()
 
     #

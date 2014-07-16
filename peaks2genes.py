@@ -112,6 +112,10 @@ def build_sm2gn(summitpath, chr_gene_sites):
                 stop = chr_gene_sites[chr][gene][1]
                 d = start - sumsite
                 
+                #
+                # to-do: there is a bug here. See notes from Eugenio July 2014
+                #
+                
                 """Sense direction, and upstream"""
                 if start < stop and start >= sumsite:
                     
@@ -182,7 +186,7 @@ def write_sm2gn(chr_sumsite_stats, repid):
             fout.write( "\t" + chr_sumsite_stats[chr][sumsite][4].__str__()            )
             fout.write( "\t" + chr_sumsite_stats[chr][sumsite][0].__str__()            )
             fout.write( "\t" + chr_sumsite_stats[chr][sumsite][1].__str__()            )
-            fout.write( "\t -" + chr_sumsite_stats[chr][sumsite][2].__str__()          )
+            fout.write( "\t " + chr_sumsite_stats[chr][sumsite][2].__str__()          )
             fout.write( "\t" + chr_sumsite_stats[chr][sumsite][3].__str__().__str__() + "\n"  )
 
     fout.close()
