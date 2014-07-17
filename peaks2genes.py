@@ -58,7 +58,7 @@ def read_gff(gffpath):
             gene = tokens[8].split(";")[0].split("=")[1]
             if chr not in chr_gene_sites:
                 chr_gene_sites[chr] = {}
-            if strand == "+":
+            if strand == "+": # sense strand
                 chr_gene_sites[chr][gene] = (start, stop)
             else: # antisense strand
                 chr_gene_sites[chr][gene] = (stop, start)
@@ -125,6 +125,15 @@ def build_sm2gn(summitpath, chr_gene_sites):
                     if min_up > d:
                         min_up = d
                         closest_up = gene
+                elif start < stop and stop < sumsite:
+                    """Sense direction and downstream"""
+                    if min_down == None:
+                        min_down = d
+                        closest_down = None
+                    if min_down < d:
+                        min_down = d
+                        closest_down = None
+                    
                 elif start > stop and start <= sumsite:
                     """Antisense and downstream"""
                     if min_down == None:
@@ -133,6 +142,14 @@ def build_sm2gn(summitpath, chr_gene_sites):
                     if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
                         min_down = d
                         closest_down = gene
+                elif start > stop and stop > sumsite:
+                    """Antisense and upstream"""
+                    if min_up == None:
+                        min_up = d
+                        closest_up = None
+                    if min_up > d:
+                        min_up = d
+                        closest_up = None
                         
                 """Note: this ignores the cases where the summit is inside a
                 coding region. It also ignores the cases where the nearest gene
@@ -152,11 +169,11 @@ def build_gn2sm(chr_sumsite_stats):
             upd = chr_sumsite_stats[chr][sumsite][0]
             downgene = chr_sumsite_stats[chr][sumsite][3]
             downd = chr_sumsite_stats[chr][sumsite][2]
-            if upd != None:
+            if upgene != None and upd != None:
                 if upgene not in gene_summits:
                     gene_summits[ upgene ] = [] # continue here
                 gene_summits[ upgene ].append(  (sumsite, -1*int(upd), chr_sumsite_stats[chr][sumsite][4])  )       
-            if downd != None:
+            if downgene != None and downd != None:
                 if downgene not in gene_summits:
                     gene_summits[ downgene ] = [] # continue here
                 gene_summits[ downgene ].append(  (sumsite, -1*int(downd), chr_sumsite_stats[chr][sumsite][4])  )       
