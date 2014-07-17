@@ -124,6 +124,7 @@ def build_sm2gn(summitpath, chr_gene_sites):
                     if min_up > d:
                         min_up = d
                         closest_up = gene
+                        
                 elif start < stop and stop < sumsite:
                     """Sense direction and downstream"""
                     if min_down == None:
@@ -141,6 +142,7 @@ def build_sm2gn(summitpath, chr_gene_sites):
                     if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
                         min_down = d
                         closest_down = gene
+                        
                 elif start > stop and stop > sumsite:
                     """Antisense and upstream"""
                     if min_up == None:
@@ -154,7 +156,10 @@ def build_sm2gn(summitpath, chr_gene_sites):
                 coding region. It also ignores the cases where the nearest gene
                 is in the wrong sense orientation, such that the gene's stop site
                 is placed between the start site and the summit."""
-            
+            if closest_up == None:
+                min_up = None
+            if closest_down == None:
+                min_down = None
             #print chr, sumsite, chr_site_score[chr][sumsite], closest_up, min_up, closest_down, min_down
             chr_sumsite_stats[chr][sumsite] = (min_up, closest_up, min_down, closest_down, chr_site_score[chr][sumsite])    
     return chr_sumsite_stats
@@ -164,10 +169,10 @@ def build_gn2sm(chr_sumsite_stats):
     gene_summits = {}
     for chr in chr_sumsite_stats:
         for sumsite in chr_sumsite_stats[chr]:
-            upgene = chr_sumsite_stats[chr][sumsite][1]
             upd = chr_sumsite_stats[chr][sumsite][0]
-            downgene = chr_sumsite_stats[chr][sumsite][3]
+            upgene = chr_sumsite_stats[chr][sumsite][1]
             downd = chr_sumsite_stats[chr][sumsite][2]
+            downgene = chr_sumsite_stats[chr][sumsite][3]
             if upgene != None and upd != None:
                 if upgene not in gene_summits:
                     gene_summits[ upgene ] = [] # continue here
@@ -279,6 +284,8 @@ def resolve_replicates(replicate_gn2sm):
     print "\n." + bad_genes.__len__().__str__() + " don't have summits in all replicates."
     print "\n. Union genes summit score, mean= ", "%.3f"%mean(good_genes_scores), "sd=", "%.3f"%sd(good_genes_scores)
     print "\n. Disunion genes summit score, mean= ", "%.3f"%mean(bad_genes_scores), "sd=", "%.3f"%sd(bad_genes_scores)
+    
+    return (good_genes, bad_genes)
 
 def find_max_summit(summits):
     """Returns the summit score for the best summit in the list. THe list 'summits' is a 5-tuple, created in the method read_replicate."""
@@ -327,8 +334,10 @@ def make_plots(chr_sumsite_stats, repid):
                     this_d = dd
                 else:
                     this_d = upd
-            distances.append( this_d )
-            scores.append( float( chr_sumsite_stats[chr][sumsite][4]) )
+            
+            if this_d != None:
+                distances.append( this_d )
+                scores.append(float( chr_sumsite_stats[chr][sumsite][4]) )
     scatter1(distances, scores, runid + ".rep" + repid.__str__() + ".dist-v-score", xlab="min. distance to gene", ylab="summit score")
 
 def read_peaks(ppath):
@@ -373,6 +382,40 @@ def make_peak_plots( chr_peaksite_stats, repid ):
     scatter1(pvals, logpvals, runid + ".rep" + repid.__str__() + ".p-v-logp", xlab="P value", ylab="log(P) value of peak")
     scatter1(qvals, logqvals, runid + ".rep" + repid.__str__() + ".q-v-logq", xlab="Q value", ylab="log(Q) value of peak")
 
+def rank_peaks( gn2sm ):
+    """Returns gene_rank"""
+    qvals_genes = {}
+    for g in gn2sm:
+        max_qval = 0.0
+        for sm in gn2sm[g]:
+            if float(sm[2]) > max_qval:
+                max_qval = float(sm[2])
+        qval = max_qval
+        if qval not in qvals_genes:
+            qvals_genes[qval] = [ g ]
+        else:
+            qvals_genes[qval].append( g )
+    qvals = qvals_genes.keys()
+    qvals.sort(reverse=True)
+    
+    gene_rank = {}
+    
+    rank = 0
+    for qval in qvals:
+        rank += 1
+        for g in qvals_genes[qval]:
+            gene_rank[g] = rank
+    return gene_rank
+
+def calculate_gamma_rank(replicate_gene_rank, genes):
+    """See Li 2011"""
+    xranks = []
+    yranks = []
+    for g in genes:      
+        xranks.append( replicate_gene_rank[ 0 ][g] )
+        yranks.append( replicate_gene_rank[ 1 ][g] )
+    scatter1(xranks, yranks, runid + ".rank", xlab="", ylab="")
+    
 ####################
 #
 # main
@@ -388,13 +431,21 @@ for ii in range(0, summitpaths.__len__() ):
     replicate_gn2sm[spath] = build_gn2sm(replicate_sm2gn[spath])
     write_gn2sm( replicate_gn2sm[spath], ii)    
     make_plots(replicate_sm2gn[spath], ii)
-resolve_replicates( replicate_gn2sm )
+
+(good_genes, bad_genes) = resolve_replicates( replicate_gn2sm )
+replicate_gene_rank = {}
+for ii in range(0, summitpaths.__len__() ):
+    spath = summitpaths[ii]
+    replicate_gene_rank[ii] = rank_peaks( replicate_gn2sm[spath] )
+calculate_gamma_rank(replicate_gene_rank, good_genes)
     
 if peakpaths:
     replicate_peaks = {}
+
     for ii in range(0, peakpaths.__len__()):
         ppath = peakpaths[ii]
         replicate_peaks[ii] = read_peaks(ppath)
         make_peak_plots( replicate_peaks[ii], ii)
+
 
                 
