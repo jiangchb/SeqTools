@@ -118,7 +118,6 @@ def build_sm2gn(summitpath, chr_gene_sites):
                 
                 """Sense direction, and upstream"""
                 if start < stop and start >= sumsite:
-                    
                     if min_up == None:
                         min_up = d
                         closest_up = gene
