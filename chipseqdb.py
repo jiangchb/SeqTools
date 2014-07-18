@@ -99,6 +99,8 @@ def import_gff(gffpath, speciesid, con):
     return con
 
 def import_summits(summitpath, repid, con):
+    """Reads a summit file (from MACS2, for example), and puts values into the Summits table."""
+    
     print "\n. Importing summits from", summitpath,"for replicate", repid
     
     cur = con.cursor()
@@ -131,6 +133,7 @@ def import_summits(summitpath, repid, con):
 
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):
+    """This methods puts values into the table GeneSummits."""
     
     with con:
         #

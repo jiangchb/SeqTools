@@ -21,3 +21,4 @@ for sp in species:
         con = import_summits(s, repid, con)
         con = map_summits2genes(con, repid, speciesid=1)
         repid += 1
+
