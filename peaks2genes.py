@@ -258,14 +258,14 @@ def resolve_replicates(replicate_gn2sm):
                 gene_best_scores[gene].append( find_max_summit(replicate_gn2sm[rep][gene]) )
         
     good_genes_scores = []
-    fout = open(runid + ".genes.union.txt", "w")
+    fout = open(runid + ".genes.union.xls", "w")
     for gene in good_genes:
         fout.write( gene + "\t" + "\t".join( map(str,gene_best_scores[gene]) ) + "\n")
         good_genes_scores.append( max(gene_best_scores[gene]) )
     fout.close()
     
     bad_genes_scores = []
-    fout = open(runid + ".genes.disunion.txt", "w")
+    fout = open(runid + ".genes.disunion.xls", "w")
     for gene in bad_genes:
         fout.write(gene + "\t" + "\t".join( map(str, gene_best_scores[gene]) ) +  "\n")
         bad_genes_scores.append( max(gene_best_scores[gene]) )
@@ -414,7 +414,7 @@ def calculate_gamma_rank(replicate_gene_rank, genes):
     for g in genes:      
         xranks.append( replicate_gene_rank[ 0 ][g] )
         yranks.append( replicate_gene_rank[ 1 ][g] )
-    scatter1(xranks, yranks, runid + ".rank", xlab="", ylab="")
+    scatter1(xranks, yranks, runid + ".rank", xlab="Gene Rank, rep1", ylab="Gene Rank, rep2")
     
 ####################
 #

@@ -70,6 +70,7 @@ def make_output(runid_reps):
     #
     seen_genes = [] # a list of orfnames that we've seen in any context
     runid_rep_gene_pkcount = {} # key = runid, value = hash, key = rep, value = hash, key = gene (orfname), value = count of peaks for this gene
+    runid_rep_gene_smscores = {} 
 
     #
     # Read gn2sm.txt
@@ -77,9 +78,11 @@ def make_output(runid_reps):
     for t in runid_reps:
         if t not in runid_rep_gene_pkcount:
             runid_rep_gene_pkcount[t] = {}
+            runid_rep_gene_smscores[t] = {}
         for rep in runid_reps[t]:            
             if rep not in runid_rep_gene_pkcount[t]:
                 runid_rep_gene_pkcount[t][rep] = {}
+                runid_rep_gene_smscores[t][rep] = {}
             gn2sm_path = t + ".rep" + rep.__str__() + ".gn2sm.txt"
             print "\n. Reading the gene-2-summit file", gn2sm_path
             fin = open(gn2sm_path)
@@ -88,10 +91,16 @@ def make_output(runid_reps):
                 if l.__len__() > 2:
                     tokens = l.split()
                     orfname = get_orf(tokens[0])
+                    runid_rep_gene_smscores[t][rep][orfname] = []
                     if orfname not in seen_genes:
                         seen_genes.append( orfname )
+                    for jj in range(2, tokens.__len__() ):
+                        if jj%2:
+                            runid_rep_gene_smscores[t][rep][orfname].append( float(tokens[jj]) )
                     peak_count = int( tokens[1] )
                     runid_rep_gene_pkcount[t][rep][orfname] = peak_count
+                    runid_rep_gene_smscores[t][rep][orfname] 
+
 
     #
     # Write peak_count...xls 
@@ -159,16 +168,29 @@ def make_output(runid_reps):
     
     bad_genes = list( set([ii for ii in range(0,seen_genes.__len__())]) - set(good_genes) )
           
-    print "\n. Genes in the disunion are listed in", runid + ".genes.union.txt"
-    fout = open(runid + ".genes.disunion.txt", "w")
+    gene_bestscore = {} # key = gene, value = array of scores for this rep
+    for gene in (good_genes + bad_genes):
+        orfname = seen_genes[gene]
+        gene_bestscore[orfname] = 0.0
+        for t in runid_reps:
+            for rep in runid_reps[t]:
+                if orfname in runid_rep_gene_smscores[t][rep]: 
+                    x = max( runid_rep_gene_smscores[t][rep][orfname] )
+                    if x > gene_bestscore[orfname]:
+                        gene_bestscore[orfname] = x
+        
+    print "\n. Genes in the disunion are listed in", runid + ".genes.union.xls"
+    fout = open(runid + ".genes.disunion.xls", "w")
     for g in bad_genes:
-        fout.write(seen_genes[g] + "\n")
+        orfname = seen_genes[g]
+        fout.write(seen_genes[g] + "\t" + gene_bestscore[orfname].__str__() + "\n")
     fout.close()
 
-    print "\n. Genes in the union are listed in", runid + ".genes.union.txt"    
-    fout = open(runid + ".genes.union.txt", "w")
+    print "\n. Genes in the union are listed in", runid + ".genes.union.xls"    
+    fout = open(runid + ".genes.union.xls", "w")
     for g in good_genes:
-        fout.write(seen_genes[g] + "\n")
+        orfname = seen_genes[g]
+        fout.write(seen_genes[g] + "\t" + gene_bestscore[orfname].__str__() + "\n")
     fout.close()
 
     #
