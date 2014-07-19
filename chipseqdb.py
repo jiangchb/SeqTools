@@ -32,23 +32,38 @@ def build_db(dbpath = None):
 
 def get_species_ids(con):
     cur = con.cursor()                
-    cur.execute("SELECT * FROM Species")
+    cur.execute("SELECT id FROM Species")
     return cur.fetchall()
      
 def get_chrom_ids(con, speciesid):
     cur = con.cursor()
-    cur.execute("SELECT * FROM Chromosomes where species=" + speciesid.__str__())
+    cur.execute("SELECT id FROM Chromosomes where species=" + speciesid.__str__())
     return cur.fetchall()
 
-def get_gene_ids(con, chromid):
+def get_genes(con, chromid):
      cur = con.cursor()
-     cur.execute("SELECT * FROM Genes where chrom=" + chromid.__str__())
+     sql = "SELECT * FROM Genes where chrom=" + chromid.__str__()
+     #print "46:", sql
+     cur.execute(sql)
      return cur.fetchall()
 
-def get_summit_ids(con, repid, chromid):
+def get_summits(con, repid, chromid):
      cur = con.cursor()
-     cur.execute("SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__())
+     sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
+     #print "53:", sql
+     cur.execute(sql)
      return cur.fetchall()
+ 
+def get_max_summit_score_for_gene(geneid, repid, con):
+    cur = con.cursor()
+    sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
+    #print "60:", sql
+    cur.execute(sql)
+    scores = cur.fetchall()
+    if scores.__len__() == 0:
+        return None
+    #print "62:", repid, scores
+    return max( scores )
 
 # Build a library of genes
 #
@@ -98,13 +113,23 @@ def import_gff(gffpath, speciesid, con):
     
     return con
 
+def add_replicate(repid, speciesid, con):
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM Replicates WHERE count=" + repid.__str__() )
+        data = cur.fetchone()
+        if data[0] == 0: # that chromosome doesn't exist yet.
+            sql = "INSERT INTO Replicates (count,species) VALUES(" + repid.__str__() + "," + speciesid.__str__() + ")"
+            cur.execute( sql )
+            con.commit()
+    return con
+
 def import_summits(summitpath, repid, con):
     """Reads a summit file (from MACS2, for example), and puts values into the Summits table."""
     
     print "\n. Importing summits from", summitpath,"for replicate", repid
-    
     cur = con.cursor()
-    
+        
     #
     # Build a library of summits
     #
@@ -149,8 +174,8 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
             chroms = get_chrom_ids(con, spid)
             for chr in chroms:
                 chrid = chr[0]
-                genes = get_gene_ids(con, chrid)
-                summits = get_summit_ids(con, repid, chrid)
+                genes = get_genes(con, chrid)
+                summits = get_summits(con, repid, chrid)
                 for s in summits:
                     sid = s[0]
                     sumsite = s[3]
@@ -208,7 +233,7 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
                             sql += " VALUES(" + closest_up.__str__() + "," 
                             sql += sid.__str__() + ","
                             sql += min_up.__str__() + ") "
-                            print sql         
+                            #print sql         
                             cur.execute(sql) 
                     if closest_down != None and min_down != None:
                         with con:
@@ -216,7 +241,7 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
                             sql += " VALUES(" + closest_down.__str__() + "," 
                             sql += sid.__str__() + ","
                             sql += min_down.__str__() + ") "  
-                            print sql           
+                            #print sql           
                             cur.execute(sql) 
     return con
                 
