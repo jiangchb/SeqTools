@@ -20,6 +20,7 @@
 #         f.savefig(filekeyword + ".venn.png")
         
 def plot_venn_diagram(data, filekeyword):
+    """data[key] = list of values in key's set."""
     from matplotlib import pyplot as plt
     import numpy as np
     

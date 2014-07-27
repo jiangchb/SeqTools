@@ -11,7 +11,9 @@ def build_db(dbpath = None):
     """Initializes all the tables.
     Returns the DB connection object."""
     
-    if dbpath == None:
+    print "\n. Building the database. . ."
+    
+    if dbpath == None or dbpath == False:
         dbpath = "test.db"
     con = lite.connect(dbpath)
     
@@ -19,10 +21,12 @@ def build_db(dbpath = None):
         cur = con.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT, start INT, stop INT, chrom INT, strand TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(gene INT, name TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species ID)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
         cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
-        
-        cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, count INT, species INT)")
+
+        cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique, species INT)")        
+        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT, note TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
         cur.execute("CREATE TABLE IF NOT EXISTS Peaks(id INTEGER primary key autoincrement, replicate INT, name TEXT, start INT, stop INT, chrom INT, enrich FLOAT)")
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GenePeaks(gene INTEGER, peak INT, distance INT)") # Dist is distance to the trans. start site
@@ -34,10 +38,36 @@ def get_species_ids(con):
     cur = con.cursor()                
     cur.execute("SELECT id FROM Species")
     return cur.fetchall()
-     
+
 def get_chrom_ids(con, speciesid):
     cur = con.cursor()
     cur.execute("SELECT id FROM Chromosomes where species=" + speciesid.__str__())
+    return cur.fetchall()
+
+def get_repid(repname, speciesid, con):    
+    cur = con.cursor()
+    cur.execute("SELECT id from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__())
+    return cur.fetchone()[0]
+
+def get_repgroup_ids(con):
+    cur = con.cursor()
+    cur.execute("SELECT id from ReplicateGroups")
+    return cur.fetchall()
+
+def get_repgroup_id(rgroup, con):
+    cur = con.cursor()
+    cur.execute("SELECT id from ReplicateGroups where name='" + rgroup + "'")
+    return cur.fetchone()[0]
+
+def get_reps_in_group(rgroupid, con):
+    cur = con.cursor()
+    cur.execute("SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__())
+    return cur.fetchall()
+
+def get_geneids(con, repid):
+    cur = con.cursor()
+    sql = "SELECT gene FROM GeneSummits where summit in (SELECT id from Summits where replicate=" + repid.__str__() + ")"
+    cur.execute(sql)
     return cur.fetchall()
 
 def get_genes(con, chromid):
@@ -53,7 +83,7 @@ def get_summits(con, repid, chromid):
      #print "53:", sql
      cur.execute(sql)
      return cur.fetchall()
- 
+
 def get_max_summit_score_for_gene(geneid, repid, con):
     cur = con.cursor()
     sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
@@ -61,13 +91,25 @@ def get_max_summit_score_for_gene(geneid, repid, con):
     cur.execute(sql)
     scores = cur.fetchall()
     if scores.__len__() == 0:
-        return None
+        return None 
     #print "62:", repid, scores
     return max( scores )
 
-# Build a library of genes
-#
-def import_gff(gffpath, speciesid, con):
+def import_species(speciesname, con):
+    cur = con.cursor()
+    sql = "INSERT INTO Species (name) VALUES('" + speciesname + "')"
+    cur.execute( sql )
+    con.commit()
+    return con
+
+def get_species_id(speciesname, con):
+    cur = con.cursor()
+    sql = "SELECT id FROM Species where name='" + speciesname + "'"
+    cur.execute(sql)
+    return cur.fetchone()[0]
+
+
+def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     print "\n. Importing GFF from", gffpath
     
     """Returns chr_gene_sites"""
@@ -78,7 +120,7 @@ def import_gff(gffpath, speciesid, con):
     for l in fin.xreadlines():
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
-            if tokens[2] != "gene": # We're only interested in genes
+            if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
                 continue
             chr = tokens[0]
             start = int( tokens[3] )
@@ -96,6 +138,7 @@ def import_gff(gffpath, speciesid, con):
                 data = cur.fetchone()
                 if data[0] == 0: # that chromosome doesn't exist yet.
                     sql = "INSERT INTO Chromosomes (name,species) VALUES('" + chr + "'," + speciesid.__str__() + ")"
+                    #print sql
                     cur.execute( sql )
                     con.commit()
             
@@ -109,20 +152,48 @@ def import_gff(gffpath, speciesid, con):
     
     cur.execute("SELECT COUNT(*) FROM Genes")
     count_genes = cur.fetchone()[0]
-    print "\n. I have ", count_genes, "total genes."
+    #print "\n. The database now contains", count_genes, "total genes."
     
     return con
 
-def add_replicate(repid, speciesid, con):
+def add_repgroup(rgroup, con, note=None):
     with con:
         cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM Replicates WHERE count=" + repid.__str__() )
+        cur.execute("SELECT COUNT(*) FROM ReplicateGroups WHERE name='" + rgroup + "'")
+        count = cur.fetchone()[0]
+        if count == 0:
+            if note == None:
+                note = "None"
+            sql = "INSERT INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
+            cur.execute(sql)
+            con.commit()
+    return con        
+    
+def add_replicate(repname, speciesid, con):
+    print "164:"
+    new_id = None
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM Replicates WHERE name='" + repname.__str__() + "' and species=" + speciesid.__str__() )
         data = cur.fetchone()
         if data[0] == 0: # that chromosome doesn't exist yet.
-            sql = "INSERT INTO Replicates (count,species) VALUES(" + repid.__str__() + "," + speciesid.__str__() + ")"
+            sql = "INSERT INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
             cur.execute( sql )
             con.commit()
     return con
+
+
+def add_rep2group(repid, rgroupid, con):
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM GroupReplicate WHERE rgroup=" + rgroupid.__str__() + " and replicate=" + repid.__str__())
+        count = cur.fetchone()[0]
+        if count == 0:
+            sql = "INSERT INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
+    return con
+        
 
 def import_summits(summitpath, repid, con):
     """Reads a summit file (from MACS2, for example), and puts values into the Summits table."""
@@ -144,8 +215,9 @@ def import_summits(summitpath, repid, con):
             score = float( tokens[4] )
             
             with con:
-                cur = con.cursor()                
-                cur.execute("SELECT * FROM Chromosomes WHERE name='" + chr + "'")
+                cur = con.cursor()
+                sql = "SELECT * FROM Chromosomes WHERE name='" + chr + "'"                
+                cur.execute(sql)
                 chrid = cur.fetchone()[0]
                 sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                 cur.execute(sql)
@@ -153,7 +225,7 @@ def import_summits(summitpath, repid, con):
     
     cur.execute("SELECT COUNT(*) FROM Summits")
     count_genes = cur.fetchone()[0]
-    print "\n. I have", count_genes, "total summits."
+    #print "\n. I have", count_genes, "total summits."
     return con
 
 
@@ -161,16 +233,14 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
     """This methods puts values into the table GeneSummits."""
     
     with con:
-        #
-        # for each species:
-        #
         cur = con.cursor()
         speciesids = []
         if speciesid:
-            species = [speciesid]
+            spids = [speciesid]
         else:
-            species = get_species_ids(con)
-        for spid in species:
+            spids = get_species_ids(con)
+            
+        for spid in spids:
             chroms = get_chrom_ids(con, spid)
             for chr in chroms:
                 chrid = chr[0]

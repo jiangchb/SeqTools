@@ -32,6 +32,7 @@ from debugTools import *
 class ArgParser:
 	def __init__(self, cliArgs):
 		self.args = cliArgs
+		self.params = {}
 	
 	# use this method to grab REQUIRED command-line parameters:
 	def getArg(self, flag):
