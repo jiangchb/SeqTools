@@ -84,15 +84,20 @@ def get_summits(con, repid, chromid):
      cur.execute(sql)
      return cur.fetchall()
 
-def get_max_summit_score_for_gene(geneid, repid, con):
+def get_summit_scores_for_gene(geneid, repid, con):
     cur = con.cursor()
     sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
     #print "60:", sql
     cur.execute(sql)
-    scores = cur.fetchall()
+    scores = []
+    for s in cur.fetchall():
+        scores.append( s[0] )
+    return scores
+
+def get_max_summit_score_for_gene(geneid, repid, con):
+    scores = get_summit_scores_for_gene(geneid, repid, con)
     if scores.__len__() == 0:
         return None 
-    #print "62:", repid, scores
     return max( scores )
 
 def import_species(speciesname, con):

@@ -10,30 +10,27 @@ from plot_scatter import *
 from plot_venn import *
 
 def correlate_two_reps(repid1, repid2, con):
-    print "\n. Comparing replicates", repid1, "and", repid2
+    """This is a long method (sorry). It correlates the summits in two replicates,
+    using a variety of methods."""
+    cur = con.cursor()
+    cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
+    rep1name = cur.fetchone()[0]
+    cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
+    rep2name = cur.fetchone()[0]
+    
+    print "\n. Comparing replicates", rep1name, "and", rep2name
     cur = con.cursor()
     cur.execute("SELECT species from Replicates where id=" + repid1.__str__())
     data = cur.fetchone()
-    
-    ##
-#     print "19:", data
-#     cur.execute("SELECT species from Replicates")
-#     data = cur.fetchall()
-    #print "22:", data
-    ##
-    
+        
     species1 = data[0]
-    cur = con.cursor()
+
     cur.execute("SELECT species from Replicates where id=" + repid2.__str__())
     species2 = cur.fetchone()[0]    
     if species1 != species2:
         return None
     
     """Venn diagram of genes with/without summits in both replicates."""
-    cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
-    rep1name = cur.fetchone()[0]
-    cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
-    rep2name = cur.fetchone()[0]
 
     venn_data = {}
     venn_data[ rep1name ] = []
@@ -46,6 +43,91 @@ def correlate_two_reps(repid1, repid2, con):
         venn_data[ rep2name ].append(ii[0])
     plot_venn_diagram( venn_data, "genes." + rep1name.__str__() + "." + rep2name.__str__())
     
+ 
+    """For the following plots, we'll use these data structures."""   
+    print "\n. Building a dictionary of summits & genes for", rep1name, "and", rep2name
+    rep1_gene_summitscores = {} # key = geneid, value = summit scores from rep1
+    rep2_gene_summitscores = {}
+    chromids = get_chrom_ids(con, species1)
+    for chr in chromids:
+        genes = get_genes(con, chr[0])
+        for g in genes:
+            gid = g[0]
+            x = get_summit_scores_for_gene(gid, repid1, con)
+            if x.__len__() > 0:
+                rep1_gene_summitscores[gid] = x
+            y = get_summit_scores_for_gene(gid, repid2, con)
+            if y.__len__() > 0:
+                rep2_gene_summitscores[gid] = y
+    
+    
+    """Write an Excel table with genes and their scores in each replicate."""
+    xlpath = "genes." + rep1name.__str__() + "." + rep2name.__str__() + ".xls"
+    print "\n. Writing an Excel table to", xlpath
+    fout = open(xlpath, "w")
+    fout.write("geneID\tname\t")
+    fout.write("N(" + rep1name.__str__() + ")\t")
+    fout.write("mean(" + rep1name.__str__() + ")\t")
+    #fout.write("mode(" + rep1name.__str__() + ")\t")
+    fout.write("max(" + rep1name.__str__() + ")\t")
+    fout.write("min(" + rep1name.__str__() + ")\t")
+    fout.write("N(" + rep2name.__str__() + ")\t")
+    fout.write("mean(" + rep2name.__str__() + ")\t")
+    #fout.write("mode(" + rep2name.__str__() + ")\t")
+    fout.write("max(" + rep2name.__str__() + ")\t")
+    fout.write("min(" + rep2name.__str__() + ")\n")
+    chromids = get_chrom_ids(con, species1)
+    for chr in chromids:
+        genes = get_genes(con, chr[0])
+        for g in genes:
+            gid = g[0]
+            """Ignore genes that aren't in at least on replicate."""
+            if gid not in rep1_gene_summitscores and gid not in rep2_gene_summitscores:
+                continue # skip to the next gene
+            
+            fout.write(g[0].__str__() + "\t" + g[1].__str__() + "\t")
+            if gid in rep1_gene_summitscores:
+                thisn = rep1_gene_summitscores[gid].__len__()
+                if thisn == 1:
+                    thismode = rep1_gene_summitscores[gid][0]
+                    thismean = rep1_gene_summitscores[gid][0]
+                else:
+                    thismean = stats.tmean( rep1_gene_summitscores[gid] ) # the [0] index is because SciPy returns an array of results
+                    thismode = stats.mode( rep1_gene_summitscores[gid] )[0]
+                thismax = max( rep1_gene_summitscores[gid] )
+                thismin = min( rep1_gene_summitscores[gid] )
+                #print "81:", thisn, thismean, thismode, thismax, thismin
+                fout.write("%d"%thisn + "\t")
+                fout.write("%.3f"%thismean + "\t")
+                #fout.write("%.3f"%thismode + "\t")
+                fout.write("%.3f"%thismax + "\t")
+                fout.write("%.3f"%thismin + "\t")
+            else:
+                fout.write("0\t0\t0\t0\t0\t")               
+            
+            if gid in rep2_gene_summitscores:
+                #print "93:", gid
+                #print "97:", rep2_gene_summitscores[gid]
+                #print "98:", type( rep2_gene_summitscores[gid] )
+                thisn = rep2_gene_summitscores[gid].__len__()
+                if thisn == 1:
+                    thismode = rep2_gene_summitscores[gid][0]
+                    thismean = rep2_gene_summitscores[gid][0]
+                else:
+                    thismean = stats.tmean( rep2_gene_summitscores[gid] )
+                    thismode = stats.mode( rep2_gene_summitscores[gid] )[0]
+                thismax = max( rep2_gene_summitscores[gid] )
+                thismin = min( rep2_gene_summitscores[gid] )
+                #print "95:", thisn, thismean, thismode, thismax, thismin
+                fout.write("%d"%thisn + "\t")
+                fout.write("%.3f"%thismean + "\t")
+                #fout.write("%.3f"%thismode + "\t")
+                fout.write("%.3f"%thismax + "\t")
+                fout.write("%.3f"%thismin + "\n")
+            else:
+                fout.write("0\t0\t0\t0\t0\n")
+    fout.close()
+
     
     """ Plot score correlations."""
     xvals = []
@@ -55,31 +137,33 @@ def correlate_two_reps(repid1, repid2, con):
         genes = get_genes(con, chr[0])
         for g in genes:
             gid = g[0]
-            x = get_max_summit_score_for_gene(gid, repid1, con)
-            y = get_max_summit_score_for_gene(gid, repid2, con)
-            if x != None and y != None:
-                xvals.append(x[0])
-                yvals.append(y[0])
-    scatter1(xvals,yvals,"corr.score.rep" + repid1.__str__() + ".rep" + repid2.__str__(), xlab="Replicate 1: max summit score for gene", ylab="Replicate 2: max summit score for gene")
+            #x = get_max_summit_score_for_gene(gid, repid1, con)
+            #y = get_max_summit_score_for_gene(gid, repid2, con)
+            #if x != None and y != None:
+            if gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:
+                xvals.append( max(rep1_gene_summitscores[gid]) )
+                yvals.append( max(rep2_gene_summitscores[gid]) )
+    scatter1(xvals,yvals,"corr.score." + rep1name.__str__() + "." + rep2name.__str__(), xlab="Replicate 1: max summit score for gene", ylab="Replicate 2: max summit score for gene")
 
     """Plot rank correlations."""
-    scoresx_genes = {}
+    scoresx_genes = {} # bins of genes, organized by their score range
     scoresy_genes = {}
     chromids = get_chrom_ids(con, species1)
     for chr in chromids:
         genes = get_genes(con, chr[0])
         for g in genes:
             gid = g[0]
-            x = get_max_summit_score_for_gene(gid, repid1, con)
-            y = get_max_summit_score_for_gene(gid, repid2, con)
-            if x != None and y != None:
-                if x[0] not in scoresx_genes:
-                    scoresx_genes[ x[0] ] = []
-                scoresx_genes[ x[0] ].append( gid )
+            if gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:
+                x = max(rep1_gene_summitscores[gid])
+                y = max(rep2_gene_summitscores[gid])
+
+                if x not in scoresx_genes:
+                    scoresx_genes[ x ] = []
+                scoresx_genes[ x ].append( gid )
                 
-                if y[0] not in scoresy_genes:
-                    scoresy_genes[ y[0] ] = []
-                scoresy_genes[ y[0] ].append( gid )
+                if y not in scoresy_genes:
+                    scoresy_genes[ y ] = []
+                scoresy_genes[ y ].append( gid )
     xkeys = scoresx_genes.keys()
     xkeys.sort( reverse=True )
     ykeys = scoresy_genes.keys()
@@ -101,7 +185,7 @@ def correlate_two_reps(repid1, repid2, con):
     for gene in gene_xrank:
         xvals.append( gene_xrank[gene] )
         yvals.append( gene_yrank[gene] )   
-    scatter1(xvals,yvals,"corr.rank.rep" + repid1.__str__() + ".rep" + repid2.__str__(), xlab="Replicate 1: rank order of genes by max summit score", ylab="Replicate 2: rank order of genes by max summit score")
+    scatter1(xvals,yvals,"corr.rank." + rep1name.__str__() + "." + rep2name.__str__(), xlab="Replicate 1: rank order of genes by max summit score", ylab="Replicate 2: rank order of genes by max summit score")
          
         
         
