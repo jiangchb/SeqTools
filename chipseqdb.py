@@ -31,7 +31,9 @@ def build_db(dbpath = None):
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GenePeaks(gene INTEGER, peak INT, distance INT)") # Dist is distance to the trans. start site
         cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)")
-
+        
+        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup
+        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenes(speciesid INTEGER, geneid INTEGER)") # genes that have summits in all repgroups of a species
     return con
 
 def get_species_ids(con):

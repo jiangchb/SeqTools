@@ -47,16 +47,11 @@ def import_data(con):
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
 
-def correlate_replicates(con ):
+def correlate_replicates(con):
     rgroups = get_repgroup_ids(con)
     for rg in rgroups:
         rgroupid = rg[0]
-        repids = get_reps_in_group(rgroupid, con)
-        for ii in range(0, repids.__len__()):
-            for jj in range(1, repids.__len__()):
-                if ii != jj:
-                    #print repids[ii][0], repids[jj][0]   
-                    correlate_two_reps(repids[ii][0], repids[jj][0], con)
+        correlate_reps_in_group(rgroupid, con)
 
 ######################################################################
 #
@@ -82,5 +77,7 @@ con = build_db(dbpath=dbpath)
 if configpath != False:
     con = import_data(con)
 
-"""Compare all pairs of replicates."""
-correlate_replicates(con)
+if False == ap.getOptionalToggle("--skip_repcorr"):
+    """Compare all pairs of replicates."""
+    correlate_replicates(con)
+

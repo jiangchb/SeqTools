@@ -9,7 +9,12 @@ from chipseqdb import *
 from plot_scatter import *
 from plot_venn import *
 
-def correlate_two_reps(repid1, repid2, con):
+def correlate_reps_in_group(rgroupid, con):
+    
+    repids = get_reps_in_group(rgroupid, con)
+    repid1 = repids[0][0]
+    repid2 = repids[1][0]
+    
     """This is a long method (sorry). It correlates the summits in two replicates,
     using a variety of methods."""
     cur = con.cursor()
@@ -31,7 +36,6 @@ def correlate_two_reps(repid1, repid2, con):
         return None
     
     """Venn diagram of genes with/without summits in both replicates."""
-
     venn_data = {}
     venn_data[ rep1name ] = []
     venn_data[ rep2name ] = []
@@ -85,6 +89,14 @@ def correlate_two_reps(repid1, repid2, con):
             if gid not in rep1_gene_summitscores and gid not in rep2_gene_summitscores:
                 continue # skip to the next gene
             
+            elif gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:
+                # This summit is in both replicates:
+                cur.execute("SELECT COUNT(*) from RepgroupGenes where repgroupid=" + rgroupid.__str__() + " and geneid=" + gid.__str__() )
+                if cur.fetchone()[0] == 0: # if this entry doesn't already exist...
+                    sql = "INSERT into RepgroupGenes (repgroupid, geneid) VALUES(" + rgroupid.__str__() + "," + gid.__str__() + ")"
+                    cur.execute(sql)
+                    con.commit()
+            
             fout.write(g[0].__str__() + "\t" + g[1].__str__() + "\t")
             if gid in rep1_gene_summitscores:
                 thisn = rep1_gene_summitscores[gid].__len__()
@@ -103,7 +115,7 @@ def correlate_two_reps(repid1, repid2, con):
                 fout.write("%.3f"%thismax + "\t")
                 fout.write("%.3f"%thismin + "\t")
             else:
-                fout.write("0\t0\t0\t0\t0\t")               
+                fout.write("0\t0\t0\t0\t")               
             
             if gid in rep2_gene_summitscores:
                 #print "93:", gid
@@ -125,7 +137,7 @@ def correlate_two_reps(repid1, repid2, con):
                 fout.write("%.3f"%thismax + "\t")
                 fout.write("%.3f"%thismin + "\n")
             else:
-                fout.write("0\t0\t0\t0\t0\n")
+                fout.write("0\t0\t0\t0\n")
     fout.close()
 
     
