@@ -388,14 +388,15 @@ def import_bdg(bdgpath, repid, con):
             
     for g in geneid_sum:
         geneid = genes[g][0]
-        sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
-        sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
-        sql += "," + geneid_max[geneid].__str__()
-        sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
-        sql += "," + geneid_sum[geneid].__str__()
-        sql += ")"
-        cur.execute(sql)
-        con.commit()
+        if geneid_n[geneid] > 0:
+            sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
+            sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
+            sql += "," + geneid_max[geneid].__str__()
+            sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
+            sql += "," + geneid_sum[geneid].__str__()
+            sql += ")"
+            cur.execute(sql)
+            con.commit()
             
     fin.close()
     
