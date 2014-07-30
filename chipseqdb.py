@@ -348,6 +348,9 @@ def import_bdg(bdgpath, repid, con):
                     """The nearest_up_gene counter is stale. Update it."""
                     while nearest_up_gene != None and nearest_down_gene != None and False == (start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]):
                         nearest_up_gene += 1
+                        if nearest_up_gene - nearest_down_gene > 1:
+                            nearest_down_gene += 1
+                        
                         if nearest_up_gene >= genes.__len__():
                             nearest_up_gene = None
                         else:
@@ -355,8 +358,6 @@ def import_bdg(bdgpath, repid, con):
                             geneid_n[nearest_up_gene] = 0
                             geneid_max[nearest_up_gene] = 0
                         
-                        if nearest_up_gene - nearest_down_gene > 1:
-                            nearest_down_gene += 1
                         if nearest_down_gene >= genes.__len__():
                             nearest_down_gene = None
                         else:
