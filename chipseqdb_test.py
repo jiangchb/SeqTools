@@ -35,15 +35,21 @@ def import_data(con):
             rgroupid = get_repgroup_id(groupname, con)
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-                print "37:", sp, speciesname, speciesid, groupname, rgroupid, jj
+                print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
                 ii += 1
-                
-                summitpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]
+
                 repname = groupname + "-" + jj.__str__()
                 con = add_replicate(repname, speciesid, con)
                 repid = get_repid(repname, speciesid, con)
                 con = add_rep2group(repid, rgroupid, con)
-                con = import_summits(summitpath, repid, con)
+                
+                if "summitpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
+                    summitpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["summitpath"]
+                    con = import_summits(summitpath, repid, con)
+                if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
+                    bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
+                    con = import_bdg(bdgpath, repid, con)
+                
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
 
@@ -52,6 +58,13 @@ def correlate_replicates(con):
     for rg in rgroups:
         rgroupid = rg[0]
         correlate_reps_in_group(rgroupid, con)
+
+def correlate_repgroups(con):
+    for ii in get_species_ids(con):
+        speciesid = ii[0]        
+        correlate_rgroups_in_species( speciesid, con )
+
+    
 
 ######################################################################
 #
@@ -74,10 +87,23 @@ if configpath == False and dbpath == False:
     print ""
     exit()
 con = build_db(dbpath=dbpath)
+
+
+#
+# IMPORT
+#
 if configpath != False:
     con = import_data(con)
 
+#
+# ANALYSIS
+#
 if False == ap.getOptionalToggle("--skip_repcorr"):
     """Compare all pairs of replicates."""
     correlate_replicates(con)
 
+if False == ap.getOptionalArg("--skip_groupcorr"):
+    correlate_repgroups(con)
+    
+if False == ap.getOptionalArg("--skip_speciescorr"):
+    correlate_species(con)    

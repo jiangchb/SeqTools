@@ -140,7 +140,6 @@ def correlate_reps_in_group(rgroupid, con):
                 fout.write("0\t0\t0\t0\n")
     fout.close()
 
-    
     """ Plot score correlations."""
     xvals = []
     yvals = []
@@ -199,5 +198,62 @@ def correlate_reps_in_group(rgroupid, con):
         yvals.append( gene_yrank[gene] )   
     scatter1(xvals,yvals,"corr.rank." + rep1name.__str__() + "." + rep2name.__str__(), xlab="Replicate 1: rank order of genes by max summit score", ylab="Replicate 2: rank order of genes by max summit score")
          
-        
-        
+def correlate_rgroups_in_species(speciesid, con): 
+    cur = con.cursor()
+    
+    rgroupids = get_rgroupids_for_species(speciesid, con)
+    print rgroupids
+    for rgroupid in rgroupids:
+        genes = get_geneids_from_repgroup(con, rgroupid)
+        print genes
+
+    """Venn diagram of genes with/without summits in both replicates."""
+    venn_data = {}
+    for rgroupid in rgroupids:
+        rgroupname = get_repgroup_name( rgroupid, con )
+        genes = get_geneids_from_repgroup(con, rgroupid)
+        print genes
+        venn_data[ rgroupname ] = genes
+    plot_venn_diagram( venn_data, "genes." + rgroupname.__str__() )
+
+    """Iterate through each gene.
+    1. Update the table SpeciesGenes with genes that have a peak in all repgroups for this species.
+    2. Write the Excel table listing the genes and their scores in the repgroups."""
+    speciesname = get_species_name(speciesid, con)
+    xlpath = "genes." + speciesname + ".xls"
+    print "\n. Writing an Excel table to", xlpath
+    fout = open(xlpath, "w")
+    fout.write("geneID\tname\t")
+    for rgroupid in rgroupids:
+        rgroupname = get_repgroup_name( rgroupid, con )        
+        fout.write("N(" + rgroupname.__str__() + ")\t")
+        fout.write("mean(" + rgroupname.__str__() + ")\t")
+        fout.write("max(" + rgroupname.__str__() + ")\t")
+        fout.write("min(" + rgroupname.__str__() + ")\t")
+
+    
+    chromids = get_chrom_ids(con, speciesid)
+    for chr in chromids:
+        genes = get_genes(con, chr[0])
+        for g in genes:
+            gid = g[0]
+            
+            #
+            # 1.
+            # Does this gene have a peak in all replicategroups in this species?
+            found_in_all = True
+            for rgroupid in rgroupids:
+                rgroupname = get_repgroup_name( rgroupid, con )
+                if gid not in venn_data[rgroupname]:
+                    found_in_all = False
+            if found_in_all:
+                cur.execute("SELECT COUNT(*) from SpeciesGenes where speciesid=" + speciesid.__str__() + " and geneid=" + gid.__str__() )
+                if cur.fetchone()[0] == 0: # if this entry doesn't already exist...
+                    sql = "INSERT into SpeciesGenes (speciesid, geneid) VALUES(" + speciesid.__str__() + "," + gid.__str__() + ")"
+                    cur.execute(sql)
+                    con.commit()
+            
+            for rgroupid in rgroupids:
+                for repid in rgroupids.replicates:
+                    x = get_summit_scores_for_gene(gid, repid, con)
+    fout.close()

@@ -14,6 +14,7 @@ def read_config(path):
     fin.close()
     curr_species = None
     curr_rgroup = None
+    curr_rep = None
     for l in lines:
         l = l.strip()
         if l.startswith("SPECIES"):
@@ -48,12 +49,23 @@ def read_config(path):
         if l.startswith("REPLICATE"):
             repid = l.split("=")[0].split()[1]
             repid = re.sub(" ", "", repid)
-            summitpath = l.split("=")[1]
-            summitpath = re.sub(" ", "", summitpath)
+            curr_rep = repid
             if "reps" not in params["species"][curr_species]["rgroups"][curr_rgroup]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"] = {}
-            params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][repid] = summitpath
+        if l.startswith("SUMMITS"):
+            summitpath = l.split("=")[1]
+            summitpath = re.sub(" ", "", summitpath)
+            if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
+                params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
+            params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["summitpath"] = summitpath
+        if l.startswith("ENRICHMENTS"):
+            bdgpath = l.split("=")[1]
+            bdgpath = re.sub(" ", "", bdgpath)
+            if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
+                params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
+            params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["bdgpath"] = bdgpath
         if l.startswith("UNION"):
             ids = l.split()[1:]
             params["species"][curr_species]["rgroups"][curr_rgroup]["union"] = ids
     return params
+

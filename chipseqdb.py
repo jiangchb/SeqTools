@@ -5,7 +5,7 @@
 ############################################################
 
 import sqlite3 as lite
-import sys
+import os, sys
 
 def build_db(dbpath = None):
     """Initializes all the tables.
@@ -19,6 +19,7 @@ def build_db(dbpath = None):
     
     with con:
         cur = con.cursor()
+        # These data come fro the GFF:
         cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT, start INT, stop INT, chrom INT, strand TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(gene INT, name TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
@@ -27,13 +28,18 @@ def build_db(dbpath = None):
         cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique, species INT)")        
         cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT, note TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Peaks(id INTEGER primary key autoincrement, replicate INT, name TEXT, start INT, stop INT, chrom INT, enrich FLOAT)")
+
+        # These data come from MACS2 output files
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS GenePeaks(gene INTEGER, peak INT, distance INT)") # Dist is distance to the trans. start site
+
+        cur.execute("CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, firstsite INT, lastsite INT, enrichment FLOAT)")
+
+        # These data come from mapping summits to genes
         cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)")
-        
         cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup
         cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenes(speciesid INTEGER, geneid INTEGER)") # genes that have summits in all repgroups of a species
+        
+        
     return con
 
 def get_species_ids(con):
@@ -45,6 +51,11 @@ def get_chrom_ids(con, speciesid):
     cur = con.cursor()
     cur.execute("SELECT id FROM Chromosomes where species=" + speciesid.__str__())
     return cur.fetchall()
+
+def get_chrom_id(con, name):
+    cur = con.cursor()
+    cur.execute("SELECT id from Chromosomes where name='" + name + "'")
+    return cur.fetchone()[0]
 
 def get_repid(repname, speciesid, con):    
     cur = con.cursor()
@@ -61,10 +72,24 @@ def get_repgroup_id(rgroup, con):
     cur.execute("SELECT id from ReplicateGroups where name='" + rgroup + "'")
     return cur.fetchone()[0]
 
+def get_repgroup_name(rgroupid, con):
+    cur = con.cursor()
+    cur.execute("SELECT name from ReplicateGroups where id=" + rgroupid.__str__() )
+    return cur.fetchone()[0]
+
 def get_reps_in_group(rgroupid, con):
     cur = con.cursor()
     cur.execute("SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__())
     return cur.fetchall()
+
+def get_rgroupids_for_species(speciesid, con):
+    cur = con.cursor()
+    cur.execute("SELECT id from ReplicateGroups where id in (SELECT rgroup from GroupReplicate where replicate in (SELECT id from Replicates where species=" + speciesid.__str__() + "))")
+    x = cur.fetchall()
+    ids = []
+    for ii in x:
+        ids.append( ii[0] )
+    return ids
 
 def get_geneids(con, repid):
     cur = con.cursor()
@@ -78,13 +103,27 @@ def get_genes(con, chromid):
      #print "46:", sql
      cur.execute(sql)
      return cur.fetchall()
+ 
+def get_geneids_from_repgroup(con, repgroupid):
+    cur = con.cursor()
+    sql = "SELECT geneid from RepgroupGenes where repgroupid=" + repgroupid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    genes = []
+    for ii in x:
+        genes.append( ii[0] )
+    return genes
 
 def get_summits(con, repid, chromid):
      cur = con.cursor()
      sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
      #print "53:", sql
      cur.execute(sql)
-     return cur.fetchall()
+     x = cur.fetchall()
+     if x == None:
+         return []
+     else:
+         return x
 
 def get_summit_scores_for_gene(geneid, repid, con):
     cur = con.cursor()
@@ -115,6 +154,11 @@ def get_species_id(speciesname, con):
     cur.execute(sql)
     return cur.fetchone()[0]
 
+def get_species_name(speciesid, con):
+    cur = con.cursor()
+    sql = "SELECT name FROM Species where id=" + speciesid
+    cur.execute(sql)
+    return cur.fetchone()[0]
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     print "\n. Importing GFF from", gffpath
@@ -177,7 +221,6 @@ def add_repgroup(rgroup, con, note=None):
     return con        
     
 def add_replicate(repname, speciesid, con):
-    print "164:"
     new_id = None
     with con:
         cur = con.cursor()
@@ -207,7 +250,11 @@ def import_summits(summitpath, repid, con):
     
     print "\n. Importing summits from", summitpath,"for replicate", repid
     cur = con.cursor()
-        
+    
+    if False == os.path.exists(summitpath):
+        print "\n. Error: I cannot find the summit file", summitpath
+        exit()
+    
     #
     # Build a library of summits
     #
@@ -235,6 +282,43 @@ def import_summits(summitpath, repid, con):
     #print "\n. I have", count_genes, "total summits."
     return con
 
+def import_bdg(bdgpath, repid, con):
+    """Imports a BedGraph file with enrichment scores tracked across genome sequence sites."""
+    cur = con.cursor()
+    
+    print "\n. Importing enrichment values from", bdgpath,"for replicate", repid
+    
+    #"CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, site INT, enrichment FLOAT)")
+    if False == os.path.exists(bdgpath):
+        print "\n. Error: I cannot find the BedGraph file", bdgpath
+        exit()
+    
+    fin = open(bdgpath, "r")
+    for l in fin.xreadlines():
+        if l.__len__() > 5:
+            tokens = l.split()
+            chromname = tokens[0]
+            chromid = get_chrom_id( con, chromname )
+            start = int(tokens[1])
+            stop = int(tokens[2])
+            eval = float(tokens[3])
+            sql = "INSERT INTO ChromSiteEnrichment(repid, chromid, firstsite, lastsite, enrichment) "
+            sql += " VALUES(" + repid.__str__() + ","
+            sql += chromid.__str__() + ","
+            sql += start.__str__() + ","
+            sql += (stop-1).__str__() + ","
+            sql += eval.__str__() + ")"
+            cur.execute(sql)
+            
+            for ii in range(start, stop):
+                if ii%10000 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+            
+    fin.close()
+    
+    con.commit()
+    return con
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):
     """This methods puts values into the table GeneSummits."""
