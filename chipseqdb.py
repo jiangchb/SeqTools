@@ -334,6 +334,12 @@ def import_bdg(bdgpath, repid, con):
             stop = int(tokens[2])
             eval = float(tokens[3]) # enrichment value across this window
             
+            """Print a period to indicate to the user that this program is still alive."""
+            for ii in range(start, stop):
+                if ii%10000 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+            
             """Add this score to the tally for the upstream gene."""
             if nearest_up_gene != None:
                 if start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]:
@@ -364,7 +370,7 @@ def import_bdg(bdgpath, repid, con):
                             geneid_sum[nearest_down_gene] = 0.0
                             geneid_n[nearest_down_gene] = 0
                             geneid_max[nearest_down_gene] = 0
-                        print nearest_up_gene, nearest_down_gene
+                        #print nearest_up_gene, nearest_down_gene
                         
             """Add to the tally for the downstream gene."""
             #print "Gene:", nearest_down_gene
@@ -380,24 +386,22 @@ def import_bdg(bdgpath, repid, con):
                             if eval > geneid_max[nearest_down_gene]:
                                 geneid_max[nearest_down_gene] = eval
             
-#             sql = "INSERT INTO ChromSiteEnrichment(repid, chromid, firstsite, lastsite, enrichment) "
-#             sql += " VALUES(" + repid.__str__() + ","
-#             sql += chromid.__str__() + ","
-#             sql += start.__str__() + ","
-#             sql += (stop-1).__str__() + ","
-#             sql += eval.__str__() + ")"
-#             cur.execute(sql)
-#             
-#             for ii in range(start, stop):
-#                 if ii%10000 == 0:
-#                     sys.stdout.write(".")
-#                     sys.stdout.flush()
+    for g in geneid_sum:
+        geneid = genes[g][0]
+        sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
+        sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
+        sql += "," + geneid_max[geneid].__str__()
+        sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
+        sql += "," + geneid_sum[geneid].__str__()
+        sql += ")"
+        cur.execute(sql)
+        con.commit()
             
     fin.close()
     
-    print "384:", geneid_sum # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
-    print "385:", geneid_n # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
-    print "386:", geneid_max     
+    #print "384:", geneid_sum # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
+    #print "385:", geneid_n # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
+    #print "386:", geneid_max     
 
     #con.commit()
     return con
