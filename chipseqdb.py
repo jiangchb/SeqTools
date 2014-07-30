@@ -32,7 +32,10 @@ def build_db(dbpath = None):
         # These data come from MACS2 output files
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, firstsite INT, lastsite INT, enrichment FLOAT)")
+        # depricated - this table just takes too much space!
+        # instead, we'll map summary statistics about enrichment to nearby genes
+        #cur.execute("CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, firstsite INT, lastsite INT, enrichment FLOAT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
 
         # These data come from mapping summits to genes
         cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)")
@@ -99,7 +102,7 @@ def get_geneids(con, repid):
 
 def get_genes(con, chromid):
      cur = con.cursor()
-     sql = "SELECT * FROM Genes where chrom=" + chromid.__str__()
+     sql = "SELECT * FROM Genes where chrom=" + chromid.__str__() + " order by start ASC"
      #print "46:", sql
      cur.execute(sql)
      return cur.fetchall()
@@ -161,7 +164,7 @@ def get_species_name(speciesid, con):
     return cur.fetchone()[0]
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
-    print "\n. Importing GFF from", gffpath
+    print "\n. Importing genome features from", gffpath
     
     """Returns chr_gene_sites"""
     cur = con.cursor()
@@ -284,40 +287,118 @@ def import_summits(summitpath, repid, con):
 
 def import_bdg(bdgpath, repid, con):
     """Imports a BedGraph file with enrichment scores tracked across genome sequence sites."""
+    print "\n. Importing enrichment values from", bdgpath,"for replicate", repid
+
     cur = con.cursor()
     
-    print "\n. Importing enrichment values from", bdgpath,"for replicate", repid
-    
-    #"CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, site INT, enrichment FLOAT)")
     if False == os.path.exists(bdgpath):
         print "\n. Error: I cannot find the BedGraph file", bdgpath
         exit()
     
     fin = open(bdgpath, "r")
+    curr_chromname = None
+    curr_chromid = None
+    geneid_sum = {} # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
+    geneid_n = {} # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
+    geneid_max = {}
+    genes = None # an ordered list of gene objects, 
+                    # it will be filled with data whenever we 
+                    # encounter a new chromosome in the BDG file
+    nearest_up_gene = 0; # an index into genes, the nearest gene going up in order
+    nearest_down_gene = 0 # an index into genes, the nearest gene going down in order
     for l in fin.xreadlines():
         if l.__len__() > 5:
             tokens = l.split()
             chromname = tokens[0]
-            chromid = get_chrom_id( con, chromname )
-            start = int(tokens[1])
+            if curr_chromname == chromname:
+                chromid = curr_chromid
+            else:
+                chromid = get_chrom_id( con, chromname )
+                curr_chromname = chromname
+                curr_chromid = chromid
+                
+                genes = get_genes(con, chromid) #an ordered list of gene objects
+                if genes.__len__() == 0:
+                    print "\n. An error occurred at chipseqdb.py 322"
+                    exit()
+                nearest_up_gene = 0
+                nearest_down_gene = 0
+                geneid_sum[nearest_up_gene] = 0.0
+                geneid_sum[nearest_down_gene] = 0.0
+                geneid_n[nearest_up_gene] = 0
+                geneid_n[nearest_down_gene] = 0
+                geneid_max[nearest_up_gene] = 0
+                geneid_max[nearest_down_gene] = 0
+                
+            start = int(tokens[1]) # start of this enrichment window
             stop = int(tokens[2])
-            eval = float(tokens[3])
-            sql = "INSERT INTO ChromSiteEnrichment(repid, chromid, firstsite, lastsite, enrichment) "
-            sql += " VALUES(" + repid.__str__() + ","
-            sql += chromid.__str__() + ","
-            sql += start.__str__() + ","
-            sql += (stop-1).__str__() + ","
-            sql += eval.__str__() + ")"
-            cur.execute(sql)
+            eval = float(tokens[3]) # enrichment value across this window
             
-            for ii in range(start, stop):
-                if ii%10000 == 0:
-                    sys.stdout.write(".")
-                    sys.stdout.flush()
+            """Add this score to the tally for the upstream gene."""
+            if nearest_up_gene != None:
+                if start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]:
+                    if genes[nearest_up_gene][5] == "+":
+                        # everything is good
+                        for ii in range(start, stop):
+                            geneid_sum[nearest_up_gene] += eval
+                            geneid_n[nearest_up_gene] += 1
+                            if eval > geneid_max[nearest_up_gene]:
+                                geneid_max[nearest_up_gene] = eval
+                else:
+                    """The nearest_up_gene counter is stale. Update it."""
+                    while nearest_up_gene != None and nearest_down_gene != None and False == (start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]):
+                        nearest_up_gene += 1
+                        if nearest_up_gene >= genes.__len__():
+                            nearest_up_gene = None
+                        else:
+                            geneid_sum[nearest_up_gene] = 0.0
+                            geneid_n[nearest_up_gene] = 0
+                            geneid_max[nearest_up_gene] = 0
+                        
+                        if nearest_up_gene - nearest_down_gene > 1:
+                            nearest_down_gene += 1
+                        if nearest_down_gene >= genes.__len__():
+                            nearest_down_gene = None
+                        else:
+                            geneid_sum[nearest_down_gene] = 0.0
+                            geneid_n[nearest_down_gene] = 0
+                            geneid_max[nearest_down_gene] = 0
+                        print nearest_up_gene, nearest_down_gene
+                        
+            """Add to the tally for the downstream gene."""
+            #print "Gene:", nearest_down_gene
+            #print genes[nearest_down_gene]
+            
+            if nearest_down_gene != None:
+                if start > genes[nearest_down_gene][2] and start > genes[nearest_down_gene][3]:
+                    if genes[nearest_down_gene][5] == "-":
+                        # everything is good
+                        for ii in range(start, stop):
+                            geneid_sum[nearest_down_gene] += eval
+                            geneid_n[nearest_down_gene] += 1
+                            if eval > geneid_max[nearest_down_gene]:
+                                geneid_max[nearest_down_gene] = eval
+            
+#             sql = "INSERT INTO ChromSiteEnrichment(repid, chromid, firstsite, lastsite, enrichment) "
+#             sql += " VALUES(" + repid.__str__() + ","
+#             sql += chromid.__str__() + ","
+#             sql += start.__str__() + ","
+#             sql += (stop-1).__str__() + ","
+#             sql += eval.__str__() + ")"
+#             cur.execute(sql)
+#             
+#             for ii in range(start, stop):
+#                 if ii%10000 == 0:
+#                     sys.stdout.write(".")
+#                     sys.stdout.flush()
             
     fin.close()
     
-    con.commit()
+    print "384:", geneid_sum # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
+    print "385:", geneid_n # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
+    print "386:", geneid_max     
+
+    #con.commit()
     return con
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):

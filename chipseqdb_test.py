@@ -30,12 +30,11 @@ def import_data(con):
         
         ii = -1
         for groupname in ap.params["species"][sp]["rgroups"]:
-            print "\n. Importing group", groupname
             con = add_repgroup(groupname, con)
             rgroupid = get_repgroup_id(groupname, con)
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-                print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
+                #print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
                 ii += 1
 
                 repname = groupname + "-" + jj.__str__()
@@ -87,7 +86,6 @@ if configpath == False and dbpath == False:
     print ""
     exit()
 con = build_db(dbpath=dbpath)
-
 
 #
 # IMPORT
