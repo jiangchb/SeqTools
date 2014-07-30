@@ -58,7 +58,11 @@ def get_chrom_ids(con, speciesid):
 def get_chrom_id(con, name):
     cur = con.cursor()
     cur.execute("SELECT id from Chromosomes where name='" + name + "'")
-    return cur.fetchone()[0]
+    x = cur.fetchone()
+    if x == None:
+        return None
+    else:
+        return x[0]
 
 def get_repid(repname, speciesid, con):    
     cur = con.cursor()
@@ -314,6 +318,9 @@ def import_bdg(bdgpath, repid, con):
                 chromid = curr_chromid
             else:
                 chromid = get_chrom_id( con, chromname )
+                if chromid == None:
+                    print "\n. Chromosome", chromname, "hasn't been added to the DB. I'm skipping this BedGraph entry."
+                    continue
                 curr_chromname = chromname
                 curr_chromid = chromid
                 
@@ -387,13 +394,13 @@ def import_bdg(bdgpath, repid, con):
                                 geneid_max[nearest_down_gene] = eval
             
     for g in geneid_sum:
-        geneid = genes[g][0]
-        if geneid_n[geneid] > 0:
+        if geneid_n[g] > 0:
+            geneid = genes[g][0]
             sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
-            sql += "," + geneid_max[geneid].__str__()
-            sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
-            sql += "," + geneid_sum[geneid].__str__()
+            sql += "," + geneid_max[g].__str__()
+            sql += "," + (geneid_sum[g]/float(geneid_n[g])).__str__()
+            sql += "," + geneid_sum[g].__str__()
             sql += ")"
             cur.execute(sql)
             con.commit()
