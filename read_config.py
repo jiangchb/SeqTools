@@ -17,6 +17,7 @@ def read_config(path):
     curr_rep = None
     for l in lines:
         l = l.strip()
+        
         if l.startswith("SPECIES"):
             if "species" not in params:
                 params["species"] = {}
@@ -27,18 +28,21 @@ def read_config(path):
                 exit()
             params["species"][species] = {}
             curr_species = species
+        
         if l.startswith("GFF"):
             gffpath = l.split("=")[1]
             gffpath = re.sub(" ", "", gffpath)
-            if False == os.path.exists(gffpath):
-                print "\n. Error reading your configuration file", path
-                print "--> The following GFF file doesn't exist:", gffpath
-                exit()
+            #if False == os.path.exists(gffpath):
+            #    print "\n. Error reading your configuration file", path
+            #    print "--> The following GFF file doesn't exist:", gffpath
+            #    exit()
             params["species"][species]["gff"] = gffpath
+        
         if l.startswith("NAME"):
             name = l.split("=")[1]
             name = re.sub(" ", "", name)
             params["species"][species]["name"] = name
+        
         if l.startswith("REPGROUP"):
             rgroup = l.split()[1]
             if "rgroups" not in params["species"][species]:
@@ -46,26 +50,37 @@ def read_config(path):
             if rgroup not in params["species"][species]:   
                 params["species"][species]["rgroups"][rgroup] = {}
             curr_rgroup = rgroup
+        
         if l.startswith("REPLICATE"):
             repid = l.split("=")[0].split()[1]
             repid = re.sub(" ", "", repid)
             curr_rep = repid
             if "reps" not in params["species"][curr_species]["rgroups"][curr_rgroup]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"] = {}
+        
         if l.startswith("SUMMITS"):
             summitpath = l.split("=")[1]
             summitpath = re.sub(" ", "", summitpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["summitpath"] = summitpath
+        
         if l.startswith("ENRICHMENTS"):
             bdgpath = l.split("=")[1]
             bdgpath = re.sub(" ", "", bdgpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["bdgpath"] = bdgpath
+        
         if l.startswith("UNION"):
-            ids = l.split()[1:]
-            params["species"][curr_species]["rgroups"][curr_rgroup]["union"] = ids
+            tokens = l.split("=")
+            unionname = tokens[0].split()[1]
+            unionname = re.sub(" ", "", unionname)                
+            if "unions" not in params["species"][curr_species]:
+                params["species"][curr_species]["unions"] = {}
+            params["species"][curr_species]["unions"][unionname] = []
+            x = tokens[1].split()
+            for repgroup in x:
+                params["species"][curr_species]["unions"][unionname].append( re.sub(" ", "", repgroup) )
     return params
 

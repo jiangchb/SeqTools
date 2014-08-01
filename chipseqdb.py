@@ -19,24 +19,27 @@ def build_db(dbpath = None):
     
     with con:
         cur = con.cursor()
-        # These data come fro the GFF:
-        cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT, start INT, stop INT, chrom INT, strand TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(gene INT, name TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
+        # These data come from the GFF:
         cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
-
+        cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT, start INT, stop INT, chrom INT, strand TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
+        
+        # This data comes from the pillars file:
+        cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT, alias TEXT)")
+        
         cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique, species INT)")        
         cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT, note TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
 
         # These data come from MACS2 output files
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
-
-        # depricated - this table just takes too much space!
-        # instead, we'll map summary statistics about enrichment to nearby genes
-        #cur.execute("CREATE TABLE IF NOT EXISTS ChromSiteEnrichment(repid INTEGER, chromid INTEGER, firstsite INT, lastsite INT, enrichment FLOAT)")
         cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
 
+        # These tables describe which replicates are to be unioned.
+        cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+        cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER)") # puts repgroups into union sets
+        cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
+        
         # These data come from mapping summits to genes
         cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)")
         cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup
@@ -49,6 +52,11 @@ def get_species_ids(con):
     cur = con.cursor()                
     cur.execute("SELECT id FROM Species")
     return cur.fetchall()
+
+def get_speciesid_for_rep(repid, con):
+    cur = con.cursor()
+    cur.execute("SELECT id FROM Species where id in (SELECT species from Replicates where id=" + repid.__str__() + ")")
+    return cur.fetchone()[0]
 
 def get_chrom_ids(con, speciesid):
     cur = con.cursor()
@@ -77,7 +85,11 @@ def get_repgroup_ids(con):
 def get_repgroup_id(rgroup, con):
     cur = con.cursor()
     cur.execute("SELECT id from ReplicateGroups where name='" + rgroup + "'")
-    return cur.fetchone()[0]
+    x = cur.fetchone()
+    if x != None:
+        return x[0]
+    else:
+        return None
 
 def get_repgroup_name(rgroupid, con):
     cur = con.cursor()
@@ -104,12 +116,52 @@ def get_geneids(con, repid):
     cur.execute(sql)
     return cur.fetchall()
 
-def get_genes(con, chromid):
-     cur = con.cursor()
-     sql = "SELECT * FROM Genes where chrom=" + chromid.__str__() + " order by start ASC"
-     #print "46:", sql
-     cur.execute(sql)
-     return cur.fetchall()
+def get_genes_for_species(con, speciesid):
+    cur = con.cursor()
+    sql = "SELECT * from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ")"
+    cur.execute(sql)
+    return cur.fetchall()
+
+def get_genes_for_chrom(con, chromid):
+    """Returns list of genes (represented as tuples), in order by their start sites"""
+    cur = con.cursor()
+    sql = "SELECT * FROM Genes where chrom=" + chromid.__str__() + " order by start ASC"
+    #print "46:", sql
+    cur.execute(sql)
+    return cur.fetchall()
+ 
+def get_geneid_for_aliasname(aliasname, con):
+    """Returns the geneID that is canonical for the given gene name alias.
+    The mapping of alias names to gene ID comes from the pillars file."""
+    realname = None
+    cur = con.cursor()
+    sql = "SELECT realname from GeneAlias where alias='" + aliasname + "'"
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        print "\n. Warning: the gene name", aliasname, "has no alias mappings."
+        realname = aliasname
+    else:
+        realname = x[0]
+    sql = "SELECT id from Genes where name='" + realname + "'"
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        print "\n. Error: The gene named", realname, "cannot be found."
+        return None
+    else:
+        return x[0]
+        
+def get_geneid_for_aliasid(aliasid, con):
+    cur = con.cursor()
+    sql = "SELECT name from Genes where id=" + aliasid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        print "\n. Warning: the gene with ID", aliasid, "cannot be found."
+        exit()
+    aliasname = x[0]
+    return get_geneid_for_aliasname(aliasname, con)
  
 def get_geneids_from_repgroup(con, repgroupid):
     cur = con.cursor()
@@ -147,6 +199,13 @@ def get_max_summit_score_for_gene(geneid, repid, con):
     if scores.__len__() == 0:
         return None 
     return max( scores )
+
+def get_enrichment_stats_for_gene(geneid, repid, con):
+    cur = con.cursor()
+    sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + geneid.__str__()
+    cur.execute(sql)
+    return cur.fetchone()
+    
 
 def import_species(speciesname, con):
     cur = con.cursor()
@@ -204,7 +263,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                 cur.execute("SELECT * FROM Chromosomes WHERE name='" + chr + "'")
                 data = cur.fetchone()
                 chrid = data[0]
-                sql = "INSERT INTO Genes (name, start, stop, chrom,strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + chrid.__str__() + ",'" + strand + "')"
+                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + chrid.__str__() + ",'" + strand + "')"
                 cur.execute(sql)
     fin.close() 
     
@@ -250,7 +309,89 @@ def add_rep2group(repid, rgroupid, con):
             cur.execute(sql)
             con.commit()
     return con
+
+def add_union(unionname, repgroupnames, con):
+    cur = con.cursor()
+    cur.execute("SELECT COUNT(*) FROM Unions where name='" + unionname + "'")
+    count = cur.fetchone()[0]
+    if count == 0:
+        sql = "INSERT into Unions (name) VALUES('" + unionname + "')"
+        cur.execute(sql)
+        con.commit()
         
+    # now get the union's id
+    cur.execute("SELECT unionid from Unions where name='" + unionname + "'")
+    unionid = cur.fetchone()[0]
+    for repgroupname in repgroupnames:
+        rgroupid = get_repgroup_id(repgroupname, con)
+        print "288:", rgroupid
+        if rgroupid != None:
+            sql = "INSERT INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
+            print sql
+            cur.execute(sql)
+            con.commit()
+    return con
+
+def get_unionids(con):
+    cur = con.cursor()
+    cur.execute("SELECT unionid from Unions")
+    x = cur.fetchall()
+    if x == None:
+        return None
+    unionids = []
+    for ii in x:
+        unionids.append(ii[0])
+    return unionids
+
+def get_unionname(unionid, con):
+    cur = con.cursor()
+    cur.execute("SELECT name from Unions where unionid=" + unionid.__str__())
+    x = cur.fetchone()
+    if x == None:
+        return None
+    return x[0]
+
+def get_repgroupds_in_union(unionid, con):
+    cur = con.cursor()
+    cur.execute("SELECT repgroupid from UnionRepgroups where unionid=" + unionid.__str__() )
+    x = cur.fetchall()
+    if x == None:
+        return None
+    repgroupids = []
+    for ii in x:
+        repgroupids.append( ii[0] )
+    return repgroupids
+
+def import_pillars(pillarspath, con):
+    print "\n. Reading Pillars from", pillarspath
+    cur = con.cursor()
+    fin = open(pillarspath, "r")
+    count = 0
+    for l in fin.xreadlines():
+        if l.startswith("orf"):
+            count += 1
+            if count%20 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()            
+            l = l.strip()
+            tokens = l.split()
+            #print tokens
+            orf_list = []
+            for t in tokens:
+                if False == t.startswith("-"):
+                    orf_list.append(t)
+            orf_list = orf_list
+            #print orf_list
+
+            realname = orf_list[0]
+            for aliasname in orf_list:
+                sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
+                cur.execute(sql)
+    con.commit()
+    cur.execute("SELECT count(DISTINCT realname) from GeneAlias")
+    x = cur.fetchone()
+    print "\n. The pillars file contains", x[0], "orthologs."
+    return con
 
 def import_summits(summitpath, repid, con):
     """Reads a summit file (from MACS2, for example), and puts values into the Summits table."""
@@ -279,14 +420,17 @@ def import_summits(summitpath, repid, con):
                 cur = con.cursor()
                 sql = "SELECT * FROM Chromosomes WHERE name='" + chr + "'"                
                 cur.execute(sql)
-                chrid = cur.fetchone()[0]
-                sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
-                cur.execute(sql)
+                x = cur.fetchone()
+                if x == None:
+                    print "Warning: Your summit file includes the chromosome", chr, "but your GFF file lacks this chromosome. I'm skipping it."
+                else:
+                    chrid = x[0]
+                    sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
+                    cur.execute(sql)
     fin.close()
     
     cur.execute("SELECT COUNT(*) FROM Summits")
     count_genes = cur.fetchone()[0]
-    #print "\n. I have", count_genes, "total summits."
     return con
 
 def import_bdg(bdgpath, repid, con):
@@ -308,8 +452,10 @@ def import_bdg(bdgpath, repid, con):
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
-    nearest_up_gene = 0; # an index into genes, the nearest gene going up in order
-    nearest_down_gene = 0 # an index into genes, the nearest gene going down in order
+    nearest_up_gene_i = 0; # an index into genes, the nearest gene going up in order
+    nearest_down_gene_i = 0 # an index into genes, the nearest gene going down in order
+    nearest_up_gene = None
+    nearest_down_gene = None
     for l in fin.xreadlines():
         if l.__len__() > 5:
             tokens = l.split()
@@ -319,17 +465,20 @@ def import_bdg(bdgpath, repid, con):
             else:
                 chromid = get_chrom_id( con, chromname )
                 if chromid == None:
-                    print "\n. Chromosome", chromname, "hasn't been added to the DB. I'm skipping this BedGraph entry."
+                    print "\n. I can't find chromosome", chromname, "in the descriptions provided by your GFF."
+                    print "\n. Your bedgraph file", bdgpath,"references chromosome", chromname, ". I'm skipping this BedGraph entry."
                     continue
                 curr_chromname = chromname
                 curr_chromid = chromid
                 
-                genes = get_genes(con, chromid) #an ordered list of gene objects
+                genes = get_genes_for_chrom(con, chromid) #an ordered list of gene objects
                 if genes.__len__() == 0:
                     print "\n. An error occurred at chipseqdb.py 322"
                     exit()
-                nearest_up_gene = 0
-                nearest_down_gene = 0
+                nearest_up_gene_i = 0
+                nearest_down_gene_i = 0
+                nearest_up_gene = genes[ nearest_up_gene_i ][0]
+                nearest_down_gene = genes[ nearest_down_gene_i ][0]
                 geneid_sum[nearest_up_gene] = 0.0
                 geneid_sum[nearest_down_gene] = 0.0
                 geneid_n[nearest_up_gene] = 0
@@ -341,16 +490,16 @@ def import_bdg(bdgpath, repid, con):
             stop = int(tokens[2])
             eval = float(tokens[3]) # enrichment value across this window
             
-            """Print a period to indicate to the user that this program is still alive."""
+            """Print a period every 30K sites to indicate to the user that this program is still alive."""
             for ii in range(start, stop):
-                if ii%10000 == 0:
+                if ii%30000 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
             
             """Add this score to the tally for the upstream gene."""
-            if nearest_up_gene != None:
-                if start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]:
-                    if genes[nearest_up_gene][5] == "+":
+            if nearest_up_gene_i != None:
+                if start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3]:
+                    if genes[nearest_up_gene_i][5] == "+":
                         # everything is good
                         for ii in range(start, stop):
                             geneid_sum[nearest_up_gene] += eval
@@ -358,34 +507,36 @@ def import_bdg(bdgpath, repid, con):
                             if eval > geneid_max[nearest_up_gene]:
                                 geneid_max[nearest_up_gene] = eval
                 else:
-                    """The nearest_up_gene counter is stale. Update it."""
-                    while nearest_up_gene != None and nearest_down_gene != None and False == (start < genes[nearest_up_gene][2] and start < genes[nearest_up_gene][3]):
-                        nearest_up_gene += 1
-                        if nearest_up_gene - nearest_down_gene > 1:
-                            nearest_down_gene += 1
+                    """The nearest_up_gene_i counter is stale. Update it."""
+                    while nearest_up_gene_i != None and nearest_down_gene_i != None and False == (start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3]):
+                        nearest_up_gene_i += 1
+                        if nearest_up_gene_i - nearest_down_gene_i > 1:
+                            nearest_down_gene_i += 1
+                            nearest_down_gene = genes[nearest_down_gene_i][0]
                         
-                        if nearest_up_gene >= genes.__len__():
-                            nearest_up_gene = None
+                        if nearest_up_gene_i >= genes.__len__():
+                            nearest_up_gene_i = None
                         else:
+                            nearest_up_gene = genes[nearest_up_gene_i][0]
                             geneid_sum[nearest_up_gene] = 0.0
                             geneid_n[nearest_up_gene] = 0
                             geneid_max[nearest_up_gene] = 0
                         
-                        if nearest_down_gene >= genes.__len__():
-                            nearest_down_gene = None
+                        if nearest_down_gene_i >= genes.__len__():
+                            nearest_down_gene_i = None
                         else:
                             geneid_sum[nearest_down_gene] = 0.0
                             geneid_n[nearest_down_gene] = 0
                             geneid_max[nearest_down_gene] = 0
-                        #print nearest_up_gene, nearest_down_gene
+                        #print nearest_up_gene_i, nearest_down_gene_i
                         
             """Add to the tally for the downstream gene."""
-            #print "Gene:", nearest_down_gene
-            #print genes[nearest_down_gene]
+            #print "Gene:", nearest_down_gene_i
+            #print genes[nearest_down_gene_i]
             
-            if nearest_down_gene != None:
-                if start > genes[nearest_down_gene][2] and start > genes[nearest_down_gene][3]:
-                    if genes[nearest_down_gene][5] == "-":
+            if nearest_down_gene_i != None:
+                if start > genes[nearest_down_gene_i][2] and start > genes[nearest_down_gene_i][3]:
+                    if genes[nearest_down_gene_i][5] == "-":
                         # everything is good
                         for ii in range(start, stop):
                             geneid_sum[nearest_down_gene] += eval
@@ -393,14 +544,13 @@ def import_bdg(bdgpath, repid, con):
                             if eval > geneid_max[nearest_down_gene]:
                                 geneid_max[nearest_down_gene] = eval
             
-    for g in geneid_sum:
-        if geneid_n[g] > 0:
-            geneid = genes[g][0]
+    for geneid in geneid_sum:
+        if geneid_n[geneid] > 0:
             sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
-            sql += "," + geneid_max[g].__str__()
-            sql += "," + (geneid_sum[g]/float(geneid_n[g])).__str__()
-            sql += "," + geneid_sum[g].__str__()
+            sql += "," + geneid_max[geneid].__str__()
+            sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
+            sql += "," + geneid_sum[geneid].__str__()
             sql += ")"
             cur.execute(sql)
             con.commit()
@@ -429,7 +579,7 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
             chroms = get_chrom_ids(con, spid)
             for chr in chroms:
                 chrid = chr[0]
-                genes = get_genes(con, chrid)
+                genes = get_genes_for_chrom(con, chrid)
                 summits = get_summits(con, repid, chrid)
                 for s in summits:
                     sid = s[0]

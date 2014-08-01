@@ -52,18 +52,40 @@ def import_data(con):
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
 
+def setup_unions(con):
+    for sp in ap.params["species"]:
+        for unionname in ap.params["species"][sp]["unions"]:
+            repgroupnames = ap.params["species"][sp]["unions"][unionname]
+            print "\n. Adding a repgroup union:", unionname, repgroupnames
+            con = add_union(unionname, repgroupnames, con)
+
 def correlate_replicates(con):
+    """Correlates all the replicates within each REPGROUP."""
     rgroups = get_repgroup_ids(con)
     for rg in rgroups:
         rgroupid = rg[0]
-        correlate_reps_in_group(rgroupid, con)
+        con = correlate_summits_for_reps_in_group(rgroupid, con)
 
-def correlate_repgroups(con):
-    for ii in get_species_ids(con):
-        speciesid = ii[0]        
-        correlate_rgroups_in_species( speciesid, con )
+def correlate_unions(con):
+    """Correlates a set of replicate groups, as defined by UNION commands in the configuration file."""
+    unions = get_unionids(con)
+    for uid in unions:
+        con = correlate_summits_for_union( uid, con )
 
-    
+def correlate_enrichments_species(speciesid1, speciesid2, con):
+    series_gene_eval = {}
+    chromids = get_chrom_ids(con, speciesid1)
+    for chromid in chromids:
+        geneids = get_geneids(con, chromid)
+        #
+        # continue here
+        #
+        for geneid in geneids:
+            x = get_enrichment_stats_for_gene(geneid, repid, con)
+
+    correlate_enrichments(series_gene_eval, con, keyword=None)
+
+    #correlate_enrichments(series_gene_eval, con, keyword=None)
 
 ######################################################################
 #
@@ -90,18 +112,25 @@ con = build_db(dbpath=dbpath)
 #
 # IMPORT
 #
+pillarspath = ap.getOptionalArg("--pillarspath")
+if pillarspath != False:
+    con = import_pillars(pillarspath, con)
+
 if configpath != False:
-    con = import_data(con)
+    skip_import = ap.getOptionalArg("--skip_import")
+    if skip_import == False:
+        con = import_data(con)
+    # Setup union relationships, regardless
+    con = setup_unions(con)
 
 #
 # ANALYSIS
 #
 if False == ap.getOptionalToggle("--skip_repcorr"):
-    """Compare all pairs of replicates."""
     correlate_replicates(con)
 
 if False == ap.getOptionalArg("--skip_groupcorr"):
-    correlate_repgroups(con)
+    correlate_unions(con)
     
 if False == ap.getOptionalArg("--skip_speciescorr"):
-    correlate_species(con)    
+    correlate_enrichments_species(con)    
