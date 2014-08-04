@@ -5,6 +5,8 @@ import os, sys, re
 
 def read_config(path):
     """Returns a hashtable named params."""
+    print "\n. Reading the configuration file", path
+    
     params = {}
     if False == os.path.exists( path ):
         print "\n. Error, I can't find you configuration file at", path
@@ -82,5 +84,18 @@ def read_config(path):
             x = tokens[1].split()
             for repgroup in x:
                 params["species"][curr_species]["unions"][unionname].append( re.sub(" ", "", repgroup) )
+    
+        if l.startswith("SPECIES_UNION"):
+            tokens = l.split("=")
+            spunionname = tokens[0].split()[1]
+            spunionname = re.sub(" ", "", spunionname)                
+            if "unionssp" not in params:
+                params["unionssp"] = {}
+            params["unionssp"][spunionname] = []
+            x = tokens[1].split()
+            for unionname in x:
+                params["unionssp"][spunionname].append( re.sub(" ", "", unionname) )
+            #print "read_config.py 96:", params["unionssp"]
+    
     return params
 

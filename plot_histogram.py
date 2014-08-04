@@ -2,7 +2,9 @@
 # Support functions for plotting histograms
 #
 import math, os, re, sys
-import cogent.maths.stats.test as stats
+
+# depricated
+#import cogent.maths.stats.test as stats
 
 plot_params = {} # a global hashtable with parameters about the plot
 

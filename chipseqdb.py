@@ -7,9 +7,11 @@
 import sqlite3 as lite
 import os, sys
 
+from chipseqdb_api import *
+
 def build_db(dbpath = None):
-    """Initializes all the tables.
-    Returns the DB connection object."""
+    """Initializes all the tables. Returns the DB connection object.
+    If tables already exist, they will NOT be overwritten."""
     
     print "\n. Building the database. . ."
     
@@ -21,217 +23,39 @@ def build_db(dbpath = None):
         cur = con.cursor()
         # These data come from the GFF:
         cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT, start INT, stop INT, chrom INT, strand TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
         
         # This data comes from the pillars file:
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT, alias TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
         
-        cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique, species INT)")        
-        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT, note TEXT)")
+        # This data from from the pillars file X GFF.
+        cur.execute("CREATE TABLE IF NOT EXISTS GeneHomology(geneid INTEGER, aliasid INTEGER)")
+        
+        cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
+        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
+
+        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup 
 
         # These data come from MACS2 output files
         cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)") # a mapping of Summits to nearby Genes
+        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummitStats(repgroupid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+        
+        cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
+        cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(gene INTEGER, summit INT, distance INT)")
 
-        # These tables describe which replicates are to be unioned.
-        cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
-        cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER)") # puts repgroups into union sets
-        cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
-        
-        # These data come from mapping summits to genes
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup
-        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenes(speciesid INTEGER, geneid INTEGER)") # genes that have summits in all repgroups of a species
-        
-        
+        build_unions(con)
     return con
-
-def get_species_ids(con):
-    cur = con.cursor()                
-    cur.execute("SELECT id FROM Species")
-    return cur.fetchall()
-
-def get_speciesid_for_rep(repid, con):
-    cur = con.cursor()
-    cur.execute("SELECT id FROM Species where id in (SELECT species from Replicates where id=" + repid.__str__() + ")")
-    return cur.fetchone()[0]
-
-def get_chrom_ids(con, speciesid):
-    cur = con.cursor()
-    cur.execute("SELECT id FROM Chromosomes where species=" + speciesid.__str__())
-    return cur.fetchall()
-
-def get_chrom_id(con, name):
-    cur = con.cursor()
-    cur.execute("SELECT id from Chromosomes where name='" + name + "'")
-    x = cur.fetchone()
-    if x == None:
-        return None
-    else:
-        return x[0]
-
-def get_repid(repname, speciesid, con):    
-    cur = con.cursor()
-    cur.execute("SELECT id from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__())
-    return cur.fetchone()[0]
-
-def get_repgroup_ids(con):
-    cur = con.cursor()
-    cur.execute("SELECT id from ReplicateGroups")
-    return cur.fetchall()
-
-def get_repgroup_id(rgroup, con):
-    cur = con.cursor()
-    cur.execute("SELECT id from ReplicateGroups where name='" + rgroup + "'")
-    x = cur.fetchone()
-    if x != None:
-        return x[0]
-    else:
-        return None
-
-def get_repgroup_name(rgroupid, con):
-    cur = con.cursor()
-    cur.execute("SELECT name from ReplicateGroups where id=" + rgroupid.__str__() )
-    return cur.fetchone()[0]
-
-def get_reps_in_group(rgroupid, con):
-    cur = con.cursor()
-    cur.execute("SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__())
-    return cur.fetchall()
-
-def get_rgroupids_for_species(speciesid, con):
-    cur = con.cursor()
-    cur.execute("SELECT id from ReplicateGroups where id in (SELECT rgroup from GroupReplicate where replicate in (SELECT id from Replicates where species=" + speciesid.__str__() + "))")
-    x = cur.fetchall()
-    ids = []
-    for ii in x:
-        ids.append( ii[0] )
-    return ids
-
-def get_geneids(con, repid):
-    cur = con.cursor()
-    sql = "SELECT gene FROM GeneSummits where summit in (SELECT id from Summits where replicate=" + repid.__str__() + ")"
-    cur.execute(sql)
-    return cur.fetchall()
-
-def get_genes_for_species(con, speciesid):
-    cur = con.cursor()
-    sql = "SELECT * from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ")"
-    cur.execute(sql)
-    return cur.fetchall()
-
-def get_genes_for_chrom(con, chromid):
-    """Returns list of genes (represented as tuples), in order by their start sites"""
-    cur = con.cursor()
-    sql = "SELECT * FROM Genes where chrom=" + chromid.__str__() + " order by start ASC"
-    #print "46:", sql
-    cur.execute(sql)
-    return cur.fetchall()
- 
-def get_geneid_for_aliasname(aliasname, con):
-    """Returns the geneID that is canonical for the given gene name alias.
-    The mapping of alias names to gene ID comes from the pillars file."""
-    realname = None
-    cur = con.cursor()
-    sql = "SELECT realname from GeneAlias where alias='" + aliasname + "'"
-    cur.execute(sql)
-    x = cur.fetchall()
-    if x == None:
-        print "\n. Warning: the gene name", aliasname, "has no alias mappings."
-        realname = aliasname
-    else:
-        realname = x[0]
-    sql = "SELECT id from Genes where name='" + realname + "'"
-    cur.execute(sql)
-    x = cur.fetchall()
-    if x == None:
-        print "\n. Error: The gene named", realname, "cannot be found."
-        return None
-    else:
-        return x[0]
-        
-def get_geneid_for_aliasid(aliasid, con):
-    cur = con.cursor()
-    sql = "SELECT name from Genes where id=" + aliasid.__str__()
-    cur.execute(sql)
-    x = cur.fetchall()
-    if x == None:
-        print "\n. Warning: the gene with ID", aliasid, "cannot be found."
-        exit()
-    aliasname = x[0]
-    return get_geneid_for_aliasname(aliasname, con)
- 
-def get_geneids_from_repgroup(con, repgroupid):
-    cur = con.cursor()
-    sql = "SELECT geneid from RepgroupGenes where repgroupid=" + repgroupid.__str__()
-    cur.execute(sql)
-    x = cur.fetchall()
-    genes = []
-    for ii in x:
-        genes.append( ii[0] )
-    return genes
-
-def get_summits(con, repid, chromid):
-     cur = con.cursor()
-     sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
-     #print "53:", sql
-     cur.execute(sql)
-     x = cur.fetchall()
-     if x == None:
-         return []
-     else:
-         return x
-
-def get_summit_scores_for_gene(geneid, repid, con):
-    cur = con.cursor()
-    sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
-    #print "60:", sql
-    cur.execute(sql)
-    scores = []
-    for s in cur.fetchall():
-        scores.append( s[0] )
-    return scores
-
-def get_max_summit_score_for_gene(geneid, repid, con):
-    scores = get_summit_scores_for_gene(geneid, repid, con)
-    if scores.__len__() == 0:
-        return None 
-    return max( scores )
-
-def get_enrichment_stats_for_gene(geneid, repid, con):
-    cur = con.cursor()
-    sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + geneid.__str__()
-    cur.execute(sql)
-    return cur.fetchone()
-    
-
-def import_species(speciesname, con):
-    cur = con.cursor()
-    sql = "INSERT INTO Species (name) VALUES('" + speciesname + "')"
-    cur.execute( sql )
-    con.commit()
-    return con
-
-def get_species_id(speciesname, con):
-    cur = con.cursor()
-    sql = "SELECT id FROM Species where name='" + speciesname + "'"
-    cur.execute(sql)
-    return cur.fetchone()[0]
-
-def get_species_name(speciesid, con):
-    cur = con.cursor()
-    sql = "SELECT name FROM Species where id=" + speciesid
-    cur.execute(sql)
-    return cur.fetchone()[0]
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     print "\n. Importing genome features from", gffpath
     
     """Returns chr_gene_sites"""
     cur = con.cursor()
-    
+    count = 0
     chr_gene_sites = {} # key = chromosome name, value = hash; key = gene name, value = (Start, stop)
     fin = open(gffpath, "r")
     for l in fin.xreadlines():
@@ -250,6 +74,19 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                 stop = x
             gene = tokens[8].split(";")[0].split("=")[1] # orfName
             
+            if tokens[8].split(";").__len__() > 2:
+                note = tokens[8].split(";")[2].split("=")[1]
+                if note.__contains__("orf"):
+                    for t in note.split():
+                        if t.startswith("orf"):
+                            print "342:", gene, t
+                            gene = t # use this name instead of the orfName
+            
+            count += 1
+            if count%100 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                          
             with con:
                 cur.execute("SELECT COUNT(*) FROM Chromosomes WHERE name='" + chr + "'")
                 data = cur.fetchone()
@@ -263,8 +100,10 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                 cur.execute("SELECT * FROM Chromosomes WHERE name='" + chr + "'")
                 data = cur.fetchone()
                 chrid = data[0]
-                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + chrid.__str__() + ",'" + strand + "')"
-                cur.execute(sql)
+                cur.execute("SELECT COUNT(*) from Genes where name='" + gene + "' and chrom=" + chrid.__str__())
+                if cur.fetchone()[0] == 0:                
+                    sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + chrid.__str__() + ",'" + strand + "')"
+                    cur.execute(sql)    
     fin.close() 
     
     cur.execute("SELECT COUNT(*) FROM Genes")
@@ -273,94 +112,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     
     return con
 
-def add_repgroup(rgroup, con, note=None):
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM ReplicateGroups WHERE name='" + rgroup + "'")
-        count = cur.fetchone()[0]
-        if count == 0:
-            if note == None:
-                note = "None"
-            sql = "INSERT INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
-            cur.execute(sql)
-            con.commit()
-    return con        
-    
-def add_replicate(repname, speciesid, con):
-    new_id = None
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM Replicates WHERE name='" + repname.__str__() + "' and species=" + speciesid.__str__() )
-        data = cur.fetchone()
-        if data[0] == 0: # that chromosome doesn't exist yet.
-            sql = "INSERT INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
-            cur.execute( sql )
-            con.commit()
-    return con
 
-
-def add_rep2group(repid, rgroupid, con):
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM GroupReplicate WHERE rgroup=" + rgroupid.__str__() + " and replicate=" + repid.__str__())
-        count = cur.fetchone()[0]
-        if count == 0:
-            sql = "INSERT INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
-            cur.execute(sql)
-            con.commit()
-    return con
-
-def add_union(unionname, repgroupnames, con):
-    cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM Unions where name='" + unionname + "'")
-    count = cur.fetchone()[0]
-    if count == 0:
-        sql = "INSERT into Unions (name) VALUES('" + unionname + "')"
-        cur.execute(sql)
-        con.commit()
-        
-    # now get the union's id
-    cur.execute("SELECT unionid from Unions where name='" + unionname + "'")
-    unionid = cur.fetchone()[0]
-    for repgroupname in repgroupnames:
-        rgroupid = get_repgroup_id(repgroupname, con)
-        print "288:", rgroupid
-        if rgroupid != None:
-            sql = "INSERT INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
-            print sql
-            cur.execute(sql)
-            con.commit()
-    return con
-
-def get_unionids(con):
-    cur = con.cursor()
-    cur.execute("SELECT unionid from Unions")
-    x = cur.fetchall()
-    if x == None:
-        return None
-    unionids = []
-    for ii in x:
-        unionids.append(ii[0])
-    return unionids
-
-def get_unionname(unionid, con):
-    cur = con.cursor()
-    cur.execute("SELECT name from Unions where unionid=" + unionid.__str__())
-    x = cur.fetchone()
-    if x == None:
-        return None
-    return x[0]
-
-def get_repgroupds_in_union(unionid, con):
-    cur = con.cursor()
-    cur.execute("SELECT repgroupid from UnionRepgroups where unionid=" + unionid.__str__() )
-    x = cur.fetchall()
-    if x == None:
-        return None
-    repgroupids = []
-    for ii in x:
-        repgroupids.append( ii[0] )
-    return repgroupids
 
 def import_pillars(pillarspath, con):
     print "\n. Reading Pillars from", pillarspath
@@ -370,7 +122,7 @@ def import_pillars(pillarspath, con):
     for l in fin.xreadlines():
         if l.startswith("orf"):
             count += 1
-            if count%20 == 0:
+            if count%100 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()            
             l = l.strip()
@@ -465,8 +217,8 @@ def import_bdg(bdgpath, repid, con):
             else:
                 chromid = get_chrom_id( con, chromname )
                 if chromid == None:
-                    print "\n. I can't find chromosome", chromname, "in the descriptions provided by your GFF."
-                    print "\n. Your bedgraph file", bdgpath,"references chromosome", chromname, ". I'm skipping this BedGraph entry."
+                    #print "\n. I can't find chromosome", chromname, "in the descriptions provided by your GFF."
+                    #print "\n. Your bedgraph file", bdgpath,"references chromosome", chromname, ". I'm skipping this BedGraph entry."
                     continue
                 curr_chromname = chromname
                 curr_chromid = chromid
@@ -563,6 +315,36 @@ def import_bdg(bdgpath, repid, con):
 
     #con.commit()
     return con
+
+def resolve_aliasids(con):
+    """This method inserts data into the table GeneHomology."""
+    print "\n. Resolving homologous gene IDs."
+    
+    count = 0
+    cur = con.cursor()
+    sql = "SELECT * from Genes"
+    cur.execute(sql)
+    for g in cur.fetchall():
+        count += 1
+        if count%50 == 0:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+        
+        this_id = g[0]
+        this_name = g[1]
+        realname = get_genename_for_aliasname( this_name, con )
+        if realname == None:
+            #print "No pillar entry for", this_name
+            realname = this_name
+        
+        sql = "SELECT id from Genes where name='" + realname + "'"
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x != None:
+            realid = x[0]
+            sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):
     """This methods puts values into the table GeneSummits."""
