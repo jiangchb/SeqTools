@@ -61,10 +61,12 @@ def import_data(con):
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
 
-def setup_unions(con):
+def setup_unions(con):    
     clear_unions(con)
-    build_unions(con)    
+    build_unions(con)
+    print "67:", ap.params["species"]
     for sp in ap.params["species"]:
+        print "68:", ap.params["species"][sp]
         for unionname in ap.params["species"][sp]["unions"]:
             repgroupnames = ap.params["species"][sp]["unions"][unionname]
             print "\n. Adding a repgroup union:", unionname, repgroupnames
@@ -98,10 +100,10 @@ def correlate_unions(con):
 def correlate_enrichments_species(con):
     """Correlates the unions for each species-union, that is, sets of unions that cross species boundaries."""
     species_unions = get_species_unionids(con)
-    print "101:", species_unions
+    for spuid in species_unions:
+        correlate_summits_for_speciesunion( spuid, con)
+        correlate_enrichments_for_speciesunion( spuid, con)
 
-
-    
 
 ######################################################################
 #

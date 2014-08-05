@@ -20,7 +20,7 @@ def read_config(path):
     for l in lines:
         l = l.strip()
         
-        if l.startswith("SPECIES"):
+        if l.startswith("SPECIES") and False == l.startswith("SPECIES_UNION"):
             if "species" not in params:
                 params["species"] = {}
             tokens = l.split()
@@ -84,6 +84,7 @@ def read_config(path):
             x = tokens[1].split()
             for repgroup in x:
                 params["species"][curr_species]["unions"][unionname].append( re.sub(" ", "", repgroup) )
+            print "\n. Adding union", unionname
     
         if l.startswith("SPECIES_UNION"):
             tokens = l.split("=")

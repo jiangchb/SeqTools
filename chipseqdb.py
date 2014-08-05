@@ -45,8 +45,7 @@ def build_db(dbpath = None):
         
         cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
         cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(gene INTEGER, summit INT, distance INT)")
-
+        
         build_unions(con)
     return con
 

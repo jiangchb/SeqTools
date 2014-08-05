@@ -82,27 +82,6 @@ def get_genes_for_species(con, speciesid):
     cur.execute(sql)
     return cur.fetchall()
 
-def get_geneids_for_union(con, unionid):
-    cur = con.cursor()
-    rgroupids = get_repgroupids_in_union( unionid, con )
-    
-    genes = []
-    for rgid in rgroupids:
-        repids = get_repids_in_group(rgid, con)
-        for repid in repids:
-            sql = "SELECT id from Genes where name in (SELECT realname from GeneAlias where alias in (SELECT name from Genes where id in (SELECT geneid from  EnrichmentStats where repid=" + repid.__str__() + ")))"
-            cur.execute(sql)
-            x = cur.fetchall()
-            
-            if x == None:
-                pass
-            
-            for ii in x:
-                geneid = ii[0]
-                if geneid not in genes:
-                    genes.append( geneid )
-    return genes
-
 def get_genes_for_chrom(con, chromid):
     """Returns list of genes (represented as tuples), in order by their start sites"""
     cur = con.cursor()
@@ -131,6 +110,7 @@ def get_genename_for_aliasname(name, con):
         return None
     return x[0]
 
+# August 4 2014: This  method is not currently being used. It may be depricated.
 def get_aliasids_for_geneid(geneid, con):
      cur = con.cursor()
      sql = "SELECT aliasid from GeneHomology where geneid=" + geneid.__str__()
@@ -141,10 +121,29 @@ def get_aliasids_for_geneid(geneid, con):
      for ii in x:
          ids.append(ii[0])
      return ids
+
+def get_geneid_from_aliasid(aliasid, con):
+    cur = con.cursor()
+    sql = "SELECT geneid from GeneHomology where aliasid=" + aliasid.__str__()
+    cur.execute(sql)
+    x = cur.fetchone()
+    if x == None:
+        return None
+    return x[0]
         
 def get_geneids_from_repgroup(con, repgroupid):
     cur = con.cursor()
     sql = "SELECT geneid from RepgroupGenes where repgroupid=" + repgroupid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    genes = []
+    for ii in x:
+        genes.append( ii[0] )
+    return genes
+
+def get_geneids_from_union(con, unionid):
+    cur = con.cursor()
+    sql = "SELECT geneid from UnionGenes where unionid=" + unionid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     genes = []
@@ -222,38 +221,29 @@ def get_species_name(speciesid, con):
 def add_repgroup(rgroup, con, note=None):
     with con:
         cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM ReplicateGroups WHERE name='" + rgroup + "'")
-        count = cur.fetchone()[0]
-        if count == 0:
-            if note == None:
-                note = "None"
-            sql = "INSERT INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
-            cur.execute(sql)
-            con.commit()
+        if note == None:
+            note = "None"
+        sql = "REPLACE INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
+        cur.execute(sql)
+        con.commit()
     return con        
     
 def add_replicate(repname, speciesid, con):
     new_id = None
     with con:
         cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM Replicates WHERE name='" + repname.__str__() + "' and species=" + speciesid.__str__() )
-        data = cur.fetchone()
-        if data[0] == 0: # that chromosome doesn't exist yet.
-            sql = "INSERT INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
-            cur.execute( sql )
-            con.commit()
+        sql = "REPLACE INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
+        cur.execute( sql )
+        con.commit()
     return con
 
 
 def add_rep2group(repid, rgroupid, con):
     with con:
         cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM GroupReplicate WHERE rgroup=" + rgroupid.__str__() + " and replicate=" + repid.__str__())
-        count = cur.fetchone()[0]
-        if count == 0:
-            sql = "INSERT INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
-            cur.execute(sql)
-            con.commit()
+        sql = "REPLACE INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
+        cur.execute(sql)
+        con.commit()
     return con
 
 def clear_unions(con):
@@ -269,6 +259,14 @@ def clear_unions(con):
     sql = "DROP TABLE IF EXISTS UnionGenes"
     cur.execute(sql)
     con.commit()
+
+    sql = "DROP TABLE IF EXISTS UnionSummitStats"
+    cur.execute(sql)
+    con.commit()
+
+    sql = "DROP TABLE IF EXISTS UnionEnrichmentStats"
+    cur.execute(sql)
+    con.commit()
     
 def clear_speciesunions(con):
     cur = con.cursor()
@@ -276,11 +274,19 @@ def clear_speciesunions(con):
     cur.execute(sql)
     con.commit()
     
-    sql = "DROP TABLE IF EXISTS SpeciesunionsUnions"
+    sql = "DROP TABLE IF EXISTS SpeciesunionUnions"
     cur.execute(sql)
     con.commit()
     
     sql = "DROP TABLE IF EXISTS SpeciesunionGenes"
+    cur.execute(sql)
+    con.commit()
+    
+    sql = "DROP TABLE IF EXISTS SpeciesunionSummitStats"
+    cur.execute(sql)
+    con.commit()
+
+    sql = "DROP TABLE IF EXISTS SpeciesunionEnrichmentStats"
     cur.execute(sql)
     con.commit()
 
@@ -291,25 +297,30 @@ def build_unions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionSummitStats(unionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
     con.commit()
 
 
 def build_speciesunions(con):
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunion(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
+    
+    # geneid in the Speciesunion tables point to translated gene IDs from the pillars.
+    # This means that to find this gene ID in a particular Union, you may need to use
+    # the table GeneHomology to find alias gene IDs for another species.
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummitStats(spunionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
     con.commit()   
     
 
 def add_union(unionname, repgroupnames, con):
     cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM Unions where name='" + unionname + "'")
-    count = cur.fetchone()[0]
-    if count == 0:
-        sql = "INSERT into Unions (name) VALUES('" + unionname + "')"
-        cur.execute(sql)
-        con.commit()
+    sql = "REPLACE into Unions (name) VALUES('" + unionname + "')"
+    cur.execute(sql)
+    con.commit()
         
     # now get the union's id
     cur.execute("SELECT unionid from Unions where name='" + unionname + "'")
@@ -322,27 +333,20 @@ def add_union(unionname, repgroupnames, con):
             continue
         
         """Insert this union-repgroup pair, but only if we've never seen this pair before."""
-        cur.execute("SELECT COUNT(*) from UnionRepgroups where unionid=" + unionid.__str__() + " and repgroupid=" + rgroupid.__str__() )
-        x = cur.fetchone()[0]
-        if x == 0:          
-            if rgroupid != None:
-                sql = "INSERT INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
-                print sql
-                cur.execute(sql)
-                con.commit()
+        sql = "REPLACE INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
+        print sql
+        cur.execute(sql)
+        con.commit()
     return con
 
 def add_speciesunion(name, member_unions, con):
     cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM Speciesunion where name='" + name + "'")
-    count = cur.fetchone()[0]
-    if count == 0:
-        sql = "INSERT into Speciesunion (name) VALUES('" + name + "')"
-        cur.execute(sql)
-        con.commit()
+    sql = "INSERT into Speciesunions (name) VALUES('" + name + "')"
+    cur.execute(sql)
+    con.commit()
     
     # now get the union's id
-    cur.execute("SELECT unionid from Speciesunion where name='" + name + "'")
+    cur.execute("SELECT unionid from Speciesunions where name='" + name + "'")
     unionid = cur.fetchone()[0]
     for mu in member_unions:
         sql = "SELECT unionid from Unions where name='" + mu.__str__() + "'"
@@ -355,14 +359,10 @@ def add_speciesunion(name, member_unions, con):
         muid = muid[0]
     
         """Insert this union-repgroup pair, but only if we've never seen this pair before."""
-        cur.execute("SELECT COUNT(*) from SpeciesunionUnions where spunionid=" + unionid.__str__() + " and memunionid=" + muid.__str__() )
-        x = cur.fetchone()[0]
-        if x == 0:          
-            if x != None:
-                sql = "INSERT INTO SpeciesunionUnions (spunionid, memunionid) VALUES(" + unionid.__str__() + "," + muid.__str__() + ")"
-                #print sql
-                cur.execute(sql)
-                con.commit()
+        sql = "REPLACE INTO SpeciesunionUnions (spunionid, memunionid) VALUES(" + unionid.__str__() + "," + muid.__str__() + ")"
+        #print sql
+        cur.execute(sql)
+        con.commit()
     return con
 
 def get_unionids(con):
@@ -379,6 +379,14 @@ def get_unionids(con):
 def get_unionname(unionid, con):
     cur = con.cursor()
     cur.execute("SELECT name from Unions where unionid=" + unionid.__str__())
+    x = cur.fetchone()
+    if x == None:
+        return None
+    return x[0]
+
+def get_speciesunionname(unionid, con):
+    cur = con.cursor()
+    cur.execute("SELECT name from Speciesunions where unionid=" + unionid.__str__())
     x = cur.fetchone()
     if x == None:
         return None
@@ -402,4 +410,29 @@ def get_repgroupids_in_union(unionid, con):
     return sorted_repgroupids
 
 def get_species_unionids(con):
-    pass
+    cur = con.cursor()
+    sql = "SELECT unionid from Speciesunions"
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        return None
+    unionids = []
+    for ii in x:
+        unionids.append( ii[0] )
+    return unionids
+
+def get_unionids_in_speciesunion(unionid, con):
+    """Returns the union IDs sorted alphabetically by their group names."""
+    cur = con.cursor()
+    cur.execute("SELECT memunionid from SpeciesunionUnions where spunionid=" + unionid.__str__() )
+    x = cur.fetchall()
+    if x == None:
+        return None
+    ids = []
+    for ii in x:
+        ids.append( ii[0] )
+    return ids
+
+
+
+    
