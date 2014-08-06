@@ -99,3 +99,9 @@ def read_config(path):
     
     return params
 
+def validate_config(params):
+    """params is the hash table created by the function read_config."""
+    """This method validates that the definitions within the configuration file
+    are internally consistent. e.g., unions don't reference undefined replicate 
+    groups, etc."""
+    return True

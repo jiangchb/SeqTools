@@ -86,7 +86,10 @@ def correlate_replicates(con):
     rgroups = get_repgroup_ids(con)
     for rg in rgroups:
         rgroupid = rg[0]
-        correlate_summits_for_reps_in_group(rgroupid, con)
+        
+        compute_summits_for_reps_in_group(rgroupid, con)
+        plot_summits_for_reps_in_group(rgroupid, con)
+        #correlate_summits_for_reps_in_group(rgroupid, con)
         
         # These two separate methods replace the single previous method
         compute_enrichments_for_reps_in_group(rgroupid, con)
@@ -98,7 +101,9 @@ def correlate_unions(con):
     """Correlates a set of replicate groups, as defined by UNION commands in the configuration file."""
     unions = get_unionids(con)
     for uid in unions:
-        correlate_summits_for_union( uid, con )
+        compute_summits_for_union( uid, con )
+        plot_summits_for_union( uid, con )
+        #correlate_summits_for_union( uid, con )
         
         # These two seperate methods replace the previous method
         compute_enrichments_for_union(uid, con)
@@ -109,8 +114,13 @@ def correlate_enrichments_species(con):
     """Correlates the unions for each species-union, that is, sets of unions that cross species boundaries."""
     species_unions = get_species_unionids(con)
     for spuid in species_unions:
-        correlate_summits_for_speciesunion( spuid, con)
-        correlate_enrichments_for_speciesunion( spuid, con)
+        compute_summits_for_speciesunion( spuid, con)
+        plot_summits_for_speciesunion( spuid, con)
+        #correlate_summits_for_speciesunion( spuid, con)
+        
+        compute_enrichments_for_speciesunion( spuid, con)
+        plot_enrichments_for_speciesunion( spuid, con)
+        #correlate_enrichments_for_speciesunion( spuid, con)
 
 
 ######################################################################
@@ -124,6 +134,11 @@ data will be imported into the database."""
 configpath = ap.getOptionalArg("--configpath")
 if configpath != False:
     ap.params = read_config( configpath )
+    
+    if False == validate_config(ap.params):
+        print "\n. Error: something is wrong with your configuration file."
+        print ". Look at previous errors for more detail."
+        exit(0)
     
 """If the user didn't give a configpath, then we at
 least need a dbpath (to load a prior database)."""
