@@ -332,7 +332,7 @@ def resolve_aliasids(con):
     
     """Remove any prior GeneHomology entires. We're going to rebuild the entire table."""
     cur = con.cursor()
-    sql = "DELETE * from GeneHomology"
+    sql = "DELETE from GeneHomology"
     cur.execute(sql)
     con.commit()
     
@@ -347,19 +347,23 @@ def resolve_aliasids(con):
         
         this_id = g[0]
         this_name = g[1]
+        
+        """If there is an alias reference for this gene, then get the reference name for this gene."""
         realname = get_genename_for_aliasname( this_name, con )
         if realname == None:
             #print "No pillar entry for", this_name
             realname = this_name
+            realid = this_id
         
         sql = "SELECT id from Genes where name='" + realname + "'"
         cur.execute(sql)
         x = cur.fetchone()
         if x != None:
             realid = x[0]
-            sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
-            cur.execute(sql)
-            con.commit()
+                
+        sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
+        cur.execute(sql)
+        con.commit()
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):
     """This methods puts values into the table GeneSummits."""
