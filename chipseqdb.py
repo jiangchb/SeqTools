@@ -50,19 +50,38 @@ def build_db(dbpath = None):
     return con
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
+    cur = con.cursor()
+    
     print "\n. Importing genome features from", gffpath
     
-    """Returns chr_gene_sites"""
-    cur = con.cursor()
+    chromids = get_chrom_ids(con, speciesid)
+    sql = "DELETE FROM Chromosomes where species=" + speciesid.__str__()
+    cur.execute(sql)
+    for chromid in chromids:
+        sql = "DELETE FROM Genes where chrom=" + chromid.__str__()
+        cur.execute(sql)
+    con.commit()
+    
     count = 0
-    chr_gene_sites = {} # key = chromosome name, value = hash; key = gene name, value = (Start, stop)
     fin = open(gffpath, "r")
+    curr_chromname = None # the name of the last-seen chromosome.
+    curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
     for l in fin.xreadlines():
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
             if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
                 continue
             chr = tokens[0]
+            
+            if chr != curr_chromname:
+                """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
+                curr_chromname = chr
+                sql = "REPLACE INTO Chromosomes (name,species) VALUES('" + curr_chromname + "'," + speciesid.__str__() + ")"
+                cur.execute( sql )  
+                """Get the row ID of the newly-added chromosome."""
+                cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
+                curr_chromid = cur.fetchone()[0]
+            
             start = int( tokens[3] )
             stop = int( tokens[4] )
             strand = tokens[6]
@@ -78,7 +97,6 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                 if note.__contains__("orf"):
                     for t in note.split():
                         if t.startswith("orf"):
-                            print "342:", gene, t
                             gene = t # use this name instead of the orfName
             
             count += 1
@@ -86,27 +104,13 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                 sys.stdout.write(".")
                 sys.stdout.flush()
                           
-            with con:
-                cur.execute("SELECT COUNT(*) FROM Chromosomes WHERE name='" + chr + "'")
-                data = cur.fetchone()
-                if data[0] == 0: # that chromosome doesn't exist yet.
-                    sql = "INSERT INTO Chromosomes (name,species) VALUES('" + chr + "'," + speciesid.__str__() + ")"
-                    #print sql
-                    cur.execute( sql )
-                    con.commit()
-            
-                cur = con.cursor()                
-                cur.execute("SELECT * FROM Chromosomes WHERE name='" + chr + "'")
-                data = cur.fetchone()
-                chrid = data[0]
-                cur.execute("SELECT COUNT(*) from Genes where name='" + gene + "' and chrom=" + chrid.__str__())
-                if cur.fetchone()[0] == 0:                
-                    sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + chrid.__str__() + ",'" + strand + "')"
-                    cur.execute(sql)    
+            with con:              
+                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
+                cur.execute(sql) 
     fin.close() 
     
-    cur.execute("SELECT COUNT(*) FROM Genes")
-    count_genes = cur.fetchone()[0]
+    #cur.execute("SELECT COUNT(*) FROM Genes")
+    #count_genes = cur.fetchone()[0]
     #print "\n. The database now contains", count_genes, "total genes."
     
     return con
@@ -115,7 +119,14 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
 
 def import_pillars(pillarspath, con):
     print "\n. Reading Pillars from", pillarspath
+    
+    """Remove any previous pillar definitions. We're going to rebuild the entire table."""
     cur = con.cursor()
+    sql = "DELETE from GeneAlias"
+    cur.execute(sql)
+    con.commit()
+    
+    
     fin = open(pillarspath, "r")
     count = 0
     for l in fin.xreadlines():
@@ -319,8 +330,13 @@ def resolve_aliasids(con):
     """This method inserts data into the table GeneHomology."""
     print "\n. Resolving homologous gene IDs."
     
-    count = 0
+    """Remove any prior GeneHomology entires. We're going to rebuild the entire table."""
     cur = con.cursor()
+    sql = "DELETE * from GeneHomology"
+    cur.execute(sql)
+    con.commit()
+    
+    count = 0
     sql = "SELECT * from Genes"
     cur.execute(sql)
     for g in cur.fetchall():

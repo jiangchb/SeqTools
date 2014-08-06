@@ -126,6 +126,7 @@ if configpath == False and dbpath == False:
     print "2. an existing database, using --dbpath, whose contents will be read and imported."
     print ""
     exit()
+    
 con = build_db(dbpath=dbpath)
 
 #

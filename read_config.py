@@ -96,7 +96,6 @@ def read_config(path):
             x = tokens[1].split()
             for unionname in x:
                 params["unionssp"][spunionname].append( re.sub(" ", "", unionname) )
-            #print "read_config.py 96:", params["unionssp"]
     
     return params
 

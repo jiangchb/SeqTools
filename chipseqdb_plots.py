@@ -11,12 +11,12 @@ from plot_venn import *
 from plot_histogram import *
 
 
-def correlate_enrichments_for_union(unionid, con, keyword=None):
-    
-    # depricated:
-    #compute_enrichments_for_union(unionid, con, keyword=keyword)
-    
+def correlate_enrichments_for_union(unionid, con, keyword=None):    
     cur = con.cursor()
+    sql = "DELETE from UnionEnrichmentStats where uniond=" + unionid.__str__()
+    cur.execute( sql )
+    con.commit()
+    
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
     rgroupids.sort()
@@ -100,7 +100,7 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
                 all_means.append( 0 )
         fout.write("\n")
         
-        sql = "REPLACE INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
         sql += "VALUES (" + unionid.__str__() + ","
         sql += geneid.__str__() + ","
         sql += max_max.__str__() + ","
@@ -129,11 +129,15 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
             
 
 def correlate_enrichments_for_reps_in_group(rgroupid, con):
+    cur = con.cursor()
+    sql = "DELETE from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
+    cur.execute( sql )
+    con.commit()
+    
     repids = get_repids_in_group(rgroupid, con)
     repid1 = repids[0]
     repid2 = repids[1]
     
-    cur = con.cursor()
     cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
     rep1name = cur.fetchone()[0]
     cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
@@ -198,7 +202,7 @@ def correlate_enrichments_for_reps_in_group(rgroupid, con):
     print "\n. Updating the table GroupEnrichmentStats"
     for ii in range(0, geneids.__len__() ):
         geneid = geneids[ii]
-        sql = "REPLACE into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
         sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
         sql += max( [x_maxe[ii], y_maxe[ii]] ).__str__() + ","
         sql += mean( [x_meane[ii], y_meane[ii]] ).__str__() + ","
@@ -212,12 +216,18 @@ def correlate_summits_for_reps_in_group(rgroupid, con):
     It correlates the summits from all the replicates in a group,
     using a variety of methods.
     It assumes that all the replicates come from the same species."""
-        
+     
+    cur = con.cursor()
+    sql = "DELETE from RepgroupGenes where repgroupid=" + rgroupid.__str__()
+    cur.execute(sql)
+    sql = "DELETE from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
+    cur.execute(sql)
+    con.commit()
+         
     repids = get_repids_in_group(rgroupid, con)
     repid1 = repids[0]
     repid2 = repids[1]
     
-    cur = con.cursor()
     cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
     rep1name = cur.fetchone()[0]
     cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
@@ -294,11 +304,11 @@ def correlate_summits_for_reps_in_group(rgroupid, con):
         
         elif gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:
             # This summit is in both replicates:
-            sql = "REPLACE into RepgroupGenes (repgroupid, geneid) VALUES(" + rgroupid.__str__() + "," + gid.__str__() + ")"
+            sql = "INSERT into RepgroupGenes (repgroupid, geneid) VALUES(" + rgroupid.__str__() + "," + gid.__str__() + ")"
             cur.execute(sql)
             con.commit()
         
-            sql = "REPLACE INTO RepgroupSummitStats(repgroupid, geneid, maxsummit, nsummits) "
+            sql = "INSERT INTO RepgroupSummitStats(repgroupid, geneid, maxsummit, nsummits) "
             sql += " VALUES("
             sql += rgroupid.__str__() + ","
             sql += gid.__str__() + ","
@@ -390,6 +400,12 @@ def correlate_summits_for_union(unionid, con):
     This method writes results into the tables RepgroupSummitStats and UnionGenes
     """
     cur = con.cursor()
+    sql = "DELETE from UnionGenes where unionid=" + unionid.__str__()
+    cur.execute(sql)
+    sql = "DELETE from UnionSummitStats where unionid=" + unionid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
 
@@ -478,11 +494,11 @@ def correlate_summits_for_union(unionid, con):
             if geneid not in venn_data[rgroupname]:
                 found_in_all = False
         if found_in_all:
-            sql = "REPLACE into UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + geneid.__str__() + ")"
+            sql = "INSERT into UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + geneid.__str__() + ")"
             cur.execute(sql)
             con.commit()
             
-            sql = "REPLACE into UnionSummitStats (unionid, geneid, maxsummit, nsummits)"
+            sql = "INSERT into UnionSummitStats (unionid, geneid, maxsummit, nsummits)"
             sql += " VALUES(" + unionid.__str__() + ","
             sql += geneid.__str__() + ","
             sql += geneid_maxsummit[geneid].__str__() + ","
@@ -497,6 +513,12 @@ def correlate_summits_for_speciesunion( uid, con):
     The Species-union compares these unions, across species boundaries."""
     
     cur = con.cursor()
+    sql = "DELETE from SpeciesunionGenes where unionid=" + uid.__str__()
+    cur.execute(sql)
+    sql = "DELETE from SpeciesunionSummitStats where spunionid=" + uid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
     print "\n. Comparing summits for genes across species", spunionname
@@ -556,7 +578,7 @@ def correlate_summits_for_speciesunion( uid, con):
             if gid not in venn_data[ unionname ]:
                 found_in_all = False
         if found_in_all:
-            sql = "REPLACE INTO SpeciesunionGenes (unionid, geneid) VALUES(" + uid.__str__() + "," + gid.__str__() + ")"
+            sql = "INSERT INTO SpeciesunionGenes (unionid, geneid) VALUES(" + uid.__str__() + "," + gid.__str__() + ")"
             cur.execute(sql)
             con.commit()
     
@@ -613,7 +635,7 @@ def correlate_summits_for_speciesunion( uid, con):
     # Update the table SpeciesunionSummitStats
     #
     for geneid in seen_genes:
-        sql = "REPLACE INTO SpeciesunionSummitStats (spunionid, geneid, maxsummit, nsummits)"
+        sql = "INSERT INTO SpeciesunionSummitStats (spunionid, geneid, maxsummit, nsummits)"
         sql += " VALUES(" + uid.__str__() + ","
         sql += geneid.__str__() + ","
         sql += geneid_maxsummit[geneid].__str__() + ","
@@ -628,6 +650,9 @@ def correlate_summits_for_speciesunion( uid, con):
 
 def correlate_enrichments_for_speciesunion( uid, con):
     cur = con.cursor()
+    sql = "DELETE from SpeciesunionEnrichmentStats where unionid=" + uid.__str__()
+    con.commit()
+    
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
     
@@ -737,7 +762,7 @@ def correlate_enrichments_for_speciesunion( uid, con):
     
     
     for gid in genes:
-        sql = "REPLACE INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
         sql += "VALUES (" + unionid.__str__() + ","
         sql += gid.__str__() + ","
         sql += max_max.__str__() + ","

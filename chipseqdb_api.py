@@ -201,7 +201,7 @@ def get_enrichment_stats_for_replicate(repid, con):
 
 def import_species(speciesname, con):
     cur = con.cursor()
-    sql = "INSERT INTO Species (name) VALUES('" + speciesname + "')"
+    sql = "REPLACE INTO Species (name) VALUES('" + speciesname + "')"
     cur.execute( sql )
     con.commit()
     return con
