@@ -941,10 +941,88 @@ def correlate_summits_for_speciesunion( uid, con):
     #
     
 
-def correlate_enrichments_for_speciesunion( uid, con):
+def compute_enrichments_for_speciesunion(uid, con):
     cur = con.cursor()
     sql = "DELETE from SpeciesunionEnrichmentStats where unionid=" + uid.__str__()
     con.commit()
+    
+    spunionname = get_speciesunionname(uid, con)
+    unionids = get_unionids_in_speciesunion( uid, con )
+    
+    print "\n. Comparing enrichments acorss species", spunionname, unionids
+    sys.stdout.flush()
+
+    """
+    What gene IDs apply to this species union?
+    In the following block, we lookup the genes that have enrichment
+    scores in their nearby regulatory regions in all the replicates
+    represented by at least one union. We then translate
+    those gene IDs, using the table GeneHomology with data from
+    the pillars file, in order to generate a list of genes
+    which can be compared across species."""
+    sql = "SELECT geneid from UnionEnrichmentStats where"
+    sqlbits = []
+    for unionid in unionids:
+        sqlbits.append( " unionid=" + unionid.__str__() )
+    sql += " OR ".join( sqlbits )
+    cur.execute(sql)
+    x = cur.fetchall()
+    
+    """genes will be a list of un-aliased genes. That is, gene IDs translated via pillars."""
+    genes = []
+
+    """A dictionary of aliased genes."""
+    gene_aliases = {}
+    for ii in x:       
+        translated_id = get_geneid_from_aliasid( ii[0], con )
+        if translated_id != None:
+            if translated_id not in gene_aliases:
+                gene_aliases[translated_id] = []
+            gene_aliases[ translated_id ].append( ii[0]) 
+            if translated_id not in genes:
+                genes.append( translated_id )
+        
+    
+    count = 0
+    fout.write("\n")
+    for gid in genes:
+        max_max = 0
+        all_means = []
+        all_sums = []
+        fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
+        
+        for unionid in unionids:
+            foundit = False
+            
+            for geneid in gene_aliases[gid]:            
+                count += 1
+                if count%50 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+            
+                sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__() + " and geneid=" + geneid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                if x != None and foundit == False:
+                    foundit = True
+                                        
+                    if x[2] > max_max:
+                        max_max = x[2]
+                    all_means.append( x[3] )
+                    all_sums.append( x[4] )
+
+    for gid in genes:
+        sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql += "VALUES (" + unionid.__str__() + ","
+        sql += gid.__str__() + ","
+        sql += max_max.__str__() + ","
+        sql += mean(all_means).__str__() + ","
+        sql += sum(all_sums).__str__() + ")"
+        cur.execute(sql)
+        con.commit()    
+
+def plot_enrichments_for_speciesunion(uid, con):
+    cur = con.cursor()
     
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
@@ -1053,16 +1131,6 @@ def correlate_enrichments_for_speciesunion( uid, con):
         fout.write("\n")
     fout.close()
     
-    
-    for gid in genes:
-        sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
-        sql += "VALUES (" + unionid.__str__() + ","
-        sql += gid.__str__() + ","
-        sql += max_max.__str__() + ","
-        sql += mean(all_means).__str__() + ","
-        sql += sum(all_sums).__str__() + ")"
-        cur.execute(sql)
-        con.commit()    
             
     #
     # Scatterplots
@@ -1081,5 +1149,146 @@ def correlate_enrichments_for_speciesunion( uid, con):
             scatter1(unionid_meanvals[this_uid], unionid_meanvals[that_uid], "enrich.mean." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": mean enrichment", ylab=that_uname.__str__()+": mean enrichment", force_square=True)
             scatter1(unionid_sumvals[this_uid], unionid_sumvals[that_uid], "enrich.sum." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": sum enrichment", ylab=that_uname.__str__()+": sum enrichment", force_square=True)
    
+# depricated
+# def correlate_enrichments_for_speciesunion( uid, con):
+#     cur = con.cursor()
+#     sql = "DELETE from SpeciesunionEnrichmentStats where unionid=" + uid.__str__()
+#     con.commit()
+#     
+#     spunionname = get_speciesunionname(uid, con)
+#     unionids = get_unionids_in_speciesunion( uid, con )
+#     
+#     print "\n. Comparing enrichments acorss species", spunionname, unionids
+#     sys.stdout.flush()
+# 
+#     """
+#     What gene IDs apply to this species union?
+#     In the following block, we lookup the genes that have enrichment
+#     scores in their nearby regulatory regions in all the replicates
+#     represented by at least one union. We then translate
+#     those gene IDs, using the table GeneHomology with data from
+#     the pillars file, in order to generate a list of genes
+#     which can be compared across species."""
+#     sql = "SELECT geneid from UnionEnrichmentStats where"
+#     sqlbits = []
+#     for unionid in unionids:
+#         sqlbits.append( " unionid=" + unionid.__str__() )
+#     sql += " OR ".join( sqlbits )
+#     cur.execute(sql)
+#     x = cur.fetchall()
+#     
+#     """genes will be a list of un-aliased genes. That is, gene IDs translated via pillars."""
+#     genes = []
+# 
+#     """A dictionary of aliased genes."""
+#     gene_aliases = {}
+#     for ii in x:       
+#         translated_id = get_geneid_from_aliasid( ii[0], con )
+#         if translated_id != None:
+#             if translated_id not in gene_aliases:
+#                 gene_aliases[translated_id] = []
+#             gene_aliases[ translated_id ].append( ii[0]) 
+#             if translated_id not in genes:
+#                 genes.append( translated_id )
+#         
+#     #
+#     # Write an excel table,
+#     # while also filling data structures for the scatterplot
+#     #
+#     unionid_maxvals = {}
+#     unionid_meanvals = {}
+#     unionid_sumvals = {}
+#     
+#     xlpath = "enrich." + spunionname.__str__() + ".xls"
+#     print "\n. Writing an Excel table to", xlpath
+#     fout = open(xlpath, "w")
+#     fout.write("GeneID\tGeneName\t")
+#     for unionid in unionids:
+#         unionname = get_unionname(unionid, con)
+#         fout.write("GeneID(" + unionname + ")\t")
+#         fout.write("GeneName(" + unionname + ")\t")
+#         fout.write("max(" + unionname + ")\t")
+#         fout.write("mean(" + unionname + ")\t")
+#         fout.write("sum(" + unionname + ")\t")
+# 
+#         unionid_maxvals[unionid] = []
+#         unionid_meanvals[unionid] = []
+#         unionid_sumvals[unionid] = []
+#     
+#     count = 0
+#     fout.write("\n")
+#     for gid in genes:
+#         max_max = 0
+#         all_means = []
+#         all_sums = []
+#         fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
+#         
+#         for unionid in unionids:
+#             foundit = False
+#             
+#             for geneid in gene_aliases[gid]:            
+#                 count += 1
+#                 if count%50 == 0:
+#                     sys.stdout.write(".")
+#                     sys.stdout.flush()
+#             
+#                 sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__() + " and geneid=" + geneid.__str__()
+#                 cur.execute(sql)
+#                 x = cur.fetchone()
+#                 if x != None and foundit == False:
+#                     foundit = True
+#                     fout.write(geneid.__str__() + "\t")
+#                     fout.write(get_genename(geneid, con) + "\t")
+#                     fout.write(x[2].__str__() + "\t")
+#                     fout.write(x[3].__str__() + "\t")
+#                     fout.write(x[4].__str__() + "\t")
+#     
+#                     unionid_maxvals[unionid].append(x[2])
+#                     unionid_meanvals[unionid].append(x[3])
+#                     unionid_sumvals[unionid].append(x[4])
+#                     
+#                     if x[2] > max_max:
+#                         max_max = x[2]
+#                     all_means.append( x[3] )
+#                     all_sums.append( x[4] )
+#                         
+#                 #else:
+#             if foundit == False:
+#                 fout.write("---\t---\t0\t0\t0\t")
+#                 unionid_maxvals[unionid].append(0)
+#                 unionid_meanvals[unionid].append(0)
+#                 unionid_sumvals[unionid].append(0)
+#                 #all_means.append( 0 )
+#         fout.write("\n")
+#     fout.close()
+#     
+#     
+#     for gid in genes:
+#         sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+#         sql += "VALUES (" + unionid.__str__() + ","
+#         sql += gid.__str__() + ","
+#         sql += max_max.__str__() + ","
+#         sql += mean(all_means).__str__() + ","
+#         sql += sum(all_sums).__str__() + ")"
+#         cur.execute(sql)
+#         con.commit()    
+#             
+#     #
+#     # Scatterplots
+#     #
+#     for ii in range(0, unionids.__len__() ):
+#         for jj in range(ii+1, unionids.__len__() ):
+#             #print "90:", ii, jj
+# 
+#             this_uid = unionids[ii]
+#             that_uid = unionids[jj]
+#             
+#             this_uname = get_unionname(this_uid, con)
+#             that_uname = get_unionname(that_uid, con)
+#             
+#             scatter1(unionid_maxvals[this_uid], unionid_maxvals[that_uid], "enrich.max." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": max enrichment", ylab=that_uname.__str__()+": max enrichment", force_square=True)
+#             scatter1(unionid_meanvals[this_uid], unionid_meanvals[that_uid], "enrich.mean." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": mean enrichment", ylab=that_uname.__str__()+": mean enrichment", force_square=True)
+#             scatter1(unionid_sumvals[this_uid], unionid_sumvals[that_uid], "enrich.sum." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": sum enrichment", ylab=that_uname.__str__()+": sum enrichment", force_square=True)
+#    
     
     
