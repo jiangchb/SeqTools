@@ -354,8 +354,8 @@ def correlate_summits_for_reps_in_group(rgroupid, con):
     scoresx_genes = {} # bins of genes, organized by their score range
     scoresy_genes = {}
     chromids = get_chrom_ids(con, species1)
-    for chr in chromids:
-        genes = get_genes_for_chrom(con, chr[0])
+    for chrid in chromids:
+        genes = get_genes_for_chrom(con, chrid)
         for g in genes:
             gid = g[0]
             if gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:

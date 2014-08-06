@@ -14,7 +14,13 @@ def get_speciesid_for_rep(repid, con):
 def get_chrom_ids(con, speciesid):
     cur = con.cursor()
     cur.execute("SELECT id FROM Chromosomes where species=" + speciesid.__str__())
-    return cur.fetchall()
+    x = cur.fetchall()
+    if x == None:
+        return None
+    chromids = []
+    for ii in x:
+        chromids.append( ii[0] )
+    return chromids
 
 def get_chrom_id(con, name):
     cur = con.cursor()

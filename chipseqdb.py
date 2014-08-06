@@ -378,8 +378,7 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
             
         for spid in spids:
             chroms = get_chrom_ids(con, spid)
-            for chr in chroms:
-                chrid = chr[0]
+            for chrid in chroms:
                 genes = get_genes_for_chrom(con, chrid)
                 summits = get_summits(con, repid, chrid)
                 for s in summits:
