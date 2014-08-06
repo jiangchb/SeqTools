@@ -11,7 +11,9 @@ from plot_venn import *
 from plot_histogram import *
 
 
-def correlate_enrichments_for_union(unionid, con, keyword=None):    
+def compute_enrichments_for_union(unionid, con, keyword=None):
+    """This method puts data into UnionEnrichmentStats"""
+    
     cur = con.cursor()
     sql = "DELETE from UnionEnrichmentStats where uniond=" + unionid.__str__()
     cur.execute( sql )
@@ -21,9 +23,66 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
     rgroupids = get_repgroupids_in_union( unionid, con )
     rgroupids.sort()
     
-    print "\n. Comparing enrichments for union", unionname
+    print "\n. Computing enrichments for union", unionname
     
     #
+    # What gene IDs apply to this union?
+    #
+    sql = "SELECT geneid from GroupEnrichmentStats where"
+    sqlbits = []
+    for rgid in rgroupids:
+        sqlbits.append( " rgroupid=" + rgid.__str__() )
+    sql += " OR ".join( sqlbits )
+    cur.execute(sql)
+    x = cur.fetchall()
+    genes = []
+    for ii in x:
+        genes.append( ii[0] )
+        
+    for geneid in genes:    
+        max_max = 0
+        all_means = []
+        all_sums = []
+        for rgid in rgroupids:
+            
+            count += 1
+            if count%50 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+            
+            sql = "SELECT * from GroupEnrichmentStats where rgroupid=" + rgid.__str__() + " and geneid=" + geneid.__str__()
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x != None:
+                if x[2] > max_max:
+                    max_max = x[2]
+                all_means.append( x[3] )
+                all_sums.append( x[4] )
+                    
+            else:
+                all_means.append( 0 )
+        
+        sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql += "VALUES (" + unionid.__str__() + ","
+        sql += geneid.__str__() + ","
+        sql += max_max.__str__() + ","
+        sql += mean(all_means).__str__() + ","
+        sql += sum(all_sums).__str__() + ")"
+        cur.execute(sql)
+        con.commit() 
+
+def plot_enrichments_for_union(unionid, con, keyword=None):
+    """This method makes the plots and excel tables relevant to the enrichment scores
+    for all replicates in the union.
+    This method assumes that data has been inserted into the table UnionEnrichmentStats"""
+
+    unionname = get_unionname(unionid, con)
+    rgroupids = get_repgroupids_in_union( unionid, con )
+    rgroupids.sort()
+    
+    print "\n. Plotting enrichments for union", unionname
+    
+  #
     # What gene IDs apply to this union?
     #
     sql = "SELECT geneid from GroupEnrichmentStats where"
@@ -63,13 +122,13 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
     count = 0
     fout.write("\n")
     for geneid in genes:
-        
         max_max = 0
         all_means = []
         all_sums = []
         
         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
         for rgid in rgroupids:
+            
             count += 1
             if count%50 == 0:
                 sys.stdout.write(".")
@@ -99,15 +158,6 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
                 rgid_sumvals[rgid].append(0)
                 all_means.append( 0 )
         fout.write("\n")
-        
-        sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
-        sql += "VALUES (" + unionid.__str__() + ","
-        sql += geneid.__str__() + ","
-        sql += max_max.__str__() + ","
-        sql += mean(all_means).__str__() + ","
-        sql += sum(all_sums).__str__() + ")"
-        cur.execute(sql)
-        con.commit()    
     fout.close()
     
     #
@@ -115,8 +165,6 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
     #
     for ii in range(0, rgroupids.__len__() ):
         for jj in range(ii+1, rgroupids.__len__() ):
-            #print "90:", ii, jj
-
             this_rgid = rgroupids[ii]
             that_rgid = rgroupids[jj]
             
@@ -126,9 +174,126 @@ def correlate_enrichments_for_union(unionid, con, keyword=None):
             scatter1(rgid_maxvals[this_rgid], rgid_maxvals[that_rgid], "enrich.max." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": max enrichment", ylab=that_rgname.__str__()+": max enrichment", force_square=True)
             scatter1(rgid_meanvals[this_rgid], rgid_meanvals[that_rgid], "enrich.mean." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": mean enrichment", ylab=that_rgname.__str__()+": mean enrichment", force_square=True)
             scatter1(rgid_sumvals[this_rgid], rgid_sumvals[that_rgid], "enrich.sum." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": sum enrichment", ylab=that_rgname.__str__()+": sum enrichment", force_square=True)
+ 
+
+# depricated
+# def correlate_enrichments_for_union(unionid, con, keyword=None):    
+#     cur = con.cursor()
+#     sql = "DELETE from UnionEnrichmentStats where uniond=" + unionid.__str__()
+#     cur.execute( sql )
+#     con.commit()
+#     
+#     unionname = get_unionname(unionid, con)
+#     rgroupids = get_repgroupids_in_union( unionid, con )
+#     rgroupids.sort()
+#     
+#     print "\n. Comparing enrichments for union", unionname
+#     
+#     #
+#     # What gene IDs apply to this union?
+#     #
+#     sql = "SELECT geneid from GroupEnrichmentStats where"
+#     sqlbits = []
+#     for rgid in rgroupids:
+#         sqlbits.append( " rgroupid=" + rgid.__str__() )
+#     sql += " OR ".join( sqlbits )
+#     cur.execute(sql)
+#     x = cur.fetchall()
+#     genes = []
+#     for ii in x:
+#         genes.append( ii[0] )
+#         
+#     
+#     #
+#     # Write an excel table,
+#     # while also filling data structures for the scatterplot
+#     #
+#     rgid_maxvals = {}
+#     rgid_meanvals = {}
+#     rgid_sumvals = {}
+#     
+#     xlpath = "enrich." + unionname.__str__() + ".xls"
+#     print "\n. Writing an Excel table to", xlpath
+#     fout = open(xlpath, "w")
+#     fout.write("GeneID\tGeneName\t")
+#     for rgid in rgroupids:
+#         rgname = get_repgroup_name(rgid, con)
+#         fout.write("max(" + rgname + ")\t")
+#         fout.write("mean(" + rgname + ")\t")
+#         fout.write("sum(" + rgname + ")\t")
+# 
+#         rgid_maxvals[rgid] = []
+#         rgid_meanvals[rgid] = []
+#         rgid_sumvals[rgid] = []
+#     
+#     count = 0
+#     fout.write("\n")
+#     for geneid in genes:
+#         max_max = 0
+#         all_means = []
+#         all_sums = []
+#         
+#         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
+#         for rgid in rgroupids:
+#             count += 1
+#             if count%50 == 0:
+#                 sys.stdout.write(".")
+#                 sys.stdout.flush()
+#             
+#             sql = "SELECT * from GroupEnrichmentStats where rgroupid=" + rgid.__str__() + " and geneid=" + geneid.__str__()
+#             cur.execute(sql)
+#             x = cur.fetchone()
+#             if x != None:
+#                 fout.write(x[2].__str__() + "\t")
+#                 fout.write(x[3].__str__() + "\t")
+#                 fout.write(x[4].__str__() + "\t")
+# 
+#                 rgid_maxvals[rgid].append(x[2])
+#                 rgid_meanvals[rgid].append(x[3])
+#                 rgid_sumvals[rgid].append(x[4])
+#                 
+#                 if x[2] > max_max:
+#                     max_max = x[2]
+#                 all_means.append( x[3] )
+#                 all_sums.append( x[4] )
+#                     
+#             else:
+#                 fout.write("0\t0\t0\t")
+#                 rgid_maxvals[rgid].append(0)
+#                 rgid_meanvals[rgid].append(0)
+#                 rgid_sumvals[rgid].append(0)
+#                 all_means.append( 0 )
+#         fout.write("\n")
+#         
+#         sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+#         sql += "VALUES (" + unionid.__str__() + ","
+#         sql += geneid.__str__() + ","
+#         sql += max_max.__str__() + ","
+#         sql += mean(all_means).__str__() + ","
+#         sql += sum(all_sums).__str__() + ")"
+#         cur.execute(sql)
+#         con.commit()    
+#     fout.close()
+#     
+#     #
+#     # Scatterplots
+#     #
+#     for ii in range(0, rgroupids.__len__() ):
+#         for jj in range(ii+1, rgroupids.__len__() ):
+#             #print "90:", ii, jj
+# 
+#             this_rgid = rgroupids[ii]
+#             that_rgid = rgroupids[jj]
+#             
+#             this_rgname = get_repgroup_name(this_rgid, con)
+#             that_rgname = get_repgroup_name(that_rgid, con)
+#             
+#             scatter1(rgid_maxvals[this_rgid], rgid_maxvals[that_rgid], "enrich.max." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": max enrichment", ylab=that_rgname.__str__()+": max enrichment", force_square=True)
+#             scatter1(rgid_meanvals[this_rgid], rgid_meanvals[that_rgid], "enrich.mean." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": mean enrichment", ylab=that_rgname.__str__()+": mean enrichment", force_square=True)
+#             scatter1(rgid_sumvals[this_rgid], rgid_sumvals[that_rgid], "enrich.sum." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": sum enrichment", ylab=that_rgname.__str__()+": sum enrichment", force_square=True)
             
 
-def correlate_enrichments_for_reps_in_group(rgroupid, con):
+def compute_enrichments_for_reps_in_group(rgroupid, con):
     cur = con.cursor()
     sql = "DELETE from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
     cur.execute( sql )
@@ -172,6 +337,61 @@ def correlate_enrichments_for_reps_in_group(rgroupid, con):
             x_sume.append( x[geneid][2] )
             y_sume.append( y[geneid][2] )
     
+    print "\n. Updating the table GroupEnrichmentStats"
+    for ii in range(0, geneids.__len__() ):
+        geneid = geneids[ii]
+        sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
+        sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
+        sql += max( [x_maxe[ii], y_maxe[ii]] ).__str__() + ","
+        sql += mean( [x_meane[ii], y_meane[ii]] ).__str__() + ","
+        sql += sum( [x_sume[ii],y_sume[ii]] ).__str__() + ")"
+        cur.execute(sql)
+        con.commit()
+
+def plot_enrichments_for_reps_in_group(rgroupid, con):
+    cur = con.cursor()
+    
+    repids = get_repids_in_group(rgroupid, con)
+    repid1 = repids[0]
+    repid2 = repids[1]
+    
+    cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
+    rep1name = cur.fetchone()[0]
+    cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
+    rep2name = cur.fetchone()[0]
+    
+    x_maxe = []
+    y_maxe = []
+
+    x_meane = []
+    y_meane = []
+    
+    x_sume = []
+    y_sume = []
+    
+    x = get_enrichment_stats_for_replicate( repid1, con )
+    y = get_enrichment_stats_for_replicate( repid2, con )
+    
+    geneids_all = x.keys()
+    geneids_all.sort()
+    
+    geneids = []
+    for geneid in geneids_all:
+        if geneid in y:
+            geneids.append( geneid )
+    
+    for geneid in geneids:
+        if geneid in y:
+            x_maxe.append( x[geneid][0] )
+            y_maxe.append( y[geneid][0] )
+            x_meane.append( x[geneid][1] )
+            y_meane.append( y[geneid][1] )
+            x_sume.append( x[geneid][2] )
+            y_sume.append( y[geneid][2] )
+    
+    #
+    # Plot scatterplots
+    #
     scatter1(x_maxe,y_maxe,"enrich.max." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": max enrichment", ylab=rep2name.__str__()+": max enrichment", force_square=True)
     scatter1(x_meane,y_meane,"enrich.mean." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": mean enrichment", ylab=rep2name.__str__()+": mean enrichment", force_square=True)
     scatter1(x_sume,y_sume,"enrich.sum." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": sum enrichment", ylab=rep2name.__str__()+": sum enrichment", force_square=True)
@@ -199,16 +419,89 @@ def correlate_enrichments_for_reps_in_group(rgroupid, con):
         fout.write("\n")
     fout.close()
 
-    print "\n. Updating the table GroupEnrichmentStats"
-    for ii in range(0, geneids.__len__() ):
-        geneid = geneids[ii]
-        sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
-        sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
-        sql += max( [x_maxe[ii], y_maxe[ii]] ).__str__() + ","
-        sql += mean( [x_meane[ii], y_meane[ii]] ).__str__() + ","
-        sql += sum( [x_sume[ii],y_sume[ii]] ).__str__() + ")"
-        cur.execute(sql)
-        con.commit()
+
+# depricated
+# def correlate_enrichments_for_reps_in_group(rgroupid, con):
+#     cur = con.cursor()
+#     sql = "DELETE from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
+#     cur.execute( sql )
+#     con.commit()
+#     
+#     repids = get_repids_in_group(rgroupid, con)
+#     repid1 = repids[0]
+#     repid2 = repids[1]
+#     
+#     cur.execute("SELECT name from Replicates where id=" + repid1.__str__())
+#     rep1name = cur.fetchone()[0]
+#     cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
+#     rep2name = cur.fetchone()[0]
+#     
+#     x_maxe = []
+#     y_maxe = []
+# 
+#     x_meane = []
+#     y_meane = []
+#     
+#     x_sume = []
+#     y_sume = []
+#     
+#     x = get_enrichment_stats_for_replicate( repid1, con )
+#     y = get_enrichment_stats_for_replicate( repid2, con )
+#     
+#     geneids_all = x.keys()
+#     geneids_all.sort()
+#     
+#     geneids = []
+#     for geneid in geneids_all:
+#         if geneid in y:
+#             geneids.append( geneid )
+#     
+#     for geneid in geneids:
+#         if geneid in y:
+#             x_maxe.append( x[geneid][0] )
+#             y_maxe.append( y[geneid][0] )
+#             x_meane.append( x[geneid][1] )
+#             y_meane.append( y[geneid][1] )
+#             x_sume.append( x[geneid][2] )
+#             y_sume.append( y[geneid][2] )
+#     
+#     scatter1(x_maxe,y_maxe,"enrich.max." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": max enrichment", ylab=rep2name.__str__()+": max enrichment", force_square=True)
+#     scatter1(x_meane,y_meane,"enrich.mean." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": mean enrichment", ylab=rep2name.__str__()+": mean enrichment", force_square=True)
+#     scatter1(x_sume,y_sume,"enrich.sum." + rep1name.__str__() + "." + rep2name.__str__(), xlab=rep1name.__str__()+": sum enrichment", ylab=rep2name.__str__()+": sum enrichment", force_square=True)
+# 
+#     #
+#     # Write an Excel Table
+#     #
+#     xlpath = "enrich." + rep1name + "." + rep2name + ".xls"
+#     print "\n. Writing an Excel table to", xlpath
+#     fout = open(xlpath, "w")
+#     fout.write("GeneID\tGeneName\t")
+#     for rgname in [rep1name,rep2name]:
+#         fout.write("max(" + rgname + ")\t")
+#         fout.write("mean(" + rgname + ")\t")
+#         fout.write("sum(" + rgname + ")\t")        
+#     fout.write("\n")
+#     for ii in range(0, geneids.__len__() ):
+#         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
+#         fout.write(x_maxe[ii].__str__() + "\t")
+#         fout.write(x_meane[ii].__str__() + "\t")
+#         fout.write(x_sume[ii].__str__() + "\t")
+#         fout.write(y_maxe[ii].__str__() + "\t")
+#         fout.write(y_meane[ii].__str__() + "\t")
+#         fout.write(y_sume[ii].__str__())
+#         fout.write("\n")
+#     fout.close()
+# 
+#     print "\n. Updating the table GroupEnrichmentStats"
+#     for ii in range(0, geneids.__len__() ):
+#         geneid = geneids[ii]
+#         sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
+#         sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
+#         sql += max( [x_maxe[ii], y_maxe[ii]] ).__str__() + ","
+#         sql += mean( [x_meane[ii], y_meane[ii]] ).__str__() + ","
+#         sql += sum( [x_sume[ii],y_sume[ii]] ).__str__() + ")"
+#         cur.execute(sql)
+#         con.commit()
 
 
 def correlate_summits_for_reps_in_group(rgroupid, con):

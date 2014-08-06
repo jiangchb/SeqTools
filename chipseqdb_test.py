@@ -87,7 +87,11 @@ def correlate_replicates(con):
     for rg in rgroups:
         rgroupid = rg[0]
         correlate_summits_for_reps_in_group(rgroupid, con)
-        correlate_enrichments_for_reps_in_group(rgroupid, con)
+        
+        # These two separate methods replace the single previous method
+        compute_enrichments_for_reps_in_group(rgroupid, con)
+        plot_enrichments_for_reps_in_group(rgroupid, con)
+        #correlate_enrichments_for_reps_in_group(rgroupid, con)
     return con
 
 def correlate_unions(con):
@@ -95,7 +99,11 @@ def correlate_unions(con):
     unions = get_unionids(con)
     for uid in unions:
         correlate_summits_for_union( uid, con )
-        correlate_enrichments_for_union( uid, con )
+        
+        # These two seperate methods replace the previous method
+        compute_enrichments_for_union(uid, con)
+        plot_enrichments_for_union(uid, con)
+        #correlate_enrichments_for_union( uid, con )
 
 def correlate_enrichments_species(con):
     """Correlates the unions for each species-union, that is, sets of unions that cross species boundaries."""
