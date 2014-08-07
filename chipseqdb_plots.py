@@ -1059,54 +1059,59 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
     rgroupids.sort()
+    nrgids = ngroupids.__len__()
     
     print "\n. Computing enrichments for union", unionname
     
     #
-    # What gene IDs apply to this union?
+    # A better way?
     #
-    sql = "SELECT geneid from GroupEnrichmentStats where"
+    sql = "SELECT * from GroupEnrichmentStats where"
     sqlbits = []
     for rgid in rgroupids:
         sqlbits.append( " rgroupid=" + rgid.__str__() )
     sql += " OR ".join( sqlbits )
     cur.execute(sql)
-    x = cur.fetchall()
-    genes = []
-    for ii in x:
-        genes.append( ii[0] )
-        
-    for geneid in genes:    
+    results = cur.fetchall()
+    
+    gene_results = {}
+    for ii in results:
+        geneid = ii[1]
+        if geneid not in results:
+            gene_results[geneid] = []
+        gene_results[geneid].append( ii )
+    
+    for geneid in gene_results.keys():
         max_max = 0
         all_means = []
         all_sums = []
-        for rgid in rgroupids:
-            
-            count += 1
-            if count%50 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-            
-            sql = "SELECT * from GroupEnrichmentStats where rgroupid=" + rgid.__str__() + " and geneid=" + geneid.__str__()
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x != None:
-                if x[2] > max_max:
-                    max_max = x[2]
-                all_means.append( x[3] )
-                all_sums.append( x[4] )
-                    
-            else:
-                all_means.append( 0 )
         
-        sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
-        sql += "VALUES (" + unionid.__str__() + ","
-        sql += geneid.__str__() + ","
-        sql += max_max.__str__() + ","
-        sql += mean(all_means).__str__() + ","
-        sql += sum(all_sums).__str__() + ")"
-        cur.execute(sql)
-        con.commit() 
+        """Compute union-wide stats, but only if we have data from all the replicates in this union."""
+        if gene_results[geneid].keys().__len__() == nrgids:
+            
+            for ii in gene_results[geneid]:
+                rgid = ii[0]
+                
+                count += 1
+                if count%50 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+    
+                if ii[2] > max_max:
+                    max_max = ii[2]
+                all_means.append( ii[3] )
+                all_sums.append( ii[4] )
+    
+            
+            sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+            sql += "VALUES (" + unionid.__str__() + ","
+            sql += geneid.__str__() + ","
+            sql += max_max.__str__() + ","
+            sql += mean(all_means).__str__() + ","
+            sql += sum(all_sums).__str__() + ")"
+            cur.execute(sql)
+            con.commit() 
+    
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
     """This method makes the plots and excel tables relevant to the enrichment scores
@@ -1119,7 +1124,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     
     print "\n. Plotting enrichments for union", unionname
     
-  #
+    #
     # What gene IDs apply to this union?
     #
     sql = "SELECT geneid from GroupEnrichmentStats where"
@@ -1128,12 +1133,15 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
         sqlbits.append( " rgroupid=" + rgid.__str__() )
     sql += " OR ".join( sqlbits )
     cur.execute(sql)
-    x = cur.fetchall()
-    genes = []
-    for ii in x:
-        genes.append( ii[0] )
-        
+    results = cur.fetchall()
+    geneid_results = {}
+    for ii in results:
+        geneid = ii[1]
+        if geneid not in geneid_results:
+            geneid_results[geneid] = []
+        geneid_results.append( ii )
     
+        
     #
     # Write an excel table,
     # while also filling data structures for the scatterplot
@@ -1158,7 +1166,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     
     count = 0
     fout.write("\n")
-    for geneid in genes:
+    for geneid in geneid_results.keys():
         max_max = 0
         all_means = []
         all_sums = []
@@ -1170,25 +1178,26 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
             if count%50 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
-            
-            sql = "SELECT * from GroupEnrichmentStats where rgroupid=" + rgid.__str__() + " and geneid=" + geneid.__str__()
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x != None:
-                fout.write(x[2].__str__() + "\t")
-                fout.write(x[3].__str__() + "\t")
-                fout.write(x[4].__str__() + "\t")
-
-                rgid_maxvals[rgid].append(x[2])
-                rgid_meanvals[rgid].append(x[3])
-                rgid_sumvals[rgid].append(x[4])
-                
-                if x[2] > max_max:
-                    max_max = x[2]
-                all_means.append( x[3] )
-                all_sums.append( x[4] )
+            foundit = False
+            for x in geneid_results[geneid]:
+                if x[0] == rgid:
+                    foundit = True
+                    fout.write(x[2].__str__() + "\t")
+                    fout.write(x[3].__str__() + "\t")
+                    fout.write(x[4].__str__() + "\t")
+    
+                    rgid_maxvals[rgid].append(x[2])
+                    rgid_meanvals[rgid].append(x[3])
+                    rgid_sumvals[rgid].append(x[4])
                     
-            else:
+                    if x[2] > max_max:
+                        max_max = x[2]
+                    all_means.append( x[3] )
+                    all_sums.append( x[4] )
+                if foundit:
+                    continue
+                
+            if foundit == False:
                 fout.write("0\t0\t0\t")
                 rgid_maxvals[rgid].append(0)
                 rgid_meanvals[rgid].append(0)
@@ -1331,6 +1340,8 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
             
 
 def compute_enrichments_for_reps_in_group(rgroupid, con):
+    """Fills the table GroupEnrichmentStats"""
+    
     cur = con.cursor()
     sql = "DELETE from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
     cur.execute( sql )
@@ -1542,8 +1553,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con):
 
 
 
-
-
 def compute_enrichments_for_speciesunion(uid, con):
     cur = con.cursor()
     sql = "DELETE from SpeciesunionEnrichmentStats where unionid=" + uid.__str__()
@@ -1551,6 +1560,7 @@ def compute_enrichments_for_speciesunion(uid, con):
     
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
+    nuids = nunionids.__len__()
     
     print "\n. Comparing enrichments acorss species", spunionname, unionids
     sys.stdout.flush()
@@ -1563,66 +1573,64 @@ def compute_enrichments_for_speciesunion(uid, con):
     those gene IDs, using the table GeneHomology with data from
     the pillars file, in order to generate a list of genes
     which can be compared across species."""
-    sql = "SELECT geneid from UnionEnrichmentStats where"
+    
+    
+    sql = "SELECT * from UnionEnrichmentStats where"
     sqlbits = []
     for unionid in unionids:
         sqlbits.append( " unionid=" + unionid.__str__() )
     sql += " OR ".join( sqlbits )
     cur.execute(sql)
-    x = cur.fetchall()
+    results = cur.fetchall()
     
     """genes will be a list of un-aliased genes. That is, gene IDs translated via pillars."""
-    genes = []
+    geneid_results = {}
 
     """A dictionary of aliased genes."""
     gene_aliases = {}
-    for ii in x:       
-        translated_id = get_geneid_from_aliasid( ii[0], con )
+    for ii in results:       
+        translated_id = get_geneid_from_aliasid( ii[1], con )
         if translated_id != None:
             if translated_id not in gene_aliases:
                 gene_aliases[translated_id] = []
-            gene_aliases[ translated_id ].append( ii[0]) 
+            gene_aliases[ translated_id ].append( ii[1]) 
             if translated_id not in genes:
                 genes.append( translated_id )
+        if translated_id not in geneid_results:
+            geneid_results[ translated_id ] = []
+        geneid_results[translated_id].append(ii)
         
     
     count = 0
     fout.write("\n")
-    for gid in genes:
-        max_max = 0
-        all_means = []
-        all_sums = []
-        fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
-        
-        for unionid in unionids:
-            foundit = False
-            
-            for geneid in gene_aliases[gid]:            
+    for gid in geneid_results.keys():
+        """Only keep those genes that have enrichment scores in all the replicates in this union."""
+        if geneid_results[gid].__len__() == nuids:    
+            max_max = 0
+            all_means = []
+            all_sums = []
+                   
+            for ii in geneid_results[gid]:
+                unionid = ii[0]
+               
                 count += 1
                 if count%50 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
-            
-                sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__() + " and geneid=" + geneid.__str__()
-                cur.execute(sql)
-                x = cur.fetchone()
-                if x != None and foundit == False:
-                    foundit = True
-                                        
-                    if x[2] > max_max:
-                        max_max = x[2]
-                    all_means.append( x[3] )
-                    all_sums.append( x[4] )
+             
+                if ii[2] > max_max:
+                    max_max = ii[2]
+                all_means.append( ii[3] )
+                all_sums.append( ii[4] )
 
-    for gid in genes:
-        sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
-        sql += "VALUES (" + unionid.__str__() + ","
-        sql += gid.__str__() + ","
-        sql += max_max.__str__() + ","
-        sql += mean(all_means).__str__() + ","
-        sql += sum(all_sums).__str__() + ")"
-        cur.execute(sql)
-        con.commit()    
+            sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+            sql += "VALUES (" + unionid.__str__() + ","
+            sql += gid.__str__() + ","
+            sql += max_max.__str__() + ","
+            sql += mean(all_means).__str__() + ","
+            sql += sum(all_sums).__str__() + ")"
+            cur.execute(sql)
+            con.commit()    
 
 def plot_enrichments_for_speciesunion(uid, con):
     cur = con.cursor()
@@ -1641,6 +1649,7 @@ def plot_enrichments_for_speciesunion(uid, con):
     those gene IDs, using the table GeneHomology with data from
     the pillars file, in order to generate a list of genes
     which can be compared across species."""
+    
     sql = "SELECT geneid from UnionEnrichmentStats where"
     sqlbits = []
     for unionid in unionids:
@@ -1649,19 +1658,21 @@ def plot_enrichments_for_speciesunion(uid, con):
     cur.execute(sql)
     x = cur.fetchall()
     
-    """genes will be a list of un-aliased genes. That is, gene IDs translated via pillars."""
-    genes = []
+    geneid_results = {}
 
     """A dictionary of aliased genes."""
     gene_aliases = {}
-    for ii in x:       
-        translated_id = get_geneid_from_aliasid( ii[0], con )
+    for ii in results:       
+        translated_id = get_geneid_from_aliasid( ii[1], con )
         if translated_id != None:
             if translated_id not in gene_aliases:
                 gene_aliases[translated_id] = []
-            gene_aliases[ translated_id ].append( ii[0]) 
+            gene_aliases[ translated_id ].append( ii[1]) 
             if translated_id not in genes:
                 genes.append( translated_id )
+        if translated_id not in geneid_results:
+            geneid_results[ translated_id ] = []
+        geneid_results[translated_id].append(ii)
         
     #
     # Write an excel table,
@@ -1689,25 +1700,22 @@ def plot_enrichments_for_speciesunion(uid, con):
     
     count = 0
     fout.write("\n")
-    for gid in genes:
+    for gid in geneid_results.keys():
         max_max = 0
         all_means = []
         all_sums = []
         fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
         
-        for unionid in unionids:
+        for unionid in unionids: # find the unionid that mathches result x
             foundit = False
             
-            for geneid in gene_aliases[gid]:            
+            for x in geneid_results[gid]:    
                 count += 1
                 if count%50 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
-            
-                sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__() + " and geneid=" + geneid.__str__()
-                cur.execute(sql)
-                x = cur.fetchone()
-                if x != None and foundit == False:
+        
+                if x[0] == unionid:
                     foundit = True
                     fout.write(geneid.__str__() + "\t")
                     fout.write(get_genename(geneid, con) + "\t")
@@ -1723,8 +1731,10 @@ def plot_enrichments_for_speciesunion(uid, con):
                         max_max = x[2]
                     all_means.append( x[3] )
                     all_sums.append( x[4] )
-                        
-                #else:
+                if foundit == True:
+                    continue
+                    
+            #else:
             if foundit == False:
                 fout.write("---\t---\t0\t0\t0\t")
                 unionid_maxvals[unionid].append(0)

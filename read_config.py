@@ -104,4 +104,21 @@ def validate_config(params):
     """This method validates that the definitions within the configuration file
     are internally consistent. e.g., unions don't reference undefined replicate 
     groups, etc."""
+    
+    for species in params["species"]:
+        if "rgroups" not in params["species"][species]:
+            print "\n. Error: the species", species, "contains no replicate groups."
+            exit()
+        for repgroup in params["species"][species]["rgroups"]:
+            """"Do all the replicates in this group exist?"""
+            if "reps" not in repgroup in params["species"][species]["rgroups"][repgroup]:
+                print "\n. Error: the replicate group", repgroup, "contains no replicates."
+                exit()
+            for rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+                if "summitpath" not in rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+                    print "\n. Error: you didn't define a SUMMITS line for species", species, "repgroup", repgroup, "replicate", rep
+                    exit()
+                if "bdgpath" not in rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+                    print "\n. Error: you didn't define an ENRICHMENTS line for species", species, "repgroup", repgroup, "replicate", rep
+                    exit()
     return True
