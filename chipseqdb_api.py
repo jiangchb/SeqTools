@@ -439,6 +439,68 @@ def get_unionids_in_speciesunion(unionid, con):
         ids.append( ii[0] )
     return ids
 
+def remove_all_for_gene(gene, con):
+    cur = con.cursor()
+    geneid = gene[0]
+    genename = gene[1]
+        
+    tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummitStats", "GeneSummits", "RepgroupGenes", "GeneHomology", "GeneAlias", "Genes"]
+    for t in tables:
+        if t == "GeneSummits":
+            sql = "DELETE FROM " + t + " where gene=" + geneid.__str__()
+        elif t == "GeneAlias":
+            sql = "DELETE FROM " + t + " where alias='" + genename.__str__() + "'"
+        elif t == "Genes":
+            sql = "DELETE FROM " + t + " where id=" + geneid.__str__()
+        else:
+            sql = "DELETE FROM " + t + " where geneid=" + geneid.__str__()
+        #print sql
+        cur.execute(sql)
+    con.commit()
+    
+    # skip Summits for now
 
+    
+def reduce_db_for_test(con):
+    """This method removes all entries in the DB related to Gene IDs that are not in the genelist."""
+    
+    print "\n. I'm building a test-sized database by eliminating entries."
+    cur = con.cursor()
+    
+    sql = "SELECT * from GeneHomology"
+    cur.execute(sql)
+    results = cur.fetchall()
+    import random
+    random.shuffle(results)    
+    if results.__len__() > 200:
+        results = results[0:200]
+    keep_genes = []
+    for ii in results:
+        geneid = ii[0]
+        aliasid = ii[1]
+        keep_genes.append( geneid )
+        if geneid != aliasid:
+            keep_genes.append( aliasid )
+
+    count = 0
+
+    sql = "SELECT * from Genes"
+    cur.execute(sql)
+    results = cur.fetchall()
+    all_genes = []
+    for ii in results:
+        
+        count += 1
+        if count%50 == 0:
+            print (count/float(results.__len__())).__str__() + "\%"
+            #sys.stdout.write(".")
+            #sys.stdout.flush()
+        
+        geneid = ii[0]
+        if geneid not in keep_genes:
+            remove_all_for_gene(ii, con)
+    
+    
+    
 
     

@@ -42,13 +42,13 @@ def compute_summits_for_union(unionid, con):
     1. Update the table UnionGenes with genes that have a peak in all repgroups in this union.
     2. Write the Excel table listing the genes and their scores in the repgroups."""
     count = 0
-    geneid_maxsummit = {}
-    geneid_nsummits = {}
     for geneid in seen_genes:        
-        geneid_nsummits[geneid] = 0
-        geneid_maxsummit[geneid] = 0.0
+        nsummits = 0
+        maxsummit = 0.0
         
+        found_in_all = True # did we find this gene in all the repgroups?
         for rgroupid in rgroupids:
+            
             count += 1
             if count%50 == 0:
                 sys.stdout.write(".")
@@ -59,28 +59,15 @@ def compute_summits_for_union(unionid, con):
             cur.execute(sql)
             x = cur.fetchone()
             if x != None:
-                if x[2] > geneid_maxsummit[geneid]:
-                    geneid_maxsummit[geneid] = x[2]
-                geneid_nsummits[geneid] += x[3]
-            
-    count = 0
-    genes = get_genes_for_species(con, possible_species[0])
-    for g in genes:
-        geneid = g[0]
-        
-        count += 1
-        if count%100 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        
-        """Does this gene have a peak in all replicategroups in this species?"""
-        found_in_all = True
-        for rgroupid in rgroupids:
-            rgroupname = get_repgroup_name( rgroupid, con )
-            if geneid not in venn_data[rgroupname]:
+                if x[2] > maxsummit:
+                    maxsummit = x[2]
+                nsummits += x[3]
+            if x == None:
                 found_in_all = False
-                
+                            
         if found_in_all:
+            """If this gene is in all the repgroups for the union, then add values to the tables
+            UnionGenes and UnionSummitStats."""
             sql = "INSERT into UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + geneid.__str__() + ")"
             cur.execute(sql)
             con.commit()
@@ -88,8 +75,8 @@ def compute_summits_for_union(unionid, con):
             sql = "INSERT into UnionSummitStats (unionid, geneid, maxsummit, nsummits)"
             sql += " VALUES(" + unionid.__str__() + ","
             sql += geneid.__str__() + ","
-            sql += geneid_maxsummit[geneid].__str__() + ","
-            sql += (geneid_nsummits[geneid] / float(rgroupids.__len__()) ).__str__() + ")"
+            sql += maxsummit.__str__() + ","
+            sql += (nsummits / float(rgroupids.__len__()) ).__str__() + ")"
             cur.execute(sql)
             con.commit()
 
@@ -138,12 +125,7 @@ def plot_summits_for_union(unionid, con):
         fout.write("N(" + rgroupname.__str__() + ")\t")
     
     count = 0
-    geneid_maxsummit = {}
-    geneid_nsummits = {}
     for geneid in seen_genes:        
-        geneid_nsummits[geneid] = 0
-        geneid_maxsummit[geneid] = 0.0
-        
         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
         for rgroupid in rgroupids:
             
@@ -158,11 +140,7 @@ def plot_summits_for_union(unionid, con):
             x = cur.fetchone()
             if x != None:
                 fout.write(x[2].__str__() + "\t")
-                fout.write(x[3].__str__() + "\t")
-                if x[2] > geneid_maxsummit[geneid]:
-                    geneid_maxsummit[geneid] = x[2]
-                geneid_nsummits[geneid] += x[3]
-                
+                fout.write(x[3].__str__() + "\t")                
         fout.write("\n")
     fout.close()
 
@@ -293,77 +271,49 @@ def compute_summits_for_speciesunion(uid, con):
     
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
+    nuids = unionids.__len__()
     print "\n. Comparing summits for genes across species", spunionname
 
-    """seen_genes will be a list of un-aliased gene IDs for all genes that have
-    a summit in their nearby regulatory regions, in all the replicates represented
-    by at least one Union. Note that the gene IDs here are un-aliased; in other words,
-    they represent the gene ID found from the pillars file. You may need to look up
-    alias IDs for this gene's homolog to locate relevant summit scores in different species."""
-    seen_genes = []
+    seen_genes = []    
+    geneid_summitstats = {} # key = translated gene ID, value = list of SQL results from UnionSummitStats
 
-    """key = gene id, value = list of alias IDs."""
-    gene_aliases = {}
-
-    """This loop builds data for a Venn diagram of genes with/without summits in both replicates."""
     count = 0
-    venn_data = {}
+    unionid_genes = {}
     for unionid in unionids:
         unionname = get_unionname( unionid, con )
         
-        """genes is a list of all genes that have summits in nearby regulatory regions in all
-        the replicates represented by the union."""
-        genes = get_geneids_from_union(con, unionid)
-        translated_genes = []
-        for geneid in genes:
-            
-            """Print a period every 200 iterations, to indicate that this program is still alive."""
-            count += 1
-            if count%200 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-            
+        sql = "SELECT * from UnionSummitStats where unionid=" + unionid.__str__()
+        cur.execute(sql)
+        results = cur.fetchall()
+        for ii in results:
+            geneid = ii[1]
             translated_id = get_geneid_from_aliasid( geneid, con )
-            if translated_id != None:
-                """Remember this alias, for later use in writing the Excel table."""
-                if translated_id not in gene_aliases:
-                    gene_aliases[translated_id] = []
-                gene_aliases[translated_id].append( geneid )
+            
+            if geneid not in geneid_summistats:
+                geneid_summitstats[geneid].append( ii )
 
-                """translated_genes is the list of gene IDs that goes in the Venn diagram,
-                so that homologous gene IDs can be compared between species."""
-                translated_genes.append( translated_id ) 
-                if translated_id not in seen_genes:
-                    seen_genes.append( translated_id )
-        venn_data[ unionname ] = translated_genes
-    
-    print "\n. The species-union", spunionname, "has", seen_genes.__len__(), "genes with summits in all replicates."
-    
-    #
-    # Update the SQL table SpeciesunionGenes
-    #
-    union_genes = []
-    for gid in seen_genes:
-        found_in_all = True
-        for unionname in venn_data:
-            if gid not in venn_data[ unionname ]:
-                found_in_all = False
-        if found_in_all:
+    for gid in geneid_summitstats:    
+        if geneid_summitstats[gid].__len__() == nuids:
+            """Only deal with geneids that exist in all the unions of this speciesunion."""
+            
+            maxsummit = 0
+            nsummits = 0
+            for ii in geneid_summitstats[gid]:
+                if ii[2] > maxsummit:
+                    maxsummit = ii[2]
+                nsummits += ii[3]
+            
             sql = "INSERT INTO SpeciesunionGenes (unionid, geneid) VALUES(" + uid.__str__() + "," + gid.__str__() + ")"
             cur.execute(sql)
             con.commit()
-        
-    #
-    # Update the table SpeciesunionSummitStats
-    #
-    for geneid in seen_genes:
-        sql = "INSERT INTO SpeciesunionSummitStats (spunionid, geneid, maxsummit, nsummits)"
-        sql += " VALUES(" + uid.__str__() + ","
-        sql += geneid.__str__() + ","
-        sql += geneid_maxsummit[geneid].__str__() + ","
-        sql += geneid_nsummits[geneid].__str__() + ")"
-        cur.execute(sql)
-        con.commit()
+
+            sql = "INSERT INTO SpeciesunionSummitStats (spunionid, geneid, maxsummit, nsummits)"
+            sql += " VALUES(" + uid.__str__() + ","
+            sql += geneid.__str__() + ","
+            sql += maxsummit.__str__() + ","
+            sql += nsummits.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
 
 def plot_summits_for_speciesunion(uid, con):
     """A species-union is a meta union of unions.
@@ -435,11 +385,7 @@ def plot_summits_for_speciesunion(uid, con):
         fout.write("max(" + unionname.__str__() + ")\t")
         fout.write("N(" + unionname.__str__() + ")\t")
     count = 0
-    geneid_maxsummit = {}
-    geneid_nsummits = {}
     for gid in seen_genes: 
-        geneid_nsummits[gid] = 0
-        geneid_maxsummit[gid] = 0.0
         fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )
     
         for unionid in unionids:
@@ -461,10 +407,7 @@ def plot_summits_for_speciesunion(uid, con):
                         fout.write(geneid.__str__() + "\t")
                         fout.write(get_genename(geneid, con) + "\t")
                         fout.write(x[2].__str__() + "\t")
-                        fout.write(x[3].__str__() + "\t")
-                        if x[2] > geneid_maxsummit[gid]:
-                            geneid_maxsummit[gid] = x[2]
-                        geneid_nsummits[gid] += x[3]     
+                        fout.write(x[3].__str__() + "\t")    
             if foundit == False:
                 fout.write("---\t---\t0\t0\t")
         fout.write("\n")
@@ -614,7 +557,7 @@ def plot_summits_for_speciesunion(uid, con):
 #     # to-do: scatter plots for SpeciesunionUnion data
 #     #
 
-def compute_summits_for_repis_in_group(rgroupid, con):
+def compute_summits_for_reps_in_group(rgroupid, con):
     """This is a long method (sorry). 
     It correlates the summits from all the replicates in a group,
     using a variety of methods.
@@ -666,7 +609,10 @@ def compute_summits_for_repis_in_group(rgroupid, con):
     rep1_gene_summitscores = {} # key = geneid, value = summit scores from rep1
     rep2_gene_summitscores = {}
     count = 0
-        
+    
+    gene_result = {}
+    sql = "SELECT * from SummitScores"
+    
     genes = get_genes_for_species(con, species1)
     for g in genes:
         count += 1
@@ -1052,14 +998,14 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
     """This method puts data into UnionEnrichmentStats"""
     
     cur = con.cursor()
-    sql = "DELETE from UnionEnrichmentStats where uniond=" + unionid.__str__()
+    sql = "DELETE from UnionEnrichmentStats where unionid=" + unionid.__str__()
     cur.execute( sql )
     con.commit()
     
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
     rgroupids.sort()
-    nrgids = ngroupids.__len__()
+    nrgids = rgroupids.__len__()
     
     print "\n. Computing enrichments for union", unionname
     
@@ -1087,7 +1033,7 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
         all_sums = []
         
         """Compute union-wide stats, but only if we have data from all the replicates in this union."""
-        if gene_results[geneid].keys().__len__() == nrgids:
+        if gene_results[geneid].__len__() == nrgids:
             
             for ii in gene_results[geneid]:
                 rgid = ii[0]
@@ -1457,7 +1403,10 @@ def plot_enrichments_for_reps_in_group(rgroupid, con):
         fout.write("sum(" + rgname + ")\t")        
     fout.write("\n")
     for ii in range(0, geneids.__len__() ):
-        fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
+        genename = get_genename(geneid, con)
+        if genename == None:
+            continue
+        fout.write(geneid.__str__() + "\t" + genename + "\t" )
         fout.write(x_maxe[ii].__str__() + "\t")
         fout.write(x_meane[ii].__str__() + "\t")
         fout.write(x_sume[ii].__str__() + "\t")

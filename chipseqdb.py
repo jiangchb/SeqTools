@@ -336,10 +336,20 @@ def resolve_aliasids(con):
     cur.execute(sql)
     con.commit()
     
+    """Build a dictionary of gene names to gene IDs."""
+    genename2id = {}
+    sql = "SELECT * FROM Genes"
+    cur.execute(sql)
+    for ii in cur.fetchall():
+        name = ii[1]
+        id = ii[0]
+        genename2id[ name ] = id
+    
     count = 0
     sql = "SELECT * from Genes"
     cur.execute(sql)
     for g in cur.fetchall():
+        
         count += 1
         if count%50 == 0:
             sys.stdout.write(".")
@@ -355,11 +365,8 @@ def resolve_aliasids(con):
             realname = this_name
             realid = this_id
         
-        sql = "SELECT id from Genes where name='" + realname + "'"
-        cur.execute(sql)
-        x = cur.fetchone()
-        if x != None:
-            realid = x[0]
+        if realname in genename2id:
+            realid = genename2id[realname]
                 
         sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
         cur.execute(sql)

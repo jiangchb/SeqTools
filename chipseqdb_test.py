@@ -153,6 +153,13 @@ if configpath == False and dbpath == False:
 con = build_db(dbpath=dbpath)
 
 #
+# 
+#
+if True == ap.getOptionalToggle("--make_testdb"):
+    reduce_db_for_test(con)
+    exit()
+
+#
 # IMPORT
 #
 pillarspath = ap.getArg("--pillarspath")

@@ -111,14 +111,14 @@ def validate_config(params):
             exit()
         for repgroup in params["species"][species]["rgroups"]:
             """"Do all the replicates in this group exist?"""
-            if "reps" not in repgroup in params["species"][species]["rgroups"][repgroup]:
+            if "reps" not in params["species"][species]["rgroups"][repgroup]:
                 print "\n. Error: the replicate group", repgroup, "contains no replicates."
                 exit()
             for rep in params["species"][species]["rgroups"][repgroup]["reps"]:
-                if "summitpath" not in rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+                if "summitpath" not in params["species"][species]["rgroups"][repgroup]["reps"][rep]:
                     print "\n. Error: you didn't define a SUMMITS line for species", species, "repgroup", repgroup, "replicate", rep
                     exit()
-                if "bdgpath" not in rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+                if "bdgpath" not in params["species"][species]["rgroups"][repgroup]["reps"][rep]:
                     print "\n. Error: you didn't define an ENRICHMENTS line for species", species, "repgroup", repgroup, "replicate", rep
                     exit()
     return True
