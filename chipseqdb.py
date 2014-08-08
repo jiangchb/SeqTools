@@ -46,8 +46,38 @@ def build_db(dbpath = None):
         cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
         cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
         
+        cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateFiles(repid INTEGER, fileid INTEGER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
+        
         build_unions(con)
     return con
+
+def build_unions(con):
+    cur = con.cursor()
+    # These tables describe which replicates are to be unioned.
+    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER)") # puts repgroups into union sets
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionSummitStats(unionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    con.commit()
+
+
+def build_speciesunions(con):
+    cur = con.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER)") # puts repgroups into union sets
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
+    
+    # geneid in the Speciesunion tables point to translated gene IDs from the pillars.
+    # This means that to find this gene ID in a particular Union, you may need to use
+    # the table GeneHomology to find alias gene IDs for another species.
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummitStats(spunionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    con.commit() 
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     cur = con.cursor()
@@ -184,7 +214,10 @@ def import_summits(summitpath, repid, con):
                 cur.execute(sql)
                 x = cur.fetchone()
                 if x == None:
-                    print "Warning: Your summit file includes the chromosome", chr, "but your GFF file lacks this chromosome. I'm skipping it."
+                    print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
+                    print ". This is most likely because there are no annoted genes located on", chr
+                    print ". You should verify if this is true."
+                    print ". In the meantime, I am not importing the summits on", chr
                 else:
                     chrid = x[0]
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"

@@ -225,31 +225,34 @@ def get_species_name(speciesid, con):
     return cur.fetchone()[0]
 
 def add_repgroup(rgroup, con, note=None):
-    with con:
-        cur = con.cursor()
-        if note == None:
-            note = "None"
-        sql = "REPLACE INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
-        cur.execute(sql)
-        con.commit()
+    cur = con.cursor()
+    if note == None:
+        note = "None"
+    sql = "REPLACE INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
+    cur.execute(sql)
+    con.commit()
     return con        
     
 def add_replicate(repname, speciesid, con):
     new_id = None
-    with con:
-        cur = con.cursor()
-        sql = "REPLACE INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
-        cur.execute( sql )
-        con.commit()
+    cur = con.cursor()
+    sql = "REPLACE INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
+    cur.execute( sql )
+    con.commit()
+    
+    sql = "SELECT * from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__() + ""
+    cur.execute(sql)
+    print "\n. Adding the replicate", repname, " [", cur.fetchall(), "]"
+    
     return con
 
 
 def add_rep2group(repid, rgroupid, con):
-    with con:
-        cur = con.cursor()
-        sql = "REPLACE INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
-        cur.execute(sql)
-        con.commit()
+    cur = con.cursor()
+    sql = "REPLACE INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+    
     return con
 
 def clear_unions(con):
@@ -295,31 +298,6 @@ def clear_speciesunions(con):
     sql = "DROP TABLE IF EXISTS SpeciesunionEnrichmentStats"
     cur.execute(sql)
     con.commit()
-
-
-def build_unions(con):
-    cur = con.cursor()
-    # These tables describe which replicates are to be unioned.
-    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER)") # puts repgroups into union sets
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionSummitStats(unionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
-    con.commit()
-
-
-def build_speciesunions(con):
-    cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER)") # puts repgroups into union sets
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
-    
-    # geneid in the Speciesunion tables point to translated gene IDs from the pillars.
-    # This means that to find this gene ID in a particular Union, you may need to use
-    # the table GeneHomology to find alias gene IDs for another species.
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummitStats(spunionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
-    con.commit()   
     
 
 def add_union(unionname, repgroupnames, con):
@@ -340,7 +318,7 @@ def add_union(unionname, repgroupnames, con):
         
         """Insert this union-repgroup pair, but only if we've never seen this pair before."""
         sql = "REPLACE INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
-        print sql
+        #print sql
         cur.execute(sql)
         con.commit()
     return con

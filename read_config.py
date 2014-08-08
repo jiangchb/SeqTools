@@ -20,7 +20,12 @@ def read_config(path):
     for l in lines:
         l = l.strip()
         
-        if l.startswith("SPECIES") and False == l.startswith("SPECIES_UNION"):
+        j = l
+        if re.sub(" ", "", j).startswith("#"):
+            """Skip commented-out lines"""
+            continue
+        
+        elif l.startswith("SPECIES") and False == l.startswith("SPECIES_UNION"):
             if "species" not in params:
                 params["species"] = {}
             tokens = l.split()
@@ -31,51 +36,53 @@ def read_config(path):
             params["species"][species] = {}
             curr_species = species
         
-        if l.startswith("GFF"):
+        elif l.startswith("GFF"):
             gffpath = l.split("=")[1]
             gffpath = re.sub(" ", "", gffpath)
             #if False == os.path.exists(gffpath):
             #    print "\n. Error reading your configuration file", path
             #    print "--> The following GFF file doesn't exist:", gffpath
             #    exit()
-            params["species"][species]["gff"] = gffpath
+            params["species"][curr_species]["gff"] = gffpath
         
-        if l.startswith("NAME"):
+        elif l.startswith("NAME"):
             name = l.split("=")[1]
             name = re.sub(" ", "", name)
-            params["species"][species]["name"] = name
+            params["species"][curr_species]["name"] = name
         
-        if l.startswith("REPGROUP"):
+        elif l.startswith("REPGROUP"):
             rgroup = l.split()[1]
-            if "rgroups" not in params["species"][species]:
-                params["species"][species]["rgroups"] = {}
-            if rgroup not in params["species"][species]:   
-                params["species"][species]["rgroups"][rgroup] = {}
+            if "rgroups" not in params["species"][curr_species]:
+                params["species"][curr_species]["rgroups"] = {}
+            if rgroup not in params["species"][curr_species]:   
+                params["species"][curr_species]["rgroups"][rgroup] = {}
             curr_rgroup = rgroup
         
-        if l.startswith("REPLICATE"):
+        elif l.startswith("REPLICATE"):
             repid = l.split("=")[0].split()[1]
             repid = re.sub(" ", "", repid)
             curr_rep = repid
             if "reps" not in params["species"][curr_species]["rgroups"][curr_rgroup]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"] = {}
         
-        if l.startswith("SUMMITS"):
+        elif l.startswith("SUMMITS"):
             summitpath = l.split("=")[1]
             summitpath = re.sub(" ", "", summitpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["summitpath"] = summitpath
         
-        if l.startswith("ENRICHMENTS"):
+        elif l.startswith("ENRICHMENTS"):
             bdgpath = l.split("=")[1]
             bdgpath = re.sub(" ", "", bdgpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["bdgpath"] = bdgpath
         
-        if l.startswith("UNION"):
+        elif l.startswith("UNION"):
             tokens = l.split("=")
+            if tokens.__len__() < 2:
+                continue
             unionname = tokens[0].split()[1]
             unionname = re.sub(" ", "", unionname)                
             if "unions" not in params["species"][curr_species]:
@@ -84,9 +91,9 @@ def read_config(path):
             x = tokens[1].split()
             for repgroup in x:
                 params["species"][curr_species]["unions"][unionname].append( re.sub(" ", "", repgroup) )
-            print "\n. Adding union", unionname
+            #print "\n. Adding union", unionname
     
-        if l.startswith("SPECIES_UNION"):
+        elif l.startswith("SPECIES_UNION"):
             tokens = l.split("=")
             spunionname = tokens[0].split()[1]
             spunionname = re.sub(" ", "", spunionname)                
@@ -104,6 +111,12 @@ def validate_config(params):
     """This method validates that the definitions within the configuration file
     are internally consistent. e.g., unions don't reference undefined replicate 
     groups, etc."""
+    
+#     for species in params["species"]:
+#         for repgroup in params["species"][species]["rgroups"]:
+#             for rep in params["species"][species]["rgroups"][repgroup]["reps"]:
+#                 print "119:", species, repgroup, rep
+#     exit()
     
     for species in params["species"]:
         if "rgroups" not in params["species"][species]:

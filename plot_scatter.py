@@ -6,6 +6,8 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=Fal
     pdfpath = filekeyword + ".pdf"
     cranstr = "pdf(\"" + pdfpath + "\", width=6, height=6);\n"    
 
+    print "\n. Writing a scatterplot to", pdfpath
+
     # X values
     cranstr += "x<-c("
     for v in values_a:
@@ -42,3 +44,5 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=Fal
     fout.close()
     
     os.system("r --no-save < " + cranpath)
+    
+    return cranpath
