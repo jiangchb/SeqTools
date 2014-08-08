@@ -205,9 +205,17 @@ def get_enrichment_stats_for_replicate(repid, con):
         gene_stats[ geneid ] = stats
     return gene_stats
 
+def does_species_exist(speciesname, con):
+    cur = con.cursor()
+    sql = "SELECT count(*) FROM Species where name='" + speciesname + "'"
+    cur.execute(sql)
+    if cur.fetchone()[0] > 0:
+        return True
+    return False
+
 def import_species(speciesname, con):
     cur = con.cursor()
-    sql = "REPLACE INTO Species (name) VALUES('" + speciesname + "')"
+    sql = "INSERT INTO Species (name) VALUES('" + speciesname + "')"
     cur.execute( sql )
     con.commit()
     return con
@@ -224,19 +232,35 @@ def get_species_name(speciesid, con):
     cur.execute(sql)
     return cur.fetchone()[0]
 
+def does_repgroup_exist(rgroup, con):
+    cur = con.cursor()
+    sql = "SELECT count(*) from ReplicateGroups where name='" + rgroup.__str__() + "'"
+    cur.execute(sql)
+    if cur.fetchone()[0] > 0:
+        return True
+    return False
+    
 def add_repgroup(rgroup, con, note=None):
     cur = con.cursor()
     if note == None:
-        note = "None"
-    sql = "REPLACE INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
+        note = "None"   
+    sql = "INSERT INTO ReplicateGroups (name, note) VALUES('" + rgroup.__str__() + "','" + note + "')"
     cur.execute(sql)
     con.commit()
     return con        
-    
-def add_replicate(repname, speciesid, con):
-    new_id = None
+
+def does_replicate_exist(repname, speciesid, con):
     cur = con.cursor()
-    sql = "REPLACE INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
+    sql = "SELECT count(*) from Replicates where name='" + repname + "' and species=" + speciesid.__str__()
+    cur.execute(sql)
+    if cur.fetchone()[0] > 0:
+        return True
+    return False  
+    
+
+def add_replicate(repname, speciesid, con):
+    cur = con.cursor()
+    sql = "INSERT INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
     cur.execute( sql )
     con.commit()
     
@@ -246,10 +270,14 @@ def add_replicate(repname, speciesid, con):
     
     return con
 
-
 def add_rep2group(repid, rgroupid, con):
     cur = con.cursor()
-    sql = "REPLACE INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
+    sql = "SELECT count(*) FROM GroupReplicate where rgroup=" + rgroupid.__str__() + " and replicate=" + repid.__str__()
+    cur.execute(sql)
+    if cur.fetchone()[0] > 0:
+        return con
+      
+    sql = "INSERT INTO GroupReplicate (rgroup,replicate) VALUES(" + rgroupid.__str__() + "," + repid.__str__() + ")"
     cur.execute(sql)
     con.commit()
     
@@ -302,9 +330,12 @@ def clear_speciesunions(con):
 
 def add_union(unionname, repgroupnames, con):
     cur = con.cursor()
-    sql = "REPLACE into Unions (name) VALUES('" + unionname + "')"
+    sql = "SELECT count(*) from Unions where name='" + unionname + "'"
     cur.execute(sql)
-    con.commit()
+    if cur.fetchone()[0] == 0:
+        sql = "INSERT into Unions (name) VALUES('" + unionname + "')"
+        cur.execute(sql)
+        con.commit()
         
     # now get the union's id
     cur.execute("SELECT unionid from Unions where name='" + unionname + "'")
@@ -317,22 +348,30 @@ def add_union(unionname, repgroupnames, con):
             continue
         
         """Insert this union-repgroup pair, but only if we've never seen this pair before."""
-        sql = "REPLACE INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
-        #print sql
+        sql = "SELECT COUNT(*) from UnionRepgroups where unionid=" + unionid.__str__() + " and repgroupid=" + rgroupid.__str__()
         cur.execute(sql)
-        con.commit()
+        if cur.fetchone()[0] == 0:
+            sql = "INSERT INTO UnionRepgroups (unionid, repgroupid) VALUES(" + unionid.__str__() + "," + rgroupid.__str__() + ")"
+            #print sql
+            cur.execute(sql)
+            con.commit()
     return con
 
 def add_speciesunion(name, member_unions, con):
     cur = con.cursor()
-    sql = "INSERT into Speciesunions (name) VALUES('" + name + "')"
+    sql = "SELECT COUNT(*) from Speciesunions where name='" + name + "'"
     cur.execute(sql)
-    con.commit()
+    if cur.fetchone()[0] == 0:
+        sql = "INSERT into Speciesunions (name) VALUES('" + name + "')"
+        cur.execute(sql)
+        con.commit()
     
     # now get the union's id
     cur.execute("SELECT unionid from Speciesunions where name='" + name + "'")
     unionid = cur.fetchone()[0]
+    
     for mu in member_unions:
+        
         sql = "SELECT unionid from Unions where name='" + mu.__str__() + "'"
         cur.execute(sql)
         muid = cur.fetchone()
@@ -342,11 +381,14 @@ def add_speciesunion(name, member_unions, con):
             continue
         muid = muid[0]
     
-        """Insert this union-repgroup pair, but only if we've never seen this pair before."""
-        sql = "REPLACE INTO SpeciesunionUnions (spunionid, memunionid) VALUES(" + unionid.__str__() + "," + muid.__str__() + ")"
-        #print sql
+        sql = "SELECT COUNT(*) FROM SpeciesunionUnions where spunionid=" +unionid.__str__() + " and memunionid=" + muid.__str__()
         cur.execute(sql)
-        con.commit()
+        if cur.fetchone()[0] == 0:
+            """Insert this union-repgroup pair, but only if we've never seen this pair before."""
+            sql = "INSERT INTO SpeciesunionUnions (spunionid, memunionid) VALUES(" + unionid.__str__() + "," + muid.__str__() + ")"
+            #print sql
+            cur.execute(sql)
+            con.commit()
     return con
 
 def get_unionids(con):

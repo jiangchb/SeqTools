@@ -21,7 +21,9 @@ def splash():
 def import_gffs(con):
     for sp in ap.params["species"]:
         speciesname = ap.params["species"][sp]["name"]
-        con = import_species(speciesname, con)
+        
+        if False == does_species_exist(speciesname, con):
+            con = import_species(speciesname, con)
         speciesid = get_species_id(speciesname, con)
                 
         gffpath = ap.params["species"][sp]["gff"]
@@ -31,15 +33,24 @@ def import_data(con):
     """If this analysis uses pillars to translate gene names, then those values
     must be imported prior to this method."""
     
+    """Remove  stale data."""
+    cur = con.cursor()
+    sql = "DELETE FROM GeneSummits"
+    cur.execute(sql)
+    con.commit()
+    
     for sp in ap.params["species"]:
         print "\n. Importing data for species", sp
         speciesname = ap.params["species"][sp]["name"]
-        con = import_species(speciesname, con)
+        
+        if False == does_species_exist(speciesname, con):
+            con = import_species(speciesname, con)
         speciesid = get_species_id(speciesname, con)
                         
         ii = -1
         for groupname in ap.params["species"][sp]["rgroups"]:
-            con = add_repgroup(groupname, con)
+            if False == does_repgroup_exist(groupname, con):
+                con = add_repgroup(groupname, con)
             rgroupid = get_repgroup_id(groupname, con)
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
@@ -47,7 +58,8 @@ def import_data(con):
                 ii += 1
 
                 repname = groupname + "-" + jj.__str__()
-                con = add_replicate(repname, speciesid, con)
+                if False == does_replicate_exist(repname, speciesid, con):
+                    con = add_replicate(repname, speciesid, con)
                 repid = get_repid(repname, speciesid, con)
                 con = add_rep2group(repid, rgroupid, con)
                 
@@ -137,6 +149,7 @@ splash()
 """If the user gives a configpath, then it's referenced
 data will be imported into the database."""
 configpath = ap.getOptionalArg("--configpath")
+
 if configpath != False:
     ap.params = read_config( configpath )
     
@@ -148,6 +161,7 @@ if configpath != False:
 """If the user didn't give a configpath, then we at
 least need a dbpath (to load a prior database)."""
 dbpath = ap.getOptionalArg("--dbpath")
+
 if configpath == False and dbpath == False:
     print "\n. Error, you need to specify either:"
     print "1. a configuration path, using --configpath, that describes data that will be imported into the DB."
@@ -156,6 +170,7 @@ if configpath == False and dbpath == False:
     exit()
     
 con = build_db(dbpath=dbpath)
+
 
 #
 # 

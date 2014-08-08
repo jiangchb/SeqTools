@@ -85,6 +85,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     print "\n. Importing genome features from", gffpath
     
     chromids = get_chrom_ids(con, speciesid)
+    
+    """Remove stale data."""
     sql = "DELETE FROM Chromosomes where species=" + speciesid.__str__()
     cur.execute(sql)
     for chromid in chromids:
@@ -106,11 +108,15 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
             if chr != curr_chromname:
                 """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
                 curr_chromname = chr
-                sql = "REPLACE INTO Chromosomes (name,species) VALUES('" + curr_chromname + "'," + speciesid.__str__() + ")"
-                cur.execute( sql )  
+                sql = "SELECT COUNT(*) from Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
+                cur.execute(sql)
+                if cur.fetchone()[0] == 0:
+                    sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
+                    cur.execute( sql )  
                 """Get the row ID of the newly-added chromosome."""
                 cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
                 curr_chromid = cur.fetchone()[0]
+                    
             
             start = int( tokens[3] )
             stop = int( tokens[4] )
@@ -130,14 +136,21 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                             gene = t # use this name instead of the orfName
             
             count += 1
-            if count%100 == 0:
+            if count%20 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
-                          
-            with con:              
-                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
-                cur.execute(sql) 
+                                       
+            sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
+            cur.execute(sql) 
+            con.commit()
     fin.close() 
+    
+    cur.execute("SELECT (id,name) from Chromosomes where species=" + speciesid.__str__())
+    for ii in cur.fetchall():
+        sql = "SELECT COUNT(*) from Genes where chrom=" + ii[0].__str__()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+        print ". Chromosome", ii[1], "contains", count, "genes."
     
     #cur.execute("SELECT COUNT(*) FROM Genes")
     #count_genes = cur.fetchone()[0]
@@ -195,6 +208,11 @@ def import_summits(summitpath, repid, con):
         print "\n. Error: I cannot find the summit file", summitpath
         exit()
     
+    """Clear existing DB entries that are stale."""
+    sql = "DELETE FROM Summits where replicate=" + repid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
     #
     # Build a library of summits
     #
@@ -237,6 +255,11 @@ def import_bdg(bdgpath, repid, con):
     if False == os.path.exists(bdgpath):
         print "\n. Error: I cannot find the BedGraph file", bdgpath
         exit()
+    
+    """Remove any stale entries."""
+    sql = "DELETE FROM EnrichmentStats where repid=" + repid.__str__()
+    cur.execute(sql)
+    con.commit()
     
     fin = open(bdgpath, "r")
     curr_chromname = None
