@@ -43,7 +43,7 @@ def get_repgroup_ids(con):
 
 def get_repgroup_id(rgroup, con):
     cur = con.cursor()
-    cur.execute("SELECT id from ReplicateGroups where name='" + rgroup + "'")
+    cur.execute("SELECT id from selec where name='" + rgroup + "'")
     x = cur.fetchone()
     if x != None:
         return x[0]
@@ -65,6 +65,14 @@ def get_repids_in_group(rgroupid, con):
     for ii in x:
         repids.append( ii[0] )
     return repids
+
+def get_speciesid_for_repid(repid, con):
+    cur = con.cursor()
+    cur.execute("SELECT species from Replicates where id=" + repid.__str__() )
+    x = cur.fetchone()
+    if x == None:
+        return None
+    return x[0]
 
 
 def get_rgroupids_for_species(speciesid, con):
@@ -213,7 +221,7 @@ def does_species_exist(speciesname, con):
         return True
     return False
 
-def import_species(speciesname, con):
+def add_species(speciesname, con):
     cur = con.cursor()
     sql = "INSERT INTO Species (name) VALUES('" + speciesname + "')"
     cur.execute( sql )
@@ -287,20 +295,12 @@ def clear_unions(con):
     cur = con.cursor()
     sql = "DROP TABLE IF EXISTS Unions"
     cur.execute(sql)
-    con.commit()
-    
     sql = "DROP TABLE IF EXISTS UnionRepgroups"
     cur.execute(sql)
-    con.commit()
-    
     sql = "DROP TABLE IF EXISTS UnionGenes"
     cur.execute(sql)
-    con.commit()
-
     sql = "DROP TABLE IF EXISTS UnionSummitStats"
     cur.execute(sql)
-    con.commit()
-
     sql = "DROP TABLE IF EXISTS UnionEnrichmentStats"
     cur.execute(sql)
     con.commit()
@@ -309,20 +309,12 @@ def clear_speciesunions(con):
     cur = con.cursor()
     sql = "DROP TABLE IF EXISTS Speciesunions"
     cur.execute(sql)
-    con.commit()
-    
     sql = "DROP TABLE IF EXISTS SpeciesunionUnions"
     cur.execute(sql)
-    con.commit()
-    
     sql = "DROP TABLE IF EXISTS SpeciesunionGenes"
     cur.execute(sql)
-    con.commit()
-    
     sql = "DROP TABLE IF EXISTS SpeciesunionSummitStats"
     cur.execute(sql)
-    con.commit()
-
     sql = "DROP TABLE IF EXISTS SpeciesunionEnrichmentStats"
     cur.execute(sql)
     con.commit()
@@ -519,6 +511,19 @@ def reduce_db_for_test(con):
         geneid = ii[0]
         if geneid not in keep_genes:
             remove_all_for_gene(ii, con)
+
+def reset_files(con):
+    print "\n. I'm removing several tables."
+    cur = con.cursor()
+    sqls = []
+    sqls.append("DELETE from Files")
+    sqls.append("DELETE from ReplicategroupFiles")
+    sqls.append("DELETE from UnionFiles")
+    sqls.append("DELETE from SpeciesunionFiles")
+    for s in sqls:
+        print s
+        cur.execute(s)
+    con.commit()
     
     
     

@@ -155,6 +155,8 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     cranstr += "text(barx, par(\"usr\")[3]-0.05, labels=bins, srt=45, adj=1, xpd=TRUE, cex=0.9)\n"
     #cranstr += "axis(1, at=barx, labels = FALSE)\n"
     cranstr += "axis(2)\n"
+    
+    cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")
     fout.write( cranstr )

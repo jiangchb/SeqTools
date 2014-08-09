@@ -18,41 +18,40 @@ def build_db(dbpath = None):
     if dbpath == None or dbpath == False:
         dbpath = "test.db"
     con = lite.connect(dbpath)
+
+    cur = con.cursor()
+    # These data come from the GFF:
+    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
     
-    with con:
-        cur = con.cursor()
-        # These data come from the GFF:
-        cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
-        
-        # This data comes from the pillars file:
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
-        
-        # This data from from the pillars file X GFF.
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneHomology(geneid INTEGER, aliasid INTEGER)")
-        
-        cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
-        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
+    # This data comes from the pillars file:
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
+    
+    # This data from from the pillars file X GFF.
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneHomology(geneid INTEGER, aliasid INTEGER)")
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
+    cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER)")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup 
+    cur.execute("CREATE TABLE IF NOT EXISTS RepgroupGenes(repgroupid INTEGER, geneid INTEGER)") # genes that have summits in all replicates of a repgroup 
 
-        # These data come from MACS2 output files
-        cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)") # a mapping of Summits to nearby Genes
-        cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummitStats(repgroupid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    # These data come from MACS2 output files
+    cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)") # a mapping of Summits to nearby Genes
+    cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummitStats(repgroupid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
+    cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
         
-        cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
-        cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
-        
-        cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS ReplicateFiles(repid INTEGER, fileid INTEGER)")
-        cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
-        cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
-        cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
-        
-        build_unions(con)
+    build_unions(con)
+    con.commit()
     return con
 
 def build_unions(con):
@@ -94,6 +93,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
         cur.execute(sql)
     con.commit()
     
+    chromname_id = {}
+    
     count = 0
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
@@ -108,15 +109,23 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
             if chr != curr_chromname:
                 """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
                 curr_chromname = chr
-                sql = "SELECT COUNT(*) from Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
-                cur.execute(sql)
-                if cur.fetchone()[0] == 0:
-                    sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
-                    cur.execute( sql )  
-                """Get the row ID of the newly-added chromosome."""
-                cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
-                curr_chromid = cur.fetchone()[0]
-                    
+                #sql = "SELECT COUNT(*) from Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
+                #cur.execute(sql)
+                #if cur.fetchone()[0] == 0:
+                if curr_chromname not in chromname_id:
+                    sql = "SELECT COUNT(*) FROM Chromosomes where name='" + curr_chromname + "'"
+                    cur.execute(sql)
+                    if cur.fetchone()[0] == 0:
+                        """We've not seen this chrom yet... insert it!"""
+                        sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
+                        cur.execute( sql )  
+                        con.commit()
+                    """Get the row ID of the newly-added chromosome."""
+                    cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
+                    curr_chromid = cur.fetchone()[0]
+                    chromname_id[curr_chromname] = curr_chromid
+                """Remember the ID."""
+                curr_chromid = chromname_id[curr_chromname]
             
             start = int( tokens[3] )
             stop = int( tokens[4] )
@@ -136,16 +145,17 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                             gene = t # use this name instead of the orfName
             
             count += 1
-            if count%20 == 0:
+            if count%50 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
                                        
             sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
             cur.execute(sql) 
-            con.commit()
-    fin.close() 
+    fin.close()
+    con.commit()
     
-    cur.execute("SELECT (id,name) from Chromosomes where species=" + speciesid.__str__())
+    print ""
+    cur.execute("SELECT id,name from Chromosomes where species=" + speciesid.__str__())
     for ii in cur.fetchall():
         sql = "SELECT COUNT(*) from Genes where chrom=" + ii[0].__str__()
         cur.execute(sql)
@@ -193,9 +203,6 @@ def import_pillars(pillarspath, con):
                 sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
                 cur.execute(sql)
     con.commit()
-    cur.execute("SELECT count(DISTINCT realname) from GeneAlias")
-    x = cur.fetchone()
-    print "\n. The pillars file contains", x[0], "orthologs."
     return con
 
 def import_summits(summitpath, repid, con):
@@ -216,9 +223,16 @@ def import_summits(summitpath, repid, con):
     #
     # Build a library of summits
     #
+    count = 0
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
     for l in fin.xreadlines():
+        count += 1
+        if count%100==0:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            con.commit()
+        
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
             chr = tokens[0]
@@ -226,21 +240,21 @@ def import_summits(summitpath, repid, con):
             name = tokens[3]
             score = float( tokens[4] )
             
-            with con:
-                cur = con.cursor()
-                sql = "SELECT * FROM Chromosomes WHERE name='" + chr + "'"                
+            cur = con.cursor()
+            sql = "SELECT * FROM Chromosomes WHERE name='" + chr + "'"                
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
+                print ". This is most likely because there are no annoted genes located on", chr
+                print ". You should verify if this is true."
+                print ". In the meantime, I am not importing the summits on", chr
+            else:
+                chrid = x[0]
+                sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                 cur.execute(sql)
-                x = cur.fetchone()
-                if x == None:
-                    print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
-                    print ". This is most likely because there are no annoted genes located on", chr
-                    print ". You should verify if this is true."
-                    print ". In the meantime, I am not importing the summits on", chr
-                else:
-                    chrid = x[0]
-                    sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
-                    cur.execute(sql)
     fin.close()
+    con.commit()
     
     cur.execute("SELECT COUNT(*) FROM Summits")
     count_genes = cur.fetchone()[0]
@@ -274,8 +288,14 @@ def import_bdg(bdgpath, repid, con):
     nearest_down_gene_i = 0 # an index into genes, the nearest gene going down in order
     nearest_up_gene = None
     nearest_down_gene = None
+    count = 0
     for l in fin.xreadlines():
         if l.__len__() > 5:
+            count += 1
+            if count%20000==0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+            
             tokens = l.split()
             chromname = tokens[0]
             if curr_chromname == chromname:
@@ -308,14 +328,16 @@ def import_bdg(bdgpath, repid, con):
             stop = int(tokens[2])
             eval = float(tokens[3]) # enrichment value across this window
             
-            """Print a period every 30K sites to indicate to the user that this program is still alive."""
-            for ii in range(start, stop):
-                if ii%30000 == 0:
-                    sys.stdout.write(".")
-                    sys.stdout.flush()
+#            """Print a period every 30K sites to indicate to the user that this program is still alive."""
+#             for ii in range(start, stop):
+#                 if ii%10000 == 0:
+#                     sys.stdout.write(".")
+#                     sys.stdout.flush()
             
             """Add this score to the tally for the upstream gene."""
             if nearest_up_gene_i != None:
+                
+                """If this enrichment site is lower than the nearest upstream gene:"""
                 if start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3]:
                     if genes[nearest_up_gene_i][5] == "+":
                         # everything is good
@@ -353,6 +375,7 @@ def import_bdg(bdgpath, repid, con):
             #print genes[nearest_down_gene_i]
             
             if nearest_down_gene_i != None:
+                """If the enrichment site is above the nearest downstream gene."""
                 if start > genes[nearest_down_gene_i][2] and start > genes[nearest_down_gene_i][3]:
                     if genes[nearest_down_gene_i][5] == "-":
                         # everything is good
@@ -362,8 +385,14 @@ def import_bdg(bdgpath, repid, con):
                             if eval > geneid_max[nearest_down_gene]:
                                 geneid_max[nearest_down_gene] = eval
             
+    count = 0
     for geneid in geneid_sum:
         if geneid_n[geneid] > 0:
+            count += 1
+            if count%1000==0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                con.commit()
             sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
             sql += "," + geneid_max[geneid].__str__()
@@ -371,8 +400,7 @@ def import_bdg(bdgpath, repid, con):
             sql += "," + geneid_sum[geneid].__str__()
             sql += ")"
             cur.execute(sql)
-            con.commit()
-            
+    con.commit()        
     fin.close()
     
     #print "384:", geneid_sum # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
@@ -410,6 +438,8 @@ def resolve_aliasids(con):
         if count%50 == 0:
             sys.stdout.write(".")
             sys.stdout.flush()
+            """Note the commit happens here"""
+            con.commit()
         
         this_id = g[0]
         this_name = g[1]
@@ -426,91 +456,97 @@ def resolve_aliasids(con):
                 
         sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
         cur.execute(sql)
-        con.commit()
+    
+    """Save the commit for the end."""
+    con.commit()
 
 def map_summits2genes(con, repid, speciesid=None, chromid=None):
     """This methods puts values into the table GeneSummits."""
-    
-    with con:
-        cur = con.cursor()
-        speciesids = []
-        if speciesid:
-            spids = [speciesid]
-        else:
-            spids = get_species_ids(con)
-            
-        for spid in spids:
-            chroms = get_chrom_ids(con, spid)
-            for chrid in chroms:
-                genes = get_genes_for_chrom(con, chrid)
-                summits = get_summits(con, repid, chrid)
-                for s in summits:
-                    sid = s[0]
-                    sumsite = s[3]
-                    score = s[5]
-                    
-                    min_up = None
-                    closest_up = ""
-                    min_down = None
-                    closest_down = ""
-                    for g in genes:
-                        gid = g[0]
-                        start = g[2]
-                        stop = g[3]
-                        d = start - sumsite
-                        
-                        """Sense direction, and upstream"""
-                        if start < stop and start >= sumsite:
-                            if min_up == None:
-                                min_up = d
-                                closest_up = gid
-                            if min_up > d:
-                                min_up = d
-                                closest_up = gid
-                                
-                        elif start < stop and stop < sumsite:
-                            """Sense direction and downstream"""
-                            if min_down == None:
-                                min_down = d
-                                closest_down = None
-                            if min_down < d:
-                                min_down = d
-                                closest_down = None
-                            
-                        elif start > stop and start <= sumsite:
-                            """Antisense and downstream"""
-                            if min_down == None:
-                                min_down = d
-                                closest_down = gid
-                            if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
-                                min_down = d
-                                closest_down = gid
-                                
-                        elif start > stop and stop > sumsite:
-                            """Antisense and upstream"""
-                            if min_up == None:
-                                min_up = d
-                                closest_up = None
-                            if min_up > d:
-                                min_up = d
-                                closest_up = None
 
-                    if closest_up != None and min_up != None:
-                        with con:
-                            sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                            sql += " VALUES(" + closest_up.__str__() + "," 
-                            sql += sid.__str__() + ","
-                            sql += min_up.__str__() + ") "
-                            #print sql         
-                            cur.execute(sql) 
-                    if closest_down != None and min_down != None:
-                        with con:
-                            sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                            sql += " VALUES(" + closest_down.__str__() + "," 
-                            sql += sid.__str__() + ","
-                            sql += min_down.__str__() + ") "  
-                            #print sql           
-                            cur.execute(sql) 
+    cur = con.cursor()
+    speciesids = []
+    if speciesid:
+        spids = [speciesid]
+    else:
+        spids = get_species_ids(con)
+    
+    count = 0
+    for spid in spids:
+        chroms = get_chrom_ids(con, spid)
+        for chrid in chroms:
+            genes = get_genes_for_chrom(con, chrid)
+            summits = get_summits(con, repid, chrid)
+            for s in summits:
+                sid = s[0]
+                sumsite = s[3]
+                score = s[5]
+                
+                min_up = None
+                closest_up = ""
+                min_down = None
+                closest_down = ""
+                for g in genes:
+                    if count%100==0:
+                        sys.stdout.write(".")
+                        sys.stdout.flush()
+                        con.commit()
+                    
+                    gid = g[0]
+                    start = g[2]
+                    stop = g[3]
+                    d = start - sumsite
+                    
+                    """Sense direction, and upstream"""
+                    if start < stop and start >= sumsite:
+                        if min_up == None:
+                            min_up = d
+                            closest_up = gid
+                        if min_up > d:
+                            min_up = d
+                            closest_up = gid
+                            
+                    elif start < stop and stop < sumsite:
+                        """Sense direction and downstream"""
+                        if min_down == None:
+                            min_down = d
+                            closest_down = None
+                        if min_down < d:
+                            min_down = d
+                            closest_down = None
+                        
+                    elif start > stop and start <= sumsite:
+                        """Antisense and downstream"""
+                        if min_down == None:
+                            min_down = d
+                            closest_down = gid
+                        if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
+                            min_down = d
+                            closest_down = gid
+                            
+                    elif start > stop and stop > sumsite:
+                        """Antisense and upstream"""
+                        if min_up == None:
+                            min_up = d
+                            closest_up = None
+                        if min_up > d:
+                            min_up = d
+                            closest_up = None
+
+                if closest_up != None and min_up != None:
+                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                    sql += " VALUES(" + closest_up.__str__() + "," 
+                    sql += sid.__str__() + ","
+                    sql += min_up.__str__() + ") "
+                    #print sql         
+                    cur.execute(sql) 
+                if closest_down != None and min_down != None:
+                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                    sql += " VALUES(" + closest_down.__str__() + "," 
+                    sql += sid.__str__() + ","
+                    sql += min_down.__str__() + ") "  
+                    #print sql           
+                    cur.execute(sql) 
+    con.commit()
     return con
                 
      
