@@ -729,7 +729,6 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     print "\n. Plotting enrichments for union", unionname
 
     plot_enrichment_4x4(unionid, con)
-    return
 
     
     #

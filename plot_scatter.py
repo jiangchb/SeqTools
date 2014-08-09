@@ -111,16 +111,16 @@ def scatter1xn(values, filekeyword, xlab="", ylab="", force_square=False):
     
     return cranpath
 
-def scatter4x4(values, names, filekeyword, xlab="", ylab="", force_square=True):
+def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_square=True):
     """Values[ii] = list of data. There should be 4 sets.
     """    
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
     cranstr = "pdf(\"" + pdfpath + "\", width=12, height=12);\n"    
-    cranstr += "par(mar=c(1.8,1.8,0.4,0.4), oma=c(1.5,2,1,1)  );\n"
+    cranstr += "par(mar=c(1.8,1.8,1.0,0.4), oma=c(1.5,2,1,1)  );\n"
     colwidth = 0.25
     for ii in range(0, 4):
-        for jj in range(0, 4):
+        for jj in range(ii, 4):
             print ii, jj
             
             cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
@@ -147,17 +147,22 @@ def scatter4x4(values, names, filekeyword, xlab="", ylab="", force_square=True):
             
             cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
             
+            maxa = max(values_a)
+            maxb = max(values_b)
+            
             if force_square:
-                maxx = max(values_a)
-                maxy = max(values_b)
-                lim = max( [maxx, maxy] )
+                lim = max( [maxb, maxb] )
                 cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
             
             cranstr += ");\n"
             
+            (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.9*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
+            
+            
             if force_square:
                 cranstr += "abline(0,1)\n"
-            
+    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=0);\n"
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")
