@@ -151,14 +151,14 @@ def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_squ
             maxb = max(values_b)
             
             if force_square:
-                lim = max( [maxb, maxb] )
+                lim = max( [maxa, maxb] )
                 cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
             
             cranstr += ");\n"
             
             (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
             cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.9*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
-            
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.7*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
             
             if force_square:
                 cranstr += "abline(0,1)\n"
@@ -169,5 +169,71 @@ def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_squ
     fout.write( cranstr )
     fout.close()
     os.system("r --no-save < " + cranpath)
+
+def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_square=True):
+    """Values[ii] = list of data. There should be 4 sets.
+    """    
+    pdfpath = filekeyword + ".pdf"
+    print "\n. Writing a scatterplot to", pdfpath
+    cranstr = "pdf(\"" + pdfpath + "\", width=36, height=12);\n"    
+    cranstr += "par(mar=c(1.8,1.8,1.0,0.4), oma=c(1.5,2,1,1)  );\n"
+    colwidth = 0.08333
+    for ii in range(0, 12):
+        mod = 0
+        if ii > 3:
+            mod = 4
+        if ii > 7:
+            mod = 8
+        for jj in range(mod+(ii%4), mod+4):
+            print ii, jj
+            #continue
+            
+            cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
+            cranstr += ((ii+1)*colwidth).__str__() + ", "
+            cranstr += ( (jj%4)*0.25).__str__()+ "," 
+            cranstr += (( (jj%4)+1)*0.25).__str__()+ "), new=TRUE);\n"
+            
+            #print (ii*colwidth), ((ii+1)*colwidth), ( (jj%4)*colwidth), (( (jj%4)+1)*colwidth)
+            
+            values_a = values[ii]
+            values_b = values[jj]
     
+            # X values
+            cranstr += "x<-c("
+            for v in values_a:
+                cranstr += v.__str__() + ","
+            cranstr = re.sub(",$", "", cranstr)
+            cranstr += ");\n"
+        
+            # Y values
+            cranstr += "y<-c("
+            for v in values_b:
+                cranstr += v.__str__() + ","
+            cranstr = re.sub(",$", "", cranstr)
+            cranstr += ");\n"
+            
+            cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
+            
+            maxa = max(values_a)
+            maxb = max(values_b)
+            
+            if force_square:
+                lim = max( [maxa, maxb] )
+                cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
+            
+            cranstr += ");\n"
+            
+            (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.9*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.7*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
+            
+            if force_square:
+                cranstr += "abline(0,1)\n"
+    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=0);\n"
+    cranstr += "dev.off();\n"
+    cranpath = filekeyword + ".cran"
+    fout = open(cranpath, "w")
+    fout.write( cranstr )
+    fout.close()
+    os.system("r --no-save < " + cranpath)
     

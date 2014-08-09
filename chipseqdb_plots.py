@@ -704,16 +704,22 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
         x = get_repids_in_group(rgid, con)
         for ii in x:
             repids.append( ii )
+    repid_maxs = []
     repid_means = []
-    repid_name = []
+    repid_sums = []
+    repid_name = []    
     for repid in repids:
         speciesid = get_speciesid_for_repid(repid, con)
-        
         (x_maxe, x_meane, x_sume) = get_plot_array_for_replicate(repid, speciesid, con)
         repid_means.append( x_meane )
+        repid_maxs.append( x_maxe)
+        repid_sums.append( x_sume)
         repid_name.append( repid.__str__() )
     
-    scatter4x4(repid_means, repid_name, "enrich.all." + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
+    #scatter4x4(repid_maxs + repid_means + repid_sums, repid_name, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
+    scatter12x4(repid_maxs + repid_means + repid_sums, repid_name, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
+    
+
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
     """This method makes the plots and excel tables relevant to the enrichment scores
@@ -812,11 +818,10 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
                 rgid_meanvals[rgid].append(0)
                 rgid_sumvals[rgid].append(0)
 
-        print "779:"
-        for rgid in rgroupids:
-            x = rgid_foundvals[rgid].__len__()
-            if x != 1:
-                print "783:", x, rgid#, rgid_foundvals[rgid], rgid_maxvals[rgid]
+        #for rgid in rgroupids:
+        #    x = rgid_foundvals[rgid].__len__()
+        #    if x != 1:
+        #        print "783:", x, rgid#, rgid_foundvals[rgid], rgid_maxvals[rgid]
 
         fout.write("\n")
     fout.close()
@@ -955,6 +960,7 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
     con.commit()
 
 def get_plot_array_for_replicate(repid, species, con):
+    """Returns ( x_maxe[], x_meane[], x_sume[] )"""
     x_maxe = []
     x_meane = []
     x_sume = []
