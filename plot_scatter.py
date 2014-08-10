@@ -173,11 +173,18 @@ def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_squ
 def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_square=True):
     """Values[ii] = list of data. There should be 4 sets.
     """    
+    if names.__len__() != 12:
+        print "\n. ERROR plot_scatter.py 177, you called scatter12x4 without enough names."
+        print names
+        print names.__len__()
+        exit()
+    
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
     cranstr = "pdf(\"" + pdfpath + "\", width=36, height=12);\n"    
-    cranstr += "par(mar=c(1.8,1.8,1.0,0.4), oma=c(1.5,2,1,1)  );\n"
+    cranstr += "par(mar=c(1.8,2,2.5,0.4), oma=c(1.5,2,1,1)  );\n"
     colwidth = 0.08333
+    
     for ii in range(0, 12):
         mod = 0
         if ii > 3:
@@ -185,8 +192,8 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
         if ii > 7:
             mod = 8
         for jj in range(mod+(ii%4), mod+4):
-            print ii, jj
-            #continue
+            sys.stdout.write(".")
+            sys.stdout.flush()
             
             cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
             cranstr += ((ii+1)*colwidth).__str__() + ", "
@@ -221,15 +228,34 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
                 lim = max( [maxa, maxb] )
                 cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
             
+            col = "black"
+            if ii < 4:
+                col = "mediumblue"
+            elif ii < 8:
+                col = "green4"
+            else:
+                col = "red3"
+            cranstr += ", col=\"" + col + "\""
+            
             cranstr += ");\n"
             
+            if ii == 0: #left most column
+                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=2);\n"
+            if jj == 3 or jj == 7 or jj == 11:
+                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=2);\n"
+            
+            """Write some summary statistics into the plotting area."""
             (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
-            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.9*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
-            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.7*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
+            #cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"Title Here\");\n"
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
+            cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.85*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
             
             if force_square:
                 cranstr += "abline(0,1)\n"
-    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=0);\n"
+                
+            
+    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2);\n"
+    
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")

@@ -709,17 +709,28 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
     repid_sums = []
     repid_name = []    
     for repid in repids:
+        sql = "SELECT name from Replicates where id=" + repid.__str__()
+        cur.execute(sql)
+        repname = cur.fetchone()
+        if repname == None:
+            repname = repid.__str__()
+        else:
+            repname = repname[0].__str__()
+        
         speciesid = get_speciesid_for_repid(repid, con)
         (x_maxe, x_meane, x_sume) = get_plot_array_for_replicate(repid, speciesid, con)
         repid_means.append( x_meane )
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
-        repid_name.append( repid.__str__() )
+        repid_name.append( repname )
+    
+    scatter_names = repid_name + repid_name + repid_name
+    #print scatter_names
+    #exit()
     
     #scatter4x4(repid_maxs + repid_means + repid_sums, repid_name, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
-    scatter12x4(repid_maxs + repid_means + repid_sums, repid_name, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
+    scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
     
-
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
     """This method makes the plots and excel tables relevant to the enrichment scores

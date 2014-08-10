@@ -41,9 +41,9 @@ def get_repgroup_ids(con):
     cur.execute("SELECT id from ReplicateGroups")
     return cur.fetchall()
 
-def get_repgroup_id(rgroup, con):
+def get_repgroup_id(groupname, con):
     cur = con.cursor()
-    cur.execute("SELECT id from selec where name='" + rgroup + "'")
+    cur.execute("SELECT id from ReplicateGroups where name='" + groupname + "'")
     x = cur.fetchone()
     if x != None:
         return x[0]

@@ -389,7 +389,7 @@ def import_bdg(bdgpath, repid, con):
     for geneid in geneid_sum:
         if geneid_n[geneid] > 0:
             count += 1
-            if count%1000==0:
+            if count%5000==0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 con.commit()
