@@ -536,7 +536,8 @@ def plot_summits_for_reps_in_group(rgroupid, con):
                 fout.write("%.3f"%thismax + "\t")
                 fout.write("%.3f"%thismin + "\t")
             else:
-                fout.write("0\t0\t0\t0\t")               
+                fout.write("0\t0\t0\t0\t")
+        fout.write("\n")               
     fout.close()
         
     add_repgroupfile(xlpath, rgroupid, "Excel table with summit stats for replicate group " + repgroupname, con)
