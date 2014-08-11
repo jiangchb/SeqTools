@@ -524,8 +524,48 @@ def reset_files(con):
         print s
         cur.execute(s)
     con.commit()
-    
-    
-    
 
+def add_file(filepath, note, con):
+    """Returns the fileid of the newly inserted file."""
+    cur = con.cursor()
     
+    """Remove quotes from the string."""
+    note = re.sub("'", "", note)
+    note = re.sub("\"", "", note)
+    
+    sql = "SELECT count(*) from Files where path='" + filepath + "', and note='" + note + "'"
+    cur.execute(sql)
+    count = cur.fetchone()[0]
+    if count == 0:  
+        sql = "INSERT INTO Files (path, note) VALUES('" + filepath + "', '" + note + "')"
+        cur.execute(sql)
+        con.commit()
+    sql = "SELECT fileid from Files where path='" + xlpath + "'"
+    cur.execute(sql)
+    fileid = cur.fetchone()[0]
+    return fileid
+
+def add_repgroupfile(filepath, repgroupid, note, con):
+    fileid = add_file(filepath, note, con)
+    cur = con.cursor()
+    sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
+    sql += fileid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+
+def add_unionfile(filepath, unionid, note, con):
+    fileid = add_file(filepath, note, con)
+    cur = con.cursor()
+    sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
+    sql += fileid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+
+def add_speciesunionfile(filepath, spunionid, note, con):
+    fileid = add_file(filepath, note, con)
+    cur = con.cursor()
+    sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + spunionid.__str__() + ","
+    sql += fileid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+
