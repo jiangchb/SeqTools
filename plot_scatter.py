@@ -107,7 +107,7 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
             cranstr += "abline(0,1)\n"
         
         (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
-        cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + max(values_b).__str__() + ", \"R=%.3f"%rho + ", P=" + pvalue.__str__() + "\");\n"
+        cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + max(values_b).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\");\n"
     
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=1.8);\n"
     cranstr += "dev.off();\n"
@@ -201,7 +201,7 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
     cranstr += "pdf(\"" + pdfpath + "\", width=36, height=12);\n"    
-    cranstr += "par(mar=c(1.8,2,2.8,0.6), oma=c(1.5,2,1,1)  );\n"
+    cranstr += "par(mar=c(1.8,2,2.8,1), oma=c(1.5,2,1,1)  );\n"
     colwidth = 0.08333
     
     for ii in range(0, 12):
