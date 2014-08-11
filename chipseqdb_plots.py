@@ -449,7 +449,6 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
     rep2name = cur.fetchone()[0]
     
-    print "\n. Plotting replicates", rep1name, "and", rep2name
     cur = con.cursor()
     cur.execute("SELECT species from Replicates where id=" + repid1.__str__())
     data = cur.fetchone()
@@ -539,42 +538,20 @@ def plot_summits_for_reps_in_group(rgroupid, con):
             else:
                 fout.write("0\t0\t0\t0\t")               
     fout.close()
-    
+        
     add_repgroupfile(xlpath, rgroupid, "Excel table with summit stats for replicate group " + repgroupname, con)
-    
-#     sql = "INSERT INTO Files (path, note) VALUES('" + xlpath + "', 'Excel table with summit stats for replicate group " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + xlpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
 
     """ Plot score correlations."""
-    xvals = []
-    yvals = []
+    q_xvals = []
+    q_yvals = []
     for g in genes:
         gid = g[0]
         if gid in rep1_gene_summitscores and gid in rep2_gene_summitscores:
-            xvals.append( max(rep1_gene_summitscores[gid]) )
-            yvals.append( max(rep2_gene_summitscores[gid]) )
-    cranpath = scatter1(xvals,yvals,"summits.score." + repgroupname, xlab=rep1name+": max summit score for gene", ylab=rep2name+": max summit score for gene")
+            q_xvals.append( max(rep1_gene_summitscores[gid]) )
+            q_yvals.append( max(rep2_gene_summitscores[gid]) )
     
-    
-    add_repgroupfile(cranpath, rgroupid, "R script path to a scatterplot comparing gene-summit scores for replicate group " + repgroupname, con)
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing gene-summit scores for replicate group " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
+    #cranpath = scatter1(xvals,yvals,"summits.score." + repgroupname, xlab=rep1name+": max summit score for gene", ylab=rep2name+": max summit score for gene")
+    #add_repgroupfile(cranpath, rgroupid, "R script path to a scatterplot comparing gene-summit scores for replicate group " + repgroupname, con)
 
 
     """Plot rank correlations."""
@@ -612,24 +589,20 @@ def plot_summits_for_reps_in_group(rgroupid, con):
         for gene in scoresy_genes[y]:
             gene_yrank[gene] = yrank
             yrank += 1
-    xvals = []
-    yvals = []
+    rank_xvals = []
+    rank_yvals = []
     for gene in gene_xrank:
-        xvals.append( gene_xrank[gene] )
-        yvals.append( gene_yrank[gene] )   
-    cranpath = scatter1(xvals,yvals,"summits.rank." + repgroupname, xlab=rep1name.__str__()+": rank order of genes by max summit score", ylab=rep2name.__str__()+": rank order of genes by max summit score")
-    
-    add_repgroupfile(cranpath, rgroupid, "R script path to a scatterplot comparing the rank of genes for replicate group " + repgroupname, con )
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the rank of genes for replicate group " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
+        rank_xvals.append( gene_xrank[gene] )
+        rank_yvals.append( gene_yrank[gene] )   
+        
+    #cranpath = scatter1(xvals,yvals,"summits.rank." + repgroupname, xlab=rep1name.__str__()+": rank order of genes by max summit score", ylab=rep2name.__str__()+": rank order of genes by max summit score")
+    #add_repgroupfile(cranpath, rgroupid, "R script path to a scatterplot comparing the rank of genes for replicate group " + repgroupname, con )
+
+    values = {}
+    values["Q score"] =  [q_xvals, q_yvals]
+    values["summit rank"] = [rank_xvals, rank_yvals ]
+    cranpath = scatter1xn(values, "summits." + repgroupname, title="Summit Scores", xlab=rep1name, ylab=rep2name, force_square=True )
+    add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with summits scores and ranks for replicate group " + repgroupname, con)
 
 def compute_enrichments_for_union(unionid, con, keyword=None):
     """This method puts data into UnionEnrichmentStats"""

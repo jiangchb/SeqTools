@@ -3,8 +3,11 @@ import math, os, re, sys
 from scipy import stats as scipystats
 
 def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=False):    
+    sinkpath = filekeyword + ".out"
+    cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
+    
     pdfpath = filekeyword + ".pdf"
-    cranstr = "pdf(\"" + pdfpath + "\", width=6, height=6);\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=6, height=6);\n"    
 
     print "\n. Writing a scatterplot to", pdfpath
 
@@ -45,16 +48,19 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=Fal
     fout.write( cranstr )
     fout.close()
     
-    os.system("r --no-save < " + cranpath)
+    os.system("r --no-save --slave < " + cranpath)
     
     return cranpath
 
-def scatter1xn(values, filekeyword, xlab="", ylab="", force_square=False):
+def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=False):
     """Makes a multi-panel scatterplot, with 1 row and N columns."""
+    
+    sinkpath = filekeyword + ".out"
+    cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
     
     """values[set name][0] = X value list, values[set name][1] = y value list."""
     pdfpath = filekeyword + ".pdf"
-    cranstr = "pdf(\"" + pdfpath + "\", width=9, height=3);\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=" + (3*values.keys()).__len__() + ", height=3);\n"    
 
     print "\n. Writing a scatterplot to", pdfpath
 
@@ -69,7 +75,7 @@ def scatter1xn(values, filekeyword, xlab="", ylab="", force_square=False):
         values_b = values[setname][1]
 
         cranstr += "par( fig=c(" + (ii*colwidth).__str__() + "," + ((ii+1)*colwidth).__str__() + ", 0, 1)"
-        if ii == 0:
+        if ii != 0:
             cranstr += ", new=TRUE"
         cranstr += ");\n"
 
@@ -103,6 +109,7 @@ def scatter1xn(values, filekeyword, xlab="", ylab="", force_square=False):
         (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
         cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + max(values_b).__str__() + ", \"R=%.3f"%rho + ", P=" + pvalue.__str__() + "\");\n"
     
+    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=1.8);\n"
     cranstr += "dev.off();\n"
     
     cranpath = filekeyword + ".cran"
@@ -110,16 +117,19 @@ def scatter1xn(values, filekeyword, xlab="", ylab="", force_square=False):
     fout.write( cranstr )
     fout.close()
     
-    os.system("r --no-save < " + cranpath)
+    os.system("r --no-save --slave < " + cranpath)
     
     return cranpath
 
 def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_square=True):
     """Values[ii] = list of data. There should be 4 sets.
-    """    
+    """ 
+    sinkpath = filekeyword + ".out"
+    cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
+       
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
-    cranstr = "pdf(\"" + pdfpath + "\", width=12, height=12);\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=12, height=12);\n"    
     cranstr += "par(mar=c(1.8,1.8,1.0,0.4), oma=c(1.5,2,1,1)  );\n"
     colwidth = 0.25
     for ii in range(0, 4):
@@ -130,7 +140,7 @@ def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_squ
             cranstr += ((ii+1)*colwidth).__str__() + ", "
             cranstr += (jj*colwidth).__str__()+ "," 
             cranstr += ((jj+1)*colwidth).__str__()+ ")"
-            if ii == 0 and jj == 0:
+            if ii != 0 and jj != 0:
                 cranstr += ", new=TRUE"
             cranstr += ");\n"
             
@@ -174,7 +184,7 @@ def scatter4x4(values, names, filekeyword, title="", xlab="", ylab="", force_squ
     fout = open(cranpath, "w")
     fout.write( cranstr )
     fout.close()
-    os.system("r --no-save < " + cranpath)
+    os.system("r --no-save --slave < " + cranpath)
 
 def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_square=True):
     """Values[ii] = list of data. There should be 4 sets.
@@ -185,9 +195,12 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
         print names.__len__()
         exit()
     
+    sinkpath = filekeyword + ".out"
+    cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
+    
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
-    cranstr = "pdf(\"" + pdfpath + "\", width=36, height=12);\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=36, height=12);\n"    
     cranstr += "par(mar=c(1.8,2,2.8,0.6), oma=c(1.5,2,1,1)  );\n"
     colwidth = 0.08333
     
@@ -205,7 +218,7 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
             cranstr += ((ii+1)*colwidth).__str__() + ", "
             cranstr += ( (jj%4)*0.25).__str__()+ "," 
             cranstr += (( (jj%4)+1)*0.25).__str__()+ ")"
-            if ii == 0 and jj == 0:
+            if ii != 0 and jj != 0:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
             
@@ -265,7 +278,6 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
             if force_square:
                 cranstr += "abline(0,1)\n"
                 
-    #cranstr += "legend(\"bottomright\", c(\"max f.e.\", \"mean f.e.\", \"sum f.e.\"), col=c('mediumblue', 'green4', 'red3'), pch=c(3, 5, 1) );\n"
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
     
     cranstr += "dev.off();\n"
@@ -273,5 +285,5 @@ def scatter12x4(values, names, filekeyword, title="", xlab="", ylab="", force_sq
     fout = open(cranpath, "w")
     fout.write( cranstr )
     fout.close()
-    os.system("r --no-save < " + cranpath)
+    os.system("r --no-save --slave < " + cranpath)
     

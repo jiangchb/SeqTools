@@ -9,21 +9,24 @@ import os, sys
 
 from chipseqdb_api import *
 
+def print_db_stats(con):
+    species = get_species(con)
+    print "\n. The database contains", species.__len__(), "species:"
+    for sp in species:
+        print "    --> " + sp[1].__str__() + " (" + get_genes_for_species(con, sp[0]).__len__().__str__() + " genes)"
+    return
+    
 def build_db(dbpath = None):
     """Initializes all the tables. Returns the DB connection object.
     If tables already exist, they will NOT be overwritten."""
-    
-
-    
+        
     if dbpath == None or dbpath == False:
         dbpath = "test.db"
-        print "\n. Creating a database at", dbpath
+        print "\n. Creating a new database at", dbpath
     else:
-        print "\n. Restoring the database at", dbpath
+        print "\n. Restoring the existing database at", dbpath
+
     con = lite.connect(dbpath)
-
-    
-
 
     cur = con.cursor()
     # These data come from the GFF:
@@ -58,6 +61,10 @@ def build_db(dbpath = None):
         
     build_unions(con)
     con.commit()
+    
+    if dbpath != None and dbpath != False:
+        print_db_stats(con)
+    
     return con
 
 def build_unions(con):
@@ -174,6 +181,11 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     
     return con
 
+def print_pillarsstats(con):
+    cur = con.cursor()
+    cur.execute("SELECT count(*) from GeneAlias")
+    count = cur.fetchone()[0]
+    print "    --> The pillars database contains", count, "entries."
 
 
 def import_pillars(pillarspath, con):

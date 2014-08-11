@@ -162,7 +162,7 @@ def barplot1(values, filekeyword, plot_params, xlab="", ylab=""):
     fout.write( cranstr )
     fout.close()
     
-    os.system("r --no-save < " + cranpath)
+    os.system("r --no-save --slave < " + cranpath)
 
 def plot_histogram(data, keyword, xlab="", ylab="", fixed_max=None, fixed_nbins=None):
     """data is an array of floating point values"""

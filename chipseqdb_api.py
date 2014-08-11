@@ -1,5 +1,10 @@
 import sqlite3 as lite
-import os, sys
+import os, re, sys
+
+def get_species(con):
+    cur = con.cursor()                
+    cur.execute("SELECT * FROM Species")
+    return cur.fetchall()
 
 def get_species_ids(con):
     cur = con.cursor()                
@@ -533,14 +538,14 @@ def add_file(filepath, note, con):
     note = re.sub("'", "", note)
     note = re.sub("\"", "", note)
     
-    sql = "SELECT count(*) from Files where path='" + filepath + "', and note='" + note + "'"
+    sql = "SELECT count(*) from Files where path='" + filepath + "' and note='" + note + "'"
     cur.execute(sql)
     count = cur.fetchone()[0]
     if count == 0:  
         sql = "INSERT INTO Files (path, note) VALUES('" + filepath + "', '" + note + "')"
         cur.execute(sql)
         con.commit()
-    sql = "SELECT fileid from Files where path='" + xlpath + "'"
+    sql = "SELECT fileid from Files where path='" + filepath + "'"
     cur.execute(sql)
     fileid = cur.fetchone()[0]
     return fileid
@@ -548,7 +553,7 @@ def add_file(filepath, note, con):
 def add_repgroupfile(filepath, repgroupid, note, con):
     fileid = add_file(filepath, note, con)
     cur = con.cursor()
-    sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
+    sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + repgroupid.__str__() + ","
     sql += fileid.__str__() + ")"
     cur.execute(sql)
     con.commit()
