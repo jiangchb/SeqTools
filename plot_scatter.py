@@ -60,7 +60,7 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
     
     """values[set name][0] = X value list, values[set name][1] = y value list."""
     pdfpath = filekeyword + ".pdf"
-    cranstr += "pdf(\"" + pdfpath + "\", width=" + (3*values.keys()).__len__() + ", height=3);\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=" + (3*values.keys()).__len__().__str__() + ", height=3);\n"    
 
     print "\n. Writing a scatterplot to", pdfpath
 
