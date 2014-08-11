@@ -134,4 +134,10 @@ def validate_config(params):
                 if "bdgpath" not in params["species"][species]["rgroups"][repgroup]["reps"][rep]:
                     print "\n. Error: you didn't define an ENRICHMENTS line for species", species, "repgroup", repgroup, "replicate", rep
                     exit()
+        for unionname in params["species"][species]["unions"]:
+            for repgroup in params["species"][species]["unions"][unionname]:
+                if repgroup not in params["species"][species]["rgroups"]:
+                    print "\n. Error, repgroup", repgroup, "is references by union", unionname, "but it's undefined!"
+                    exit()
+    
     return True

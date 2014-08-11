@@ -671,7 +671,7 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
                 rgid = ii[0]
                 
                 count += 1
-                if count%50 == 0:
+                if count%20000 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
     
@@ -708,6 +708,7 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
     repid_means = []
     repid_sums = []
     repid_name = []    
+    speciesname = ""
     for repid in repids:
         sql = "SELECT name from Replicates where id=" + repid.__str__()
         cur.execute(sql)
@@ -718,7 +719,14 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
             repname = repname[0].__str__()
         
         speciesid = get_speciesid_for_repid(repid, con)
-        (x_maxe, x_meane, x_sume) = get_plot_array_for_replicate(repid, speciesid, con)
+        sql = "SELECT name from Species where id=" + speciesid.__str__()
+        cur.execute(sql)
+        speciesname = cur.fetchone()[0]
+        
+        if repname.__contains__(speciesname):
+            repname = re.sub(speciesname, "", repname)
+        
+        (x_maxe, x_meane, x_sume, geneids) = get_plot_array_for_replicate(repid, speciesid, con)
         repid_means.append( x_meane )
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
@@ -729,7 +737,7 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
     #exit()
     
     #scatter4x4(repid_maxs + repid_means + repid_sums, repid_name, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
-    scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.all." + unionname, title="Fold Enrichment", xlab="fold-enrichment", ylab="fold-enrichment")
+    scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.all." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
     
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
@@ -992,7 +1000,7 @@ def get_plot_array_for_replicate(repid, species, con):
             x_maxe.append(0)
             x_meane.append(0)
             x_sume.append(0)      
-    return (x_maxe, x_meane, x_sume)
+    return (x_maxe, x_meane, x_sume, geneids)
 
 def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=None):
     cur = con.cursor()
@@ -1011,9 +1019,10 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     cur.execute("SELECT name from Replicates where id=" + repid2.__str__())
     rep2name = cur.fetchone()[0]
     
-    speciesid = get_speciesid_for_repid(repid, con)
-    (x_maxe, x_meane, x_sume) = get_plot_array_for_replicate(repid1, speciesid, con)
-    (y_maxe, y_meane, y_sume) = get_plot_array_for_replicate(repid2, speciesid, con)
+    speciesid1 = get_speciesid_for_repid(repid1, con)
+    (x_maxe, x_meane, x_sume, geneids) = get_plot_array_for_replicate(repid1, speciesid1, con)
+    speciesid2 = get_speciesid_for_repid(repid2, con)
+    (y_maxe, y_meane, y_sume, geneids) = get_plot_array_for_replicate(repid2, speciesid2, con)
 
 #     x_maxe = []
 #     y_maxe = []
@@ -1116,10 +1125,10 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         fout.write("sum(" + rgname + ")\t")        
     fout.write("\n")
     for ii in range(0, geneids.__len__() ):
-        genename = get_genename(geneid, con)
+        genename = get_genename(geneids[ii], con)
         if genename == None:
             continue
-        fout.write(geneid.__str__() + "\t" + genename + "\t" )
+        fout.write(geneids[ii].__str__() + "\t" + genename + "\t" )
         fout.write(x_maxe[ii].__str__() + "\t")
         fout.write(x_meane[ii].__str__() + "\t")
         fout.write(x_sume[ii].__str__() + "\t")

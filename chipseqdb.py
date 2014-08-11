@@ -13,11 +13,17 @@ def build_db(dbpath = None):
     """Initializes all the tables. Returns the DB connection object.
     If tables already exist, they will NOT be overwritten."""
     
-    print "\n. Building the database. . ."
+
     
     if dbpath == None or dbpath == False:
         dbpath = "test.db"
+        print "\n. Creating a database at", dbpath
+    else:
+        print "\n. Restoring the database at", dbpath
     con = lite.connect(dbpath)
+
+    
+
 
     cur = con.cursor()
     # These data come from the GFF:
