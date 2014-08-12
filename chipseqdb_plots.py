@@ -53,7 +53,8 @@ def compute_summits_for_union(unionid, con):
     """
     1. Update the table UnionGenes with genes that have a peak in all repgroups in this union.
     2. Write the Excel table listing the genes and their scores in the repgroups."""
-    count = 0
+    count = 1
+    total_count = seen_genes.__len__() * rgroupids.__len__() 
     for geneid in seen_genes:        
         nsummits = 0
         maxsummit = 0.0
@@ -62,9 +63,9 @@ def compute_summits_for_union(unionid, con):
         for rgroupid in rgroupids:
             
             count += 1
-            if count%50 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+            #if count%50 == 0:
+            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.flush()
             
             sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
             sql += " and geneid=" + geneid.__str__()
@@ -143,15 +144,16 @@ def plot_summits_for_union(unionid, con):
         fout.write("N(" + rgroupname.__str__() + ")\t")
     fout.write("\n")
     
-    count = 0
+    count = 1
+    total_count = seen_genes.__len__() * rgroupids.__len__()
+    
     for geneid in seen_genes:        
         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
         for rgroupid in rgroupids:
             
             count += 1
-            if count%50 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.flush()
             
             sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
             sql += " and geneid=" + geneid.__str__()
@@ -188,7 +190,7 @@ def compute_summits_for_speciesunion(uid, con):
     seen_genes = []    
     geneid_summitstats = {} # key = translated gene ID, value = list of SQL results from UnionSummitStats
 
-    count = 0
+    count = 1
     unionid_genes = {}
     for unionid in unionids:
         unionname = get_unionname( unionid, con )
@@ -248,7 +250,8 @@ def plot_summits_for_speciesunion(uid, con):
     gene_aliases = {}
 
     """This loop builds data for a Venn diagram of genes with/without summits in both replicates."""
-    count = 0
+    count = 1
+    total_count = unionids.__len__() * genes.__len__()
     venn_data = {}
     for unionid in unionids:
         unionname = get_unionname( unionid, con )
@@ -261,9 +264,9 @@ def plot_summits_for_speciesunion(uid, con):
             
             """Print a period every 200 iterations, to indicate that this program is still alive."""
             count += 1
-            if count%200 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+            #if count%200 == 0:
+            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.flush()
             
             translated_id = get_geneid_from_aliasid( geneid, con )
             if translated_id != None:
@@ -297,15 +300,16 @@ def plot_summits_for_speciesunion(uid, con):
         fout.write("max(" + unionname.__str__() + ")\t")
         fout.write("N(" + unionname.__str__() + ")\t")
     fout.write("\n")
-    count = 0
+    count = 1
+    total_count = seen_genes.__len__() * unionids.__len__()
     for gid in seen_genes: 
         fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )
     
         for unionid in unionids:
             count += 1
-            if count%100 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+            #if count%100 == 0:
+            sys.stdout.write("\r%.1f%%" % (count/total_count) )
+            sys.stdout.flush()
             
             foundit = False
             for geneid in gene_aliases[gid]:    
@@ -370,7 +374,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     print "\n. Building a dictionary of summits & genes for", rep1name, "and", rep2name
     rep1_gene_summitscores = {} # key = geneid, value = summit scores from rep1
     rep2_gene_summitscores = {}
-    count = 0
+
     
 #     gene_result = {}
 #     sql = "SELECT * from Summits where repid=" + repid1.__str__()
@@ -378,13 +382,19 @@ def compute_summits_for_reps_in_group(rgroupid, con):
 #     results = cur.fetchall()
 #     for ii in results:
 #         geneid = ii[0]
-    
+
+    count = 1    
     genes = get_genes_for_species(con, species1)
+    total_count = genes.__len__()
     for g in genes:
         count += 1
-        if count%50 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush() 
+        #if count%50 == 0:
+            #sys.stdout.write(".")
+            #sys.stdout.flush() 
+        
+        sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+        sys.stdout.flush()
+        
         
         gid = g[0]
         x = get_summit_scores_for_gene(gid, repid1, con)
@@ -464,14 +474,15 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     print "\n. Building a dictionary of summits & genes for", rep1name, "and", rep2name
     rep1_gene_summitscores = {} # key = geneid, value = summit scores from rep1
     rep2_gene_summitscores = {}
-    count = 0
+    count = 1
         
     genes = get_genes_for_species(con, species1)
+    ngenes = genes.__len__()
     for g in genes:
         count += 1
-        if count%50 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush() 
+        #if count%50 == 0:
+        sys.stdout.write("\r%.1f%%" % (100*(count/float(ngenes) ) ) )
+        sys.stdout.flush()
         
         gid = g[0]
         x = get_summit_scores_for_gene(gid, repid1, con)
@@ -632,7 +643,12 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
             gene_results[geneid] = []
         gene_results[geneid].append( ii )
     
-    count = 0
+    count = 1
+    total_count = 0
+    for geneid in gene_results.keys():
+        for ii in gene_results[geneid]:
+            total_count += 1
+    
     for geneid in gene_results.keys():        
         """Compute union-wide stats, but only if we have data from all the replicates in this union."""
         if gene_results[geneid].__len__() == nrgids:
@@ -644,8 +660,9 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
                 rgid = ii[0]
                 
                 count += 1
-                if count%20000 == 0:
-                    sys.stdout.write(".")
+                #if count%20000 == 0:
+                if count%100 == 0:
+                    sys.stdout.write("\r%.1f%%" % (100*(count/float(total_count) ) ) )
                     sys.stdout.flush()
     
                 if ii[2] > max_max:
@@ -814,7 +831,8 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
         rgid_meanvals[rgid] = []
         rgid_sumvals[rgid] = []
     fout.write("\n")    
-    count = 0
+    count = 1
+    total_count = geneid_results.__len__() * rgroupids.__len__()
     print "744:", geneid_results.keys().__len__()
     for geneid in geneid_results.keys():
         
@@ -826,9 +844,9 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
                 rgid_foundvals[rgid] = []
             
             count += 1
-            if count%50 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+            #if count%50 == 0:
+            sys.stdout.write("\r%.1f%%" % (100*(count/float(total_count) ) ) )
+            sys.stdout.flush()
             foundit = False
             
             for x in geneid_results[geneid]:
@@ -936,15 +954,15 @@ def get_summit_plot_array_for_replicate(repid, species, con):
         geneids.append( ii[0] )
     geneids.sort()
     
-    count = 0
+    count = 1
+    total_count = geneids.__len__()
     for geneid in geneids:
         count += 1
-        if count%50 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush() 
+        #if count%50 == 0:
+        sys.stdout.write("\r%.1f%%" % (count/total_count) )
+        sys.stdout.flush()
         
-        gid = g[0]
-        x = get_summit_scores_for_gene(gid, repid1, con)
+        x = get_summit_scores_for_gene(geneid, repid1, con)
     
         if geneid in x:
             x_max.append( x[0] )
@@ -1097,7 +1115,13 @@ def compute_enrichments_for_speciesunion(uid, con):
         geneid_results[translated_id].append(ii)
         
     
-    count = 0
+    count = 1
+    total_count = 0
+    for gid in geneid_results.keys():
+        if geneid_results[gid].__len__() == nuids:
+            for ii in geneid_results[gid]:
+                total_count += 1
+    
     for gid in geneid_results.keys():
         """Only keep those genes that have enrichment scores in all the replicates in this union."""
         if geneid_results[gid].__len__() == nuids:    
@@ -1109,9 +1133,9 @@ def compute_enrichments_for_speciesunion(uid, con):
                 unionid = ii[0]
                
                 count += 1
-                if count%50 == 0:
-                    sys.stdout.write(".")
-                    sys.stdout.flush()
+                #if count%50 == 0:
+                sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+                sys.stdout.flush()
              
                 if ii[2] > max_max:
                     max_max = ii[2]
@@ -1193,7 +1217,13 @@ def plot_enrichments_for_speciesunion(uid, con):
         unionid_meanvals[unionid] = []
         unionid_sumvals[unionid] = []
     
-    count = 0
+    count = 1
+    total_count = 0
+    for gid in geneid_results.keys():
+        for unionid in unionids:
+            for x in geneid_results[gid]:
+                total_count += 1
+    
     fout.write("\n")
     for gid in geneid_results.keys():
         max_max = 0
@@ -1206,9 +1236,9 @@ def plot_enrichments_for_speciesunion(uid, con):
             
             for x in geneid_results[gid]:    
                 count += 1
-                if count%50 == 0:
-                    sys.stdout.write(".")
-                    sys.stdout.flush()
+                #if count%50 == 0:
+                sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+                sys.stdout.flush()
         
                 if x[0] == unionid:
                     foundit = True
