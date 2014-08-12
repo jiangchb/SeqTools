@@ -183,7 +183,7 @@ def get_summits(con, repid, chromid):
 
 def get_summit_scores_for_gene(geneid, repid, con):
     cur = con.cursor()
-    sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
+    sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ") order by score"
     #print "60:", sql
     cur.execute(sql)
     scores = []
@@ -195,7 +195,7 @@ def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)
     if scores.__len__() == 0:
         return None 
-    return max( scores )
+    return scores[0]
 
 def get_enrichment_stats_for_gene(geneid, repid, con):
     cur = con.cursor()

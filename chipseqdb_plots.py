@@ -100,7 +100,12 @@ def plot_summits_for_union(unionid, con):
     print "\n. Plotting summits for union", unionname
 
     seen_genes = []
-
+    
+    """Scatterplot."""
+    cranpath = plot_summits_8x4(unionid, con)
+    add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
+    add_unionfile( re.sub("cran", "pdf", vennpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
+    
     """Venn diagram of genes with/without summits in both replicates."""
     venn_data = {}
     rgroupids
@@ -109,7 +114,8 @@ def plot_summits_for_union(unionid, con):
         genes = get_geneids_from_repgroup(con, rgroupid)
         seen_genes += genes
         venn_data[ rgroupname ] = genes
-    plot_venn_diagram( venn_data, "summits." + unionname.__str__() )
+    vennpath = plot_venn_diagram( venn_data, "summits." + unionname.__str__() )
+    add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for union " + unionname, con)
 
     """Are all the replicates in this union from the same species?"""
     possible_species = []
@@ -160,17 +166,7 @@ def plot_summits_for_union(unionid, con):
     fout.close()
     
     add_unionfile(xlpath, unionid, "Excel table with summit stats for union " + unionname, con)
-    
-#     sql = "INSERT INTO Files (path, note) VALUES('" + xlpath + "', 'Excel table with summit stats for union " + unionname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + xlpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
+
 
 def compute_summits_for_speciesunion(uid, con):
     """A species-union is a meta union of unions.
@@ -282,7 +278,8 @@ def plot_summits_for_speciesunion(uid, con):
                 if translated_id not in seen_genes:
                     seen_genes.append( translated_id )
         venn_data[ unionname ] = translated_genes
-    plot_venn_diagram( venn_data, "summits." + spunionname.__str__() )
+    vennpath = plot_venn_diagram( venn_data, "summits." + spunionname.__str__() )
+    add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for species-union " + spunionname, con)
     
     print "\n. The species-union", spunionname, "has", seen_genes.__len__(), "genes with summits in all replicates."
         
@@ -328,17 +325,6 @@ def plot_summits_for_speciesunion(uid, con):
                 fout.write("---\t---\t0\t0\t")
         fout.write("\n")
     fout.close()
-    
-#     sql = "INSERT INTO Files (path, note) VALUES('" + xlpath + "', 'Excel table with summit stats for speciesunion " + spunionname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + xlpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + uid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
     
     add_speciesunionfile( xlpath, uid, "Excel table with summit stats for speciesunion " + spunionname, con )
     
@@ -470,7 +456,8 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     y = get_geneids_with_summits(con, repid2)
     for ii in y:
         venn_data[ rep2name ].append(ii[0])
-    plot_venn_diagram( venn_data, "summits." + repgroupname)
+    vennpath = plot_venn_diagram( venn_data, "summits." + repgroupname)
+    add_repgroupfile(vennpath, rgroupid, "Venn diagram comparing genes with summits for replicategroup " + repgroupname, con)
     
  
     """For the following plots, we'll use these data structures."""   
@@ -604,6 +591,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     values["summit rank"] = [rank_xvals, rank_yvals ]
     cranpath = scatter1xn(values, "summits." + repgroupname, title="Summit Scores", xlab=rep1name, ylab=rep2name, force_square=True )
     add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with summits scores and ranks for replicate group " + repgroupname, con)
+    add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with summits scores and ranks for replicate group " + repgroupname, con)
 
 def compute_enrichments_for_union(unionid, con, keyword=None):
     """This method puts data into UnionEnrichmentStats"""
@@ -676,7 +664,8 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
     con.commit() 
     
 
-def plot_enrichment_4x4(unionid, con, keyword=None):
+def plot_enrichment_12x4(unionid, con, keyword=None):
+    """This is a helper method for plot_enrichments_for_union"""
     cur = con.cursor()
 
     unionname = get_unionname(unionid, con)
@@ -711,15 +700,58 @@ def plot_enrichment_4x4(unionid, con, keyword=None):
         if repname.__contains__(speciesname):
             repname = re.sub(speciesname, "", repname)
         
-        (x_maxe, x_meane, x_sume, geneids) = get_plot_array_for_replicate(repid, speciesid, con)
+        (x_maxe, x_meane, x_sume, geneids) = get_enrichment_plot_array_for_replicate(repid, speciesid, con)
         repid_means.append( x_meane )
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
         repid_name.append( repname )
     
     scatter_names = repid_name + repid_name + repid_name
-    scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.12x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+    return scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.12x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
     
+
+def plot_summits_8x4(unionid, con, keyword=None):
+    """This is a helper method for plot_summits_for_union."""
+    cur = con.cursor()
+
+    unionname = get_unionname(unionid, con)
+    rgroupids = get_repgroupids_in_union( unionid, con )
+    rgroupids.sort()
+    repids = []
+        
+    for rgid in rgroupids:
+        repname = get_repgroup_name(rgid, con)
+        x = get_repids_in_group(rgid, con)
+        for ii in x:
+            repids.append( ii )
+    repid_maxs = []
+    repid_ns = []
+    repid_name = []    
+    speciesname = ""
+    for repid in repids:
+        sql = "SELECT name from Replicates where id=" + repid.__str__()
+        cur.execute(sql)
+        repname = cur.fetchone()
+        if repname == None:
+            repname = repid.__str__()
+        else:
+            repname = repname[0].__str__()
+        
+        speciesid = get_speciesid_for_repid(repid, con)
+        sql = "SELECT name from Species where id=" + speciesid.__str__()
+        cur.execute(sql)
+        speciesname = cur.fetchone()[0]
+        
+        if repname.__contains__(speciesname):
+            repname = re.sub(speciesname, "", repname)
+        
+        (x_max, x_n, geneids) = get_summit_plot_array_for_replicate(repid, speciesid, con)
+        repid_maxs.append( x_max )
+        repid_ns.append( x_n)
+        repid_name.append( repname )
+    
+    scatter_names = repid_name + repid_name + repid_name
+    return scatter8x4(repid_maxs + repid_ns, scatter_names, "summits.8x4." + unionname, title="Summit scores for " + speciesname, xlab="", ylab="")
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
     """This method makes the plots and excel tables relevant to the enrichment scores
@@ -734,9 +766,10 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     
     print "\n. Plotting enrichments for union", unionname
 
-    plot_enrichment_4x4(unionid, con)
+    cranpath = plot_enrichment_12x4(unionid, con)
+    add_unionfile(cranpath, unionid, "R script for a scatterplot comparing fold enrichment for all replicates in the union " + unionname, con)
+    add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing fold enrichment for all replicates in the union " + unionname, con)
 
-    
     #
     # What gene IDs apply to this union?
     #
@@ -827,86 +860,14 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     fout.close()
     
     add_unionfile(xlpath, unionid, "Excel table with enrichment stats for union " + unionname, con)
-    
-#     sql = "INSERT INTO Files (path, note) VALUES('" + xlpath + "', 'Excel table with enrichment stats for union " + unionname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + xlpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
-    
-    #
-    # Scatterplots
-    #
-#     for ii in range(0, rgroupids.__len__() ):
-#         for jj in range(ii+1, rgroupids.__len__() ):
-#             this_rgid = rgroupids[ii]
-#             that_rgid = rgroupids[jj]
-#             
-#             if rgid_maxvals[this_rgid].__len__() == 0:
-#                 continue
-#             
-#             this_rgname = get_repgroup_name(this_rgid, con)
-#             that_rgname = get_repgroup_name(that_rgid, con)
-#             
-#             cranpath = scatter1(rgid_maxvals[this_rgid], rgid_maxvals[that_rgid], "enrich.max." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": max enrichment", ylab=that_rgname.__str__()+": max enrichment", force_square=True)
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the maximum fold-enrichment scores for replicates " + this_rgname + " to " + that_rgname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
-#         
-#             cranpath = scatter1(rgid_meanvals[this_rgid], rgid_meanvals[that_rgid], "enrich.mean." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": mean enrichment", ylab=that_rgname.__str__()+": mean enrichment", force_square=True)
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the average fold-enrichment scores for replicates " + this_rgname + " to " + that_rgname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
-#             
-#             cranpath = scatter1(rgid_sumvals[this_rgid], rgid_sumvals[that_rgid], "enrich.sum." + this_rgname.__str__() + "." + that_rgname.__str__(), xlab=this_rgname.__str__()+": sum enrichment", ylab=that_rgname.__str__()+": sum enrichment", force_square=True)
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the sum of fold-enrichment scores for replicates " + this_rgname + " to " + that_rgname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
             
     values = {}
     values["max enrichment"] =  [ rgid_maxvals[rgroupids[0]], rgid_maxvals[rgroupids[1]]     ]
     values["mean enrichment"] = [ rgid_meanvals[rgroupids[0]], rgid_meanvals[rgroupids[1]]   ]
     values["sum enrichment"]=   [ rgid_sumvals[rgroupids[0]], rgid_sumvals[rgroupids[1]]     ]
     cranpath = scatter1xn(values, "enrich.1x3." + unionname, xlab=this_rgname, ylab=that_rgname, force_square=True )
-    
     add_unionfile(cranpath, unionid,"R script path to a 3-panel scatterplot showing max, mean, and sum fold-enrichment scores for replicates in the union " + unionname, con)
-    
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a 3-panel scatterplot showing max, mean, and sum fold-enrichment scores for replicates " + this_rgname + " to " + that_rgname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO UnionFiles (unionid,fileid) VALUES(" + unionid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()     
+    add_unionfile(re.sub("cran", "pdf", cranpath), unionid,"PDF 3-panel scatterplot showing max, mean, and sum fold-enrichment scores for replicates in the union " + unionname, con)   
 
 def compute_enrichments_for_reps_in_group(rgroupid, con):
     """Fills the table GroupEnrichmentStats"""
@@ -964,7 +925,36 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
         cur.execute(sql)
     con.commit()
 
-def get_plot_array_for_replicate(repid, species, con):
+def get_summit_plot_array_for_replicate(repid, species, con):
+    """Returns ( x_max[], x_n[] ) for this replicate."""
+    x_max = []
+    x_n = []
+    
+    genes = get_genes_for_species(con, species)
+    geneids = []
+    for ii in genes:
+        geneids.append( ii[0] )
+    geneids.sort()
+    
+    count = 0
+    for geneid in geneids:
+        count += 1
+        if count%50 == 0:
+            sys.stdout.write(".")
+            sys.stdout.flush() 
+        
+        gid = g[0]
+        x = get_summit_scores_for_gene(gid, repid1, con)
+    
+        if geneid in x:
+            x_max.append( x[0] )
+            x_n.append( x.__len__() )
+        else:
+            x_max.append(0)
+            x_n.append(0)      
+    return (x_max, x_n, geneids)
+
+def get_enrichment_plot_array_for_replicate(repid, species, con):
     """Returns ( x_maxe[], x_meane[], x_sume[] ) for this replicate."""
     x_maxe = []
     x_meane = []
@@ -1006,50 +996,9 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     rep2name = cur.fetchone()[0]
     
     speciesid1 = get_speciesid_for_repid(repid1, con)
-    (x_maxe, x_meane, x_sume, geneids) = get_plot_array_for_replicate(repid1, speciesid1, con)
+    (x_maxe, x_meane, x_sume, geneids) = get_enrichment_plot_array_for_replicate(repid1, speciesid1, con)
     speciesid2 = get_speciesid_for_repid(repid2, con)
-    (y_maxe, y_meane, y_sume, geneids) = get_plot_array_for_replicate(repid2, speciesid2, con)
-
-    
-    #
-    # Plot scatterplots
-    #
-#     cranpath = scatter1(x_maxe,y_maxe,"enrich.max." + repgroupname, xlab=rep1name.__str__()+": max enrichment", ylab=rep2name.__str__()+": max enrichment", force_square=True)
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'Scatterplot with maximum enrichments for replicate " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
-#     
-#     
-#     cranpath = scatter1(x_meane,y_meane,"enrich.mean." + repgroupname, xlab=rep1name.__str__()+": mean enrichment", ylab=rep2name.__str__()+": mean enrichment", force_square=True)
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'Scatterplot with mean enrichments for replicate " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
-#     
-#     scatter1(x_sume,y_sume,"enrich.sum." + repgroupname, xlab=rep1name.__str__()+": sum enrichment", ylab=rep2name.__str__()+": sum enrichment", force_square=True)
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'Scatterplot with sum enrichments for replicate " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit()
+    (y_maxe, y_meane, y_sume, geneids) = get_enrichment_plot_array_for_replicate(repid2, speciesid2, con)
 
     values = {}
     values["max enrichment"] =  [x_maxe, y_maxe]
@@ -1058,18 +1007,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     
     cranpath = scatter1xn(values, "enrich." + repgroupname, xlab=rep1name, ylab=rep2name, force_square=True )
     add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
+    add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
     
-#     sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname + "')"
-#     cur.execute(sql)
-#     con.commit()
-#     sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#     cur.execute(sql)
-#     fileid = cur.fetchone()[0]
-#     sql = "INSERT INTO ReplicategroupFiles (repgroupid,fileid) VALUES(" + rgroupid.__str__() + ","
-#     sql += fileid.__str__() + ")"
-#     cur.execute(sql)
-#     con.commit() 
-
     #
     # Write an Excel Table
     #
@@ -1334,44 +1273,14 @@ def plot_enrichments_for_speciesunion(uid, con):
             
             cranpath = scatter1(unionid_maxvals[this_uid], unionid_maxvals[that_uid], "enrich.max." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": max enrichment", ylab=that_uname.__str__()+": max enrichment", force_square=True)
             add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname, con )
-            
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + uid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
+            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname, con )
             
             cranpath = scatter1(unionid_meanvals[this_uid], unionid_meanvals[that_uid], "enrich.mean." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": mean enrichment", ylab=that_uname.__str__()+": mean enrichment", force_square=True)
             add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the mean fold-enrichment scores for species union " + spunionname, con )
-            
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + uid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
-#             
+            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the mean fold-enrichment scores for species union " + spunionname, con )
+
             cranpath = scatter1(unionid_sumvals[this_uid], unionid_sumvals[that_uid], "enrich.sum." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": sum enrichment", ylab=that_uname.__str__()+": sum enrichment", force_square=True)
             add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the sum fold-enrichment scores for species union " + spunionname, con )
+            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the sum fold-enrichment scores for species union " + spunionname, con )
             
-#             sql = "INSERT INTO Files (path, note) VALUES('" + cranpath + "', 'R script path to a scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname + "')"
-#             cur.execute(sql)
-#             con.commit()
-#             sql = "SELECT fileid from Files where path='" + cranpath + "'"
-#             cur.execute(sql)
-#             fileid = cur.fetchone()[0]
-#             sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + uid.__str__() + ","
-#             sql += fileid.__str__() + ")"
-#             cur.execute(sql)
-#             con.commit()
-
     
