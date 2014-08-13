@@ -97,7 +97,7 @@ def get_geneids_with_summits(con, repid):
 
 def get_genes_for_species(con, speciesid):
     cur = con.cursor()
-    sql = "SELECT * from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ")"
+    sql = "SELECT * from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ") order by id"
     cur.execute(sql)
     return cur.fetchall()
 

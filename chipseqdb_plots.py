@@ -64,7 +64,7 @@ def compute_summits_for_union(unionid, con):
             
             count += 1
             #if count%50 == 0:
-            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
             
             sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
@@ -105,7 +105,7 @@ def plot_summits_for_union(unionid, con):
     """Scatterplot."""
     cranpath = plot_summits_8x4(unionid, con)
     add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
-    add_unionfile( re.sub("cran", "pdf", vennpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
+    add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
     
     """Venn diagram of genes with/without summits in both replicates."""
     venn_data = {}
@@ -152,7 +152,7 @@ def plot_summits_for_union(unionid, con):
         for rgroupid in rgroupids:
             
             count += 1
-            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
             
             sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
@@ -265,7 +265,7 @@ def plot_summits_for_speciesunion(uid, con):
             """Print a period every 200 iterations, to indicate that this program is still alive."""
             count += 1
             #if count%200 == 0:
-            sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
             
             translated_id = get_geneid_from_aliasid( geneid, con )
@@ -308,7 +308,7 @@ def plot_summits_for_speciesunion(uid, con):
         for unionid in unionids:
             count += 1
             #if count%100 == 0:
-            sys.stdout.write("\r%.1f%%" % (count/total_count) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
             
             foundit = False
@@ -392,7 +392,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
             #sys.stdout.write(".")
             #sys.stdout.flush() 
         
-        sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
         sys.stdout.flush()
         
         
@@ -481,7 +481,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     for g in genes:
         count += 1
         #if count%50 == 0:
-        sys.stdout.write("\r%.1f%%" % (100*(count/float(ngenes) ) ) )
+        sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(ngenes) ) ) )
         sys.stdout.flush()
         
         gid = g[0]
@@ -662,7 +662,7 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
                 count += 1
                 #if count%20000 == 0:
                 if count%100 == 0:
-                    sys.stdout.write("\r%.1f%%" % (100*(count/float(total_count) ) ) )
+                    sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(total_count) ) ) )
                     sys.stdout.flush()
     
                 if ii[2] > max_max:
@@ -762,12 +762,14 @@ def plot_summits_8x4(unionid, con, keyword=None):
         if repname.__contains__(speciesname):
             repname = re.sub(speciesname, "", repname)
         
-        (x_max, x_n, geneids) = get_summit_plot_array_for_replicate(repid, speciesid, con)
+        #(x_max, x_n, geneids) = get_summit_plot_array_for_replicate(repid, speciesid, con)
+        (x_max, x_n, geneids) = get_summit_plot_array_for_replicate_v2(repid, speciesid, con)
         repid_maxs.append( x_max )
         repid_ns.append( x_n)
         repid_name.append( repname )
     
-    scatter_names = repid_name + repid_name + repid_name
+    scatter_names = repid_name + repid_name
+            
     return scatter8x4(repid_maxs + repid_ns, scatter_names, "summits.8x4." + unionname, title="Summit scores for " + speciesname, xlab="", ylab="")
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
@@ -845,7 +847,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
             
             count += 1
             #if count%50 == 0:
-            sys.stdout.write("\r%.1f%%" % (100*(count/float(total_count) ) ) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(total_count) ) ) )
             sys.stdout.flush()
             foundit = False
             
@@ -883,7 +885,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     values["max enrichment"] =  [ rgid_maxvals[rgroupids[0]], rgid_maxvals[rgroupids[1]]     ]
     values["mean enrichment"] = [ rgid_meanvals[rgroupids[0]], rgid_meanvals[rgroupids[1]]   ]
     values["sum enrichment"]=   [ rgid_sumvals[rgroupids[0]], rgid_sumvals[rgroupids[1]]     ]
-    cranpath = scatter1xn(values, "enrich.1x3." + unionname, xlab=this_rgname, ylab=that_rgname, force_square=True )
+    cranpath = scatter1xn(values, "enrich.1x3." + unionname, force_square=True )
     add_unionfile(cranpath, unionid,"R script path to a 3-panel scatterplot showing max, mean, and sum fold-enrichment scores for replicates in the union " + unionname, con)
     add_unionfile(re.sub("cran", "pdf", cranpath), unionid,"PDF 3-panel scatterplot showing max, mean, and sum fold-enrichment scores for replicates in the union " + unionname, con)   
 
@@ -958,19 +960,47 @@ def get_summit_plot_array_for_replicate(repid, species, con):
     total_count = geneids.__len__()
     for geneid in geneids:
         count += 1
-        #if count%50 == 0:
-        sys.stdout.write("\r%.1f%%" % (count/total_count) )
+        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
         sys.stdout.flush()
         
-        x = get_summit_scores_for_gene(geneid, repid1, con)
+        x = get_summit_scores_for_gene(geneid, repid, con)
     
-        if geneid in x:
+        if x.__len__() > 0:
             x_max.append( x[0] )
             x_n.append( x.__len__() )
         else:
             x_max.append(0)
             x_n.append(0)      
     return (x_max, x_n, geneids)
+
+def get_summit_plot_array_for_replicate_v2(repid, species, con):
+    cur = con.cursor()
+    cur.execute("SELECT name from Replicates where id=" + repid.__str__())
+    repname = cur.fetchone()[0]
+    print "\n. Extracting summit scores for replicate", repname
+
+    qvals = []
+    geneids = []
+    x_n = []
+            
+    genes = get_genes_for_species(con, species)
+    ngenes = genes.__len__()
+    count = 0
+    for g in genes:
+        count += 1
+        sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(ngenes) ) ) )
+        sys.stdout.flush()
+        gid = g[0]
+        geneids.append(gid)
+        
+        x = get_summit_scores_for_gene(gid, repid, con)
+        if x.__len__() > 0:
+            qvals.append( max(x) )
+        else:
+            qvals.append(0)
+        x_n.append( x.__len__() )
+    return (qvals, x_n, geneids)
+
 
 def get_enrichment_plot_array_for_replicate(repid, species, con):
     """Returns ( x_maxe[], x_meane[], x_sume[] ) for this replicate."""
@@ -1134,7 +1164,7 @@ def compute_enrichments_for_speciesunion(uid, con):
                
                 count += 1
                 #if count%50 == 0:
-                sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
              
                 if ii[2] > max_max:
@@ -1237,7 +1267,7 @@ def plot_enrichments_for_speciesunion(uid, con):
             for x in geneid_results[gid]:    
                 count += 1
                 #if count%50 == 0:
-                sys.stdout.write("\r%.1f%%" % (count/float(total_count)) )
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
         
                 if x[0] == unionid:
