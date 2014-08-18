@@ -21,10 +21,9 @@ def compute_summits_for_union(unionid, con):
     
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
+    nrepgroups = rgroupids.__len__()
 
     print "\n. Comparing summits for union", unionname
-
-    seen_genes = []
 
     """Are all the replicates in this union from the same species?"""
     possible_species = []
@@ -36,51 +35,117 @@ def compute_summits_for_union(unionid, con):
                 possible_species.append( ii[0] )
     if possible_species.__len__() > 1:
         """Then the replicates in the union come from different species."""
-        print "The replicates in the union", unionname, "come from multiple species."
+        print "The replicates in the union", unionname, "come from multiple species. Use the SPECIES_UNION command to compare across species boundaries."
         exit()    
         
-    """
-    1. Update the table UnionGenes with genes that have a peak in all repgroups in this union.
-    2. Write the Excel table listing the genes and their scores in the repgroups."""
+    
+    seen_genes = []    
+    geneid_summitstats = {} # key = translated gene ID, value = list of SQL results from RepgroupSummitStats
+
     count = 1
-    total_count = seen_genes.__len__() * rgroupids.__len__() 
-    for geneid in seen_genes:        
-        nsummits = 0
-        maxsummit = 0.0
+    unionid_genes = {}
+    for repgroupid in rgroupids:
+        repgroupname = get_repgroup_name( repgroupid, con )
         
-        found_in_all = True # did we find this gene in all the repgroups?
-        for rgroupid in rgroupids:
+        sql = "SELECT * from RepgroupSummitStats where repgroupid=" + repgroupid.__str__()
+        cur.execute(sql)
+        results = cur.fetchall()
+        for ii in results:
+            geneid = ii[1]            
+            if geneid not in geneid_summitstats:
+                geneid_summitstats[geneid] = []
+            geneid_summitstats[geneid].append( ii )
+
+    """Calculate rank order of genes by max summit score."""
+    maxscores_geneids = {}
+    for gid in geneid_summitstats:
+        maxsummit = 0
+        for ii in geneid_summitstats[gid]:
+            if ii[2] > maxsummit:
+                maxsummit = ii[2]  
+        if maxsummit not in maxscores_geneids:
+            maxscores_geneids[ maxsummit ] = []
+        maxscores_geneids[maxsummit].append(gid)
+    scores = maxscores_geneids.keys()
+    scores.sort(reverse=True)      
+
+    gid_score = {}
+    rank = 0
+    for score in scores:
+        newrank = rank + maxscores_geneids[score].__len__()/2.0 + 0.5
+        for g in maxscores_geneids[score]:
+            gid_score[g] = newrank
+        rank += maxscores_geneids[score].__len__()
+
+    for gid in geneid_summitstats:    
+        
+        """Only deal with geneids that exist in all the repgroups of this union."""
+        if geneid_summitstats[gid].__len__() == nrepgroups:
             
-            count += 1
-            #if count%50 == 0:
-            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-            sys.stdout.flush()
+            maxsummit = 0
+            nsummits = 0
+            for ii in geneid_summitstats[gid]:
+                if ii[2] > maxsummit:
+                    maxsummit = ii[2]
+                nsummits += ii[3]
             
-            sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
-            sql += " and geneid=" + geneid.__str__()
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x != None:
-                if x[2] > maxsummit:
-                    maxsummit = x[2]
-                nsummits += x[3]
-            if x == None:
-                found_in_all = False
-                            
-        if found_in_all:
-            """If this gene is in all the repgroups for the union, then add values to the tables
-            UnionGenes and UnionSummitStats."""
-            sql = "INSERT into UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + geneid.__str__() + ")"
+            sql = "INSERT INTO UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + gid.__str__() + ")"
             cur.execute(sql)
             #con.commit()
-            
-            sql = "INSERT into UnionSummitStats (unionid, geneid, maxsummit, nsummits)"
+
+            sql = "INSERT INTO UnionSummitStats (unionid, geneid, maxsummit, nsummits, ranksummit)"
             sql += " VALUES(" + unionid.__str__() + ","
-            sql += geneid.__str__() + ","
+            sql += gid.__str__() + ","
             sql += maxsummit.__str__() + ","
-            sql += (nsummits / float(rgroupids.__len__()) ).__str__() + ")"
+            sql += nsummits.__str__() + ","
+            sql += gid_score[gid].__str__() + ")"
             cur.execute(sql)
     con.commit()
+        
+        
+#     """
+#     1. Update the table UnionGenes with genes that have a peak in all repgroups in this union.
+#     2. Write the Excel table listing the genes and their scores in the repgroups."""
+#     count = 1
+#     total_count = seen_genes.__len__() * rgroupids.__len__() 
+#     for geneid in seen_genes:  
+#         print "48:", geneid      
+#         nsummits = 0
+#         maxsummit = 0.0
+#         
+#         found_in_all = True # did we find this gene in all the repgroups?
+#         for rgroupid in rgroupids:
+#             
+#             count += 1
+#             #if count%50 == 0:
+#             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+#             sys.stdout.flush()
+#             
+#             sql = "SELECT * from RepgroupSummitStats where repgroupid=" + rgroupid.__str__()
+#             sql += " and geneid=" + geneid.__str__()
+#             cur.execute(sql)
+#             x = cur.fetchone()
+#             if x != None:
+#                 if x[2] > maxsummit:
+#                     maxsummit = x[2]
+#                 nsummits += x[3]
+#             if x == None:
+#                 found_in_all = False
+#                             
+#         if found_in_all:
+#             """If this gene is in all the repgroups for the union, then add values to the tables
+#             UnionGenes and UnionSummitStats."""
+#             sql = "INSERT into UnionGenes (unionid, geneid) VALUES(" + unionid.__str__() + "," + geneid.__str__() + ")"
+#             cur.execute(sql)
+#             #con.commit()
+#             
+#             sql = "INSERT into UnionSummitStats (unionid, geneid, maxsummit, nsummits)"
+#             sql += " VALUES(" + unionid.__str__() + ","
+#             sql += geneid.__str__() + ","
+#             sql += maxsummit.__str__() + ","
+#             sql += (nsummits / float(rgroupids.__len__()) ).__str__() + ")"
+#             cur.execute(sql)
+#     con.commit()
 
 def plot_summits_for_union(unionid, con):
     cur = con.cursor()
@@ -92,7 +157,7 @@ def plot_summits_for_union(unionid, con):
     seen_genes = []
     
     """Scatterplot."""
-    cranpath = plot_summits_8x4(unionid, con)
+    cranpath = plot_summits_union_helper(unionid, con)
     add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
     add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
     
@@ -192,7 +257,8 @@ def compute_summits_for_speciesunion(uid, con):
             translated_id = get_geneid_from_aliasid( geneid, con )
             
             if geneid not in geneid_summistats:
-                geneid_summitstats[geneid].append( ii )
+                geneid_summitstats[geneid] = []
+            geneid_summitstats[geneid].append( ii )
 
     for gid in geneid_summitstats:    
         if geneid_summitstats[gid].__len__() == nuids:
@@ -226,11 +292,11 @@ def plot_summits_for_speciesunion(uid, con):
     
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
-    print "\n. Plotting summits for genes across species", spunionname
+    print "\n. Plotting summits for genes across species", spunionname, unionids
 
     """seen_genes will be a list of un-aliased gene IDs for all genes that have
-    a summit in their nearby regulatory regions, in all the replicates represented
-    by at least one Union. Note that the gene IDs here are un-aliased; in other words,
+    a summit in their nearby regulatory regions, in all the repgroups represented by
+    each union. Note that the gene IDs here are un-aliased; in other words,
     they represent the gene ID found from the pillars file. You may need to look up
     alias IDs for this gene's homolog to locate relevant summit scores in different species."""
     seen_genes = []
@@ -240,7 +306,11 @@ def plot_summits_for_speciesunion(uid, con):
 
     """This loop builds data for a Venn diagram of genes with/without summits in both replicates."""
     count = 1
-    total_count = unionids.__len__() * genes.__len__()
+    total_count = 0
+    for unionid in unionids:
+        total_count += get_geneids_from_union(con, unionid).__len__()
+    
+    unionid_genes = {}            
     venn_data = {}
     for unionid in unionids:
         unionname = get_unionname( unionid, con )
@@ -248,6 +318,7 @@ def plot_summits_for_speciesunion(uid, con):
         """genes is a list of all genes that have summits in nearby regulatory regions in all
         the replicates represented by the union."""
         genes = get_geneids_from_union(con, unionid)
+        unionid_genes[unionid] = genes
         translated_genes = []
         for geneid in genes:
             
@@ -272,27 +343,31 @@ def plot_summits_for_speciesunion(uid, con):
         venn_data[ unionname ] = translated_genes
     vennpath = plot_venn_diagram( venn_data, "summits." + spunionname.__str__() )
     add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for species-union " + spunionname, con)
-    
-    print "\n. The species-union", spunionname, "has", seen_genes.__len__(), "genes with summits in all replicates."
-        
+
+
+    unionid_maxsummits = {}
+    unionid_nsummits = {}
+    unionid_ranksummits = {}
+            
     #
     # Write an Excel table using data from UnionSummitStats
     #
     xlpath = "summits." + spunionname + ".xls"
     print "\n. Writing an Excel table to", xlpath
     fout = open(xlpath, "w")
-    fout.write("geneID\tname\t")
+    #fout.write("geneID\tname\t")
     for unionid in unionids:
         unionname = get_unionname( unionid, con )  
         fout.write("geneID(" + unionname.__str__() + ")\t")
         fout.write("name(" + unionname.__str__() + ")\t")      
         fout.write("max(" + unionname.__str__() + ")\t")
         fout.write("N(" + unionname.__str__() + ")\t")
+        fout.write("rank(" + unionname.__str__() + ")\t")
     fout.write("\n")
     count = 1
     total_count = seen_genes.__len__() * unionids.__len__()
     for gid in seen_genes: 
-        fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )
+        #fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )
     
         for unionid in unionids:
             count += 1
@@ -300,9 +375,14 @@ def plot_summits_for_speciesunion(uid, con):
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
             
+            if unionid not in unionid_maxsummits:
+                unionid_maxsummits[unionid] = []
+                unionid_nsummits[unionid] = []
+                unionid_ranksummits[unionid] = []
+            
+            """Find the appropriate gene alias for this union."""            
             foundit = False
             for geneid in gene_aliases[gid]:    
-
                 if foundit == False:                    
                     sql = "SELECT * from UnionSummitStats where unionid=" + unionid.__str__()
                     sql += " and geneid=" + geneid.__str__()
@@ -313,17 +393,40 @@ def plot_summits_for_speciesunion(uid, con):
                         fout.write(geneid.__str__() + "\t")
                         fout.write(get_genename(geneid, con) + "\t")
                         fout.write(x[2].__str__() + "\t")
-                        fout.write(x[3].__str__() + "\t")    
+                        fout.write(x[3].__str__() + "\t")
+                        fout.write(x[4].__str__() + "\t")
+                        
+                        unionid_maxsummits[unionid].append( x[2] )
+                        unionid_nsummits[unionid].append( x[3] )
+                        unionid_ranksummits[unionid].append( x[4] )
+                        
             if foundit == False:
-                fout.write("---\t---\t0\t0\t")
+                fout.write("---\t---\t0\t0\t--\t")
+                unionid_maxsummits[unionid].append( 0 )
+                unionid_nsummits[unionid].append( 0 )
+                unionid_ranksummits[unionid].append( 0 )
+        
         fout.write("\n")
     fout.close()
     
     add_speciesunionfile( xlpath, uid, "Excel table with summit stats for speciesunion " + spunionname, con )
+
+    unionnames = []
+    for unionid in unionids:
+        unionnames.append(  get_unionname( unionid, con )  )
     
-    #
-    # to-do: scatter plots for SpeciesunionUnion data
-    #
+
+    maxes = []
+    ns = []
+    ranks = []
+    for unionid in unionids:
+        maxes.append( unionid_maxsummits[unionid] )
+        ns.append( unionid_nsummits[unionid] )
+        ranks.append( unionid_ranksummits[unionid] )
+    
+    scatterdata = maxes[0:3] + ns[0:3] + ranks[0:3]
+    scatter_names = unionnames + unionnames + unionnames
+    cranpath = scatter9x3(scatterdata, scatter_names, "summits.9x3." + spunionname, title="Summits " + spunionname)
 
 def compute_summits_for_reps_in_group(rgroupid, con):
     """This is a long method (sorry). 
@@ -632,11 +735,35 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
             gene_results[geneid] = []
         gene_results[geneid].append( ii )
     
-    count = 1
-    total_count = 0
+    meanfe_gids = {}
     for geneid in gene_results.keys():
-        for ii in gene_results[geneid]:
-            total_count += 1
+        if gene_results[geneid].__len__() == nrgids:
+            max_max = 0
+            all_means = []
+            all_sums = []
+            for ii in gene_results[geneid]:
+                rgid = ii[0]    
+                if ii[2] > max_max:
+                    max_max = ii[2]    
+            if max_max not in meanfe_gids:
+                meanfe_gids[max_max] = []
+            meanfe_gids[max_max].append( geneid )    
+    
+    meanfes = meanfe_gids.keys()
+    meanfes.sort(reverse=True)
+    gid_rankmeanfe = {}
+    rank = 0
+    for meanfe in meanfes:
+        newrank = rank + meanfe_gids[meanfe].__len__()/2.0 + 0.5
+        for g in meanfe_gids[meanfe]:
+            gid_rankmeanfe[g] = newrank
+        rank += meanfe_gids[meanfe].__len__()
+    
+#     count = 1
+#     total_count = 0
+#     for geneid in gene_results.keys():
+#         for ii in gene_results[geneid]:
+#             total_count += 1
     
     for geneid in gene_results.keys():        
         """Compute union-wide stats, but only if we have data from all the replicates in this union."""
@@ -648,11 +775,11 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
             for ii in gene_results[geneid]:
                 rgid = ii[0]
                 
-                count += 1
+                #count += 1
                 #if count%20000 == 0:
-                if count%100 == 0:
-                    sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(total_count) ) ) )
-                    sys.stdout.flush()
+                #if count%100 == 0:
+                #    sys.stdout.write("\r    --> %.1f%%" % (100*(count/float(total_count) ) ) )
+                #    sys.stdout.flush()
     
                 if ii[2] > max_max:
                     max_max = ii[2]
@@ -660,12 +787,13 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
                 all_sums.append( ii[4] )
     
             
-            sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
+            sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich, rankmeanenrich)"
             sql += "VALUES (" + unionid.__str__() + ","
             sql += geneid.__str__() + ","
             sql += max_max.__str__() + ","
             sql += mean(all_means).__str__() + ","
-            sql += sum(all_sums).__str__() + ")"
+            sql += sum(all_sums).__str__() + ","
+            sql += gid_rankmeanfe[geneid].__str__() + ")"
             cur.execute(sql)
     con.commit() 
     
@@ -706,7 +834,7 @@ def plot_enrichment_12x4(unionid, con, keyword=None):
         if repname.__contains__(speciesname):
             repname = re.sub(speciesname, "", repname)
         
-        (x_maxe, x_meane, x_sume, geneids) = get_enrichment_plot_array_for_replicate(repid, speciesid, con)
+        (x_maxe, x_meane, x_sume, x_rank, geneids) = get_enrichment_plot_array_for_replicate(repid, speciesid, con)
         repid_means.append( x_meane )
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
@@ -761,7 +889,7 @@ def plot_enrichment_12x4_speciesunion(spunionid, geneid_results,  con, keyword=N
             unionname = re.sub(speciesname, "", unionname)
         
     for uid in uids:    
-        (x_maxe, x_meane, x_sume, geneids) = get_enrichment_plot_array_for_union(uid, geneid_results.keys(), con)
+        (x_maxe, x_meane, x_sume, x_ranke, geneids) = get_enrichment_plot_array_for_union(uid, geneid_results.keys(), con)
         repid_means.append( x_meane )
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
@@ -775,7 +903,7 @@ def plot_enrichment_12x4_speciesunion(spunionid, geneid_results,  con, keyword=N
    
 
 
-def plot_summits_8x4(unionid, con, keyword=None):
+def plot_summits_union_helper(unionid, con, keyword=None):
     """This is a helper method for plot_summits_for_union."""
     cur = con.cursor()
 
@@ -791,6 +919,7 @@ def plot_summits_8x4(unionid, con, keyword=None):
             repids.append( ii )
     repid_maxs = []
     repid_ns = []
+    repid_rank = []
     repid_name = []    
     speciesname = ""
     for repid in repids:
@@ -810,15 +939,15 @@ def plot_summits_8x4(unionid, con, keyword=None):
         if repname.__contains__(speciesname):
             repname = re.sub(speciesname, "", repname)
         
-        #(x_max, x_n, geneids) = get_summit_plot_array_for_replicate(repid, speciesid, con)
-        (x_max, x_n, geneids) = get_summit_plot_array_for_replicate_v2(repid, speciesid, con)
+        (x_max, x_n, geneids, x_rank) = get_summit_plot_array_for_replicate_v2(repid, speciesid, con)
         repid_maxs.append( x_max )
         repid_ns.append( x_n)
+        repid_rank.append(x_rank)
         repid_name.append( repname )
     
-    scatter_names = repid_name + repid_name
+    scatter_names = repid_name + repid_name + repid_name
             
-    return scatter8x4(repid_maxs + repid_ns, scatter_names, "summits.8x4." + unionname, title="Summit scores for " + speciesname, xlab="", ylab="")
+    return scatter12x4(repid_maxs + repid_ns + repid_rank, scatter_names, "summits.12x4." + unionname, title="Summit scores for " + speciesname, xlab="", ylab="")
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
     """This method makes the plots and excel tables relevant to the enrichment scores
@@ -867,6 +996,8 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     rgid_meanvals = {}
     rgid_sumvals = {}
     
+    meanvals_rgids = {}
+    
     xlpath = "enrich." + unionname.__str__() + ".xls"
     print "\n. Writing an Excel table to", xlpath
     fout = open(xlpath, "w")
@@ -910,6 +1041,10 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
                     rgid_maxvals[rgid].append(x[2])
                     rgid_meanvals[rgid].append(x[3])
                     rgid_sumvals[rgid].append(x[4])
+                    
+                    if x[3] not in meanvals_rgids:
+                        meanvals_rgids[ x[3] ] = []
+                    meanvals_rgids[x[3]].append( rgid )
  
                
             if foundit == False:
@@ -917,16 +1052,23 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
                 rgid_maxvals[rgid].append(0)
                 rgid_meanvals[rgid].append(0)
                 rgid_sumvals[rgid].append(0)
-
-        #for rgid in rgroupids:
-        #    x = rgid_foundvals[rgid].__len__()
-        #    if x != 1:
-        #        print "783:", x, rgid#, rgid_foundvals[rgid], rgid_maxvals[rgid]
+                meanvals_rgids[0].append( rgid )
 
         fout.write("\n")
     fout.close()
     
     add_unionfile(xlpath, unionid, "Excel table with enrichment stats for union " + unionname, con)
+
+
+    meanvals = meanvals.keys()
+    meanvals.sort( reverse=True)
+    rgid_rank = {}
+    rank = 0
+    for val in meanvals:
+        newrank = rank + meanvals_rgids[val].__len__()/2.0 + 0.5
+        for rgid in meanvals_rgids[val]:
+            rgid_rank[ rgid ] = newrank
+        rank += meanvals_rgids[val].__len__()
             
     values = {}
     values["max enrichment"] =  [ rgid_maxvals[rgroupids[0]], rgid_maxvals[rgroupids[1]]     ]
@@ -992,33 +1134,37 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
         cur.execute(sql)
     con.commit()
 
-def get_summit_plot_array_for_replicate(repid, species, con):
-    """Returns ( x_max[], x_n[] ) for this replicate."""
-    x_max = []
-    x_n = []
-    
-    genes = get_genes_for_species(con, species)
-    geneids = []
-    for ii in genes:
-        geneids.append( ii[0] )
-    geneids.sort()
-    
-    count = 1
-    total_count = geneids.__len__()
-    for geneid in geneids:
-        count += 1
-        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-        sys.stdout.flush()
-        
-        x = get_summit_scores_for_gene(geneid, repid, con)
-    
-        if x.__len__() > 0:
-            x_max.append( x[0] )
-            x_n.append( x.__len__() )
-        else:
-            x_max.append(0)
-            x_n.append(0)      
-    return (x_max, x_n, geneids)
+#
+# depricated
+#
+# def get_summit_plot_array_for_replicate(repid, species, con):
+#     """Returns ( x_max[], x_n[] ) for this replicate."""
+#     x_max = []
+#     x_n = []
+#     x_rank = []
+#     
+#     genes = get_genes_for_species(con, species)
+#     geneids = []
+#     for ii in genes:
+#         geneids.append( ii[0] )
+#     geneids.sort()
+#     
+#     count = 1
+#     total_count = geneids.__len__()
+#     for geneid in geneids:
+#         count += 1
+#         sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+#         sys.stdout.flush()
+#         
+#         x = get_summit_scores_for_gene(geneid, repid, con)
+#     
+#         if x.__len__() > 0:
+#             x_max.append( x[0] )
+#             x_n.append( x.__len__() )
+#         else:
+#             x_max.append(0)
+#             x_n.append(0)      
+#     return (x_max, x_n, geneids)
 
 def get_summit_plot_array_for_replicate_v2(repid, species, con):
     cur = con.cursor()
@@ -1029,7 +1175,11 @@ def get_summit_plot_array_for_replicate_v2(repid, species, con):
     qvals = []
     geneids = []
     x_n = []
+
+    
+    maxsummit_genes = {}
             
+                
     genes = get_genes_for_species(con, species)
     ngenes = genes.__len__()
     count = 0
@@ -1042,11 +1192,28 @@ def get_summit_plot_array_for_replicate_v2(repid, species, con):
         
         x = get_summit_scores_for_gene(gid, repid, con)
         if x.__len__() > 0:
-            qvals.append( max(x) )
+            maxx = max(x)
+            qvals.append( maxx )
+            if maxx not in maxsummit_genes:
+                maxsummit_genes[maxx] = []
+            maxsummit_genes[maxx].append( g )
         else:
             qvals.append(0)
+            if maxx not in maxsummit_genes:
+                maxsummit_genes[maxx] = []
+            maxsummit_genes[maxx].append( 0 )
         x_n.append( x.__len__() )
-    return (qvals, x_n, geneids)
+    
+    maxs = maxsummit_genes.keys()
+    maxs.sort(reverse=True)
+    rank = 0
+    for m in maxs:
+        newrank = rank + maxsummit_genes[m].__len__()/2.0 + 0.5
+        for gid in maxsummit_genes[m]:
+            x_rank.append(newrank)
+        rank += maxsummit_genes[m].__len__()
+    
+    return (qvals, x_n, geneids, x_rank)
 
 
 def sort_gene_values():
@@ -1058,6 +1225,7 @@ def get_enrichment_plot_array_for_replicate(repid, species, con):
     x_maxe = []
     x_meane = []
     x_sume = []
+    x_ranke = []
     x = get_enrichment_stats_for_replicate( repid, con )
     
     genes = get_genes_for_species(con, species)
@@ -1065,24 +1233,42 @@ def get_enrichment_plot_array_for_replicate(repid, species, con):
     for ii in genes:
         geneids.append( ii[0] )
     geneids.sort()
-                
+    
+    meane_geneids = {}
+    
     for geneid in geneids:
         if geneid in x:
             x_maxe.append( x[geneid][0] )
             x_meane.append( x[geneid][1] )
             x_sume.append( x[geneid][2] )
+            
+            if x[geneid][1] not in meane_geneids:
+                meane_geneids[  x[geneid][1] ] = []
+            meane_geneids[  x[geneid][1] ].append( geneid )
         else:
             x_maxe.append(0)
             x_meane.append(0)
-            x_sume.append(0)      
-    return (x_maxe, x_meane, x_sume, geneids)
+            x_sume.append(0)
+            meane_geneids[  0 ].append( geneid )
+    means = meane_geneids.keys()
+    means.sort(reverse=True)
+    rank = 0
+    for m in means:
+        newrank = rank + meane_geneids[m].__len__()/2.0 + 0.5
+        for geneid in meane_geneids[m]:
+            x_ranke.append( newrank )
+        rank == meane_geneids[m].__len__()
+    return (x_maxe, x_meane, x_sume, x_ranke, geneids)
 
 def get_enrichment_plot_array_for_union(unionid, gene_aliases, con):
     """Returns ( x_maxe[], x_meane[], x_sume[] ) averaged (or maxed) from all repgroups in this union."""
     x_maxe = []
     x_meane = []
     x_sume = []
+    x_ranke = []
     x = get_enrichment_stats_for_union( unionid, con )
+                    
+    meane_geneids = {}
                     
     for geneid in x:
         translated_geneid = gene_aliases[geneid]
@@ -1091,11 +1277,26 @@ def get_enrichment_plot_array_for_union(unionid, gene_aliases, con):
             x_maxe.append( x[geneid][0] )
             x_meane.append( x[geneid][1] )
             x_sume.append( x[geneid][2] )
+            
+            if x[geneid][1] not in meane_geneids:
+                meane_geneids[ x[geneid][1] ] = []
+            meane_geneids[ x[geneid][1] ].append( geneid )
         else:
             x_maxe.append(0)
             x_meane.append(0)
-            x_sume.append(0)      
-    return (x_maxe, x_meane, x_sume, genelist)
+            x_sume.append(0)
+            if 0 not in meane_geneids:
+                meane_geneids[ x[geneid][1] ] = []
+            meane_geneids[ 0 ].append( geneid ) 
+    means = meane_geneids.keys()
+    means.sort(reverse=True)
+    rank = 0
+    for m in means:
+        newrank = rank + meane_geneids[m].__len__()/2.0 + 0.5
+        for geneid in meane_geneids[m]:
+            x_ranke.append( newrank )
+        rank += meane_geneids[m].__len__()
+    return (x_maxe, x_meane, x_sume, x_ranke, genelist)
 
 def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=None):
     cur = con.cursor()
@@ -1280,7 +1481,6 @@ def plot_enrichments_for_speciesunion(uid, con):
     cur.execute(sql)
     results = cur.fetchall()
     
-    
     geneid_results = {}
 
     """A dictionary of aliased genes. This will be useful when we assign homology between
@@ -1308,11 +1508,12 @@ def plot_enrichments_for_speciesunion(uid, con):
     unionid_maxvals = {}
     unionid_meanvals = {}
     unionid_sumvals = {}
+    unionid_rankmeanvals = {}
     
     xlpath = "enrich." + spunionname.__str__() + ".xls"
     print "\n. Writing an Excel table to", xlpath
     fout = open(xlpath, "w")
-    fout.write("GeneID\tGeneName\t")
+    #fout.write("GeneID\tGeneName\t")
     for unionid in unionids:
         unionname = get_unionname(unionid, con)
         fout.write("GeneID(" + unionname + ")\t")
@@ -1320,11 +1521,13 @@ def plot_enrichments_for_speciesunion(uid, con):
         fout.write("max(" + unionname + ")\t")
         fout.write("mean(" + unionname + ")\t")
         fout.write("sum(" + unionname + ")\t")
+        fout.write("rankmean(" + unionname + ")\t")
 
         unionid_maxvals[unionid] = []
         unionid_meanvals[unionid] = []
         unionid_sumvals[unionid] = []
-    
+        unionid_rankmeanvals[unionid] = []
+        
     count = 1
     total_count = 0
     for gid in geneid_results.keys():
@@ -1337,7 +1540,7 @@ def plot_enrichments_for_speciesunion(uid, con):
         max_max = 0
         all_means = []
         all_sums = []
-        fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
+        #fout.write(gid.__str__() + "\t" + get_genename(gid, con) + "\t" )        
         
         for unionid in unionids: # find the unionid that mathches result x
             foundit = False
@@ -1355,10 +1558,12 @@ def plot_enrichments_for_speciesunion(uid, con):
                     fout.write(x[2].__str__() + "\t")
                     fout.write(x[3].__str__() + "\t")
                     fout.write(x[4].__str__() + "\t")
+                    fout.write(x[5].__str__() + "\t")
     
                     unionid_maxvals[unionid].append(x[2])
                     unionid_meanvals[unionid].append(x[3])
                     unionid_sumvals[unionid].append(x[4])
+                    unionid_rankmeanvals[unionid].append(x[5])
                     
                     if x[2] > max_max:
                         max_max = x[2]
@@ -1369,10 +1574,11 @@ def plot_enrichments_for_speciesunion(uid, con):
                     
             #else:
             if foundit == False:
-                fout.write("---\t---\t0\t0\t0\t")
+                fout.write("---\t---\t0\t0\t0\t--\t")
                 unionid_maxvals[unionid].append(0)
                 unionid_meanvals[unionid].append(0)
                 unionid_sumvals[unionid].append(0)
+                unionid_rankmeanvals[unionid].append(0)
                 #all_means.append( 0 )
         fout.write("\n")
     fout.close()
@@ -1397,39 +1603,13 @@ def plot_enrichments_for_speciesunion(uid, con):
         scatterdata.append(  unionid_meanvals[unionid] )
     for unionid in unionids:
         scatterdata.append(  unionid_sumvals[unionid] )
+    for unionid in unionids:
+        scatterdata.append(  unionid_rankmeanvals[unionid] )
         
-    scatter_names = unionidnames + unionidnames + unionidnames    
-    cranpath = scatter9x4(scatterdata, scatter_names, "enrich.9x4." + spunionname, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment") 
+    scatter_names = unionidnames + unionidnames + unionidnames + unionidnames
+    cranpath = scatter12x3(scatterdata, scatter_names, "enrich.12x3." + spunionname, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment") 
      
-    print "\n1399: returning from plot_en.._spunion early."
-    return
+    #print "\n1399: returning from plot_en.._spunion early."
+    #return
    
-    #
-    # Scatterplots
-    #
-    for ii in range(0, unionids.__len__() ):
-        for jj in range(ii+1, unionids.__len__() ):
-            #print "90:", ii, jj
-
-            this_uid = unionids[ii]
-            that_uid = unionids[jj]
-            
-            if unionid_maxvals[this_uid].__len__() == 0:
-                continue
-            
-            this_uname = get_unionname(this_uid, con)
-            that_uname = get_unionname(that_uid, con)
-            
-            cranpath = scatter1(unionid_maxvals[this_uid], unionid_maxvals[that_uid], "enrich.max." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": max enrichment", ylab=that_uname.__str__()+": max enrichment", force_square=True)
-            add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname, con )
-            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the maximum fold-enrichment scores for species union " + spunionname, con )
-            
-            cranpath = scatter1(unionid_meanvals[this_uid], unionid_meanvals[that_uid], "enrich.mean." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": mean enrichment", ylab=that_uname.__str__()+": mean enrichment", force_square=True)
-            add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the mean fold-enrichment scores for species union " + spunionname, con )
-            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the mean fold-enrichment scores for species union " + spunionname, con )
-
-            cranpath = scatter1(unionid_sumvals[this_uid], unionid_sumvals[that_uid], "enrich.sum." + this_uname.__str__() + "." + that_uname.__str__(), xlab=this_uname.__str__()+": sum enrichment", ylab=that_uname.__str__()+": sum enrichment", force_square=True)
-            add_speciesunionfile(cranpath, uid, "R script path to a scatterplot comparing the sum fold-enrichment scores for species union " + spunionname, con )
-            add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "PDF scatterplot comparing the sum fold-enrichment scores for species union " + spunionname, con )
-            
     
