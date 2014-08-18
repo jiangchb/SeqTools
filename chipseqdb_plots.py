@@ -10,17 +10,6 @@ from plot_scatter import *
 from plot_venn import *
 from plot_histogram import *
 
-def get_xy_from_rscript(scriptpath):
-    """Returns [x,y], where x and y are the data arrays plotted in the script."""
-    x = None
-    y = None
-    fin = open(scriptpath, "r")
-    for l in fin.xreadlines():
-        if l.startswith("x<-c("):
-            x = l
-        elif l.startswith("y<-c("):
-            y = l
-    return [x,y]
 
 def compute_summits_for_union(unionid, con):
     cur = con.cursor()
@@ -600,7 +589,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     values = {}
     values["Q score"] =  [q_xvals, q_yvals]
     values["summit rank"] = [rank_xvals, rank_yvals ]
-    cranpath = scatter1xn(values, "summits." + repgroupname, title="Summit Scores", xlab=rep1name, ylab=rep2name, force_square=True )
+    cranpath = scatter1xn(values, "summits.1x2." + repgroupname, title="Summit Scores", xlab=rep1name, ylab=rep2name, force_square=True )
     add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with summits scores and ranks for replicate group " + repgroupname, con)
     add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with summits scores and ranks for replicate group " + repgroupname, con)
 
@@ -632,7 +621,7 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
     for rgid in rgroupids:
         sqlbits.append( " rgroupid=" + rgid.__str__() )
     sql += " OR ".join( sqlbits )
-    print "1084:", sql
+    #print "1084:", sql
     cur.execute(sql)
     results = cur.fetchall()
     
@@ -723,9 +712,68 @@ def plot_enrichment_12x4(unionid, con, keyword=None):
         repid_sums.append( x_sume)
         repid_name.append( repname )
     
-    scatter_names = repid_name + repid_name + repid_name
-    return scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.12x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+    scipy.stats.mstats.kruskalwallis()
     
+    scatter_names = repid_name + repid_name + repid_name
+    #return scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.12x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+    return scatter9x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.9x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+
+#
+# depricated
+#
+def plot_enrichment_12x4_speciesunion(spunionid, geneid_results,  con, keyword=None):
+    """This is a helper method for plot_enrichments_for_speciesunion"""
+    cur = con.cursor()
+
+    spunionname = get_speciesunionname(unionid, con)
+    uids = get_unionids_in_speciesunion( unionid, con )
+    uids.sort()
+
+    uid_maxs = []
+    uid_means = []
+    uid_sums = []
+    uid_name = []    
+    
+    uid_species = []
+    uid_speciesname = []
+    
+    specieslist = []
+    
+    for uid in uids:
+        sql = "SELECT name from Unions where id=" + repid.__str__()
+        cur.execute(sql)
+        unionname = cur.fetchone()
+        if unionname == None:
+            unionname = repid.__str__()
+        else:
+            unionname = unionname[0].__str__()
+        
+        speciesid = get_speciesid_for_repid(repid, con)
+        if speciesid not in specieslist:
+            specieslist.append( speciesid )
+        uid_species[uid] = speciesid
+        sql = "SELECT name from Species where id=" + speciesid.__str__()
+        cur.execute(sql)
+        speciesname = cur.fetchone()[0]
+        uid_speciesname[uid] = speciesname
+        
+        if unionname.__contains__(speciesname):
+            unionname = re.sub(speciesname, "", unionname)
+        
+    for uid in uids:    
+        (x_maxe, x_meane, x_sume, geneids) = get_enrichment_plot_array_for_union(uid, geneid_results.keys(), con)
+        repid_means.append( x_meane )
+        repid_maxs.append( x_maxe)
+        repid_sums.append( x_sume)
+        repid_name.append( unionname )
+    
+    scipy.stats.mstats.kruskalwallis()
+    
+    scatter_names = repid_name + repid_name + repid_name
+    #return scatter12x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.12x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+    return scatter9x4(repid_maxs + repid_means + repid_sums, scatter_names, "enrich.9x4." + unionname, title="Fold Enrichment " + speciesname, xlab="fold-enrichment", ylab="fold-enrichment")
+   
+
 
 def plot_summits_8x4(unionid, con, keyword=None):
     """This is a helper method for plot_summits_for_union."""
@@ -835,7 +883,6 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     fout.write("\n")    
     count = 1
     total_count = geneid_results.__len__() * rgroupids.__len__()
-    print "744:", geneid_results.keys().__len__()
     for geneid in geneid_results.keys():
         
         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
@@ -1002,6 +1049,10 @@ def get_summit_plot_array_for_replicate_v2(repid, species, con):
     return (qvals, x_n, geneids)
 
 
+def sort_gene_values():
+    """Get the rank of genes according to an arbitrary score."""
+    pass
+
 def get_enrichment_plot_array_for_replicate(repid, species, con):
     """Returns ( x_maxe[], x_meane[], x_sume[] ) for this replicate."""
     x_maxe = []
@@ -1025,6 +1076,26 @@ def get_enrichment_plot_array_for_replicate(repid, species, con):
             x_meane.append(0)
             x_sume.append(0)      
     return (x_maxe, x_meane, x_sume, geneids)
+
+def get_enrichment_plot_array_for_union(unionid, gene_aliases, con):
+    """Returns ( x_maxe[], x_meane[], x_sume[] ) averaged (or maxed) from all repgroups in this union."""
+    x_maxe = []
+    x_meane = []
+    x_sume = []
+    x = get_enrichment_stats_for_union( unionid, con )
+                    
+    for geneid in x:
+        translated_geneid = gene_aliases[geneid]
+        
+        if geneid in x:
+            x_maxe.append( x[geneid][0] )
+            x_meane.append( x[geneid][1] )
+            x_sume.append( x[geneid][2] )
+        else:
+            x_maxe.append(0)
+            x_meane.append(0)
+            x_sume.append(0)      
+    return (x_maxe, x_meane, x_sume, genelist)
 
 def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=None):
     cur = con.cursor()
@@ -1053,7 +1124,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     values["mean enrichment"] = [x_meane, y_meane ]
     values["sum enrichment"]=   [x_sume, y_sume ]
     
-    cranpath = scatter1xn(values, "enrich." + repgroupname, xlab=rep1name, ylab=rep2name, force_square=True )
+    cranpath = scatter1xn(values, "enrich.1x3." + repgroupname, xlab=rep1name, ylab=rep2name, force_square=True )
     add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
     add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
     
@@ -1098,6 +1169,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
 
 
 def compute_enrichments_for_speciesunion(uid, con):
+    """Fills up the table SpeciesunionEnrichmentStats and also writes an excel tables."""
+    
     cur = con.cursor()
     sql = "DELETE from SpeciesunionEnrichmentStats where unionid=" + uid.__str__()
     con.commit()
@@ -1187,7 +1260,7 @@ def plot_enrichments_for_speciesunion(uid, con):
     spunionname = get_speciesunionname(uid, con)
     unionids = get_unionids_in_speciesunion( uid, con )
     
-    print "\n. Plotting enrichments acorss species", spunionname, unionids
+    print "\n. Plotting enrichments acorss species:", spunionname, unionids
     sys.stdout.flush()
 
     """
@@ -1199,7 +1272,7 @@ def plot_enrichments_for_speciesunion(uid, con):
     the pillars file, in order to generate a list of genes
     which can be compared across species."""
     
-    sql = "SELECT geneid from UnionEnrichmentStats where"
+    sql = "SELECT * from UnionEnrichmentStats where"
     sqlbits = []
     for unionid in unionids:
         sqlbits.append( " unionid=" + unionid.__str__() )
@@ -1207,22 +1280,27 @@ def plot_enrichments_for_speciesunion(uid, con):
     cur.execute(sql)
     results = cur.fetchall()
     
+    
     geneid_results = {}
 
-    """A dictionary of aliased genes."""
+    """A dictionary of aliased genes. This will be useful when we assign homology between
+    enrichment values."""
     gene_aliases = {}
     for ii in results:       
         translated_id = get_geneid_from_aliasid( ii[1], con )
         if translated_id != None:
+            """Have we seen this gene before?"""
             if translated_id not in gene_aliases:
                 gene_aliases[translated_id] = []
             gene_aliases[ translated_id ].append( ii[1]) 
-            if translated_id not in genes:
-                genes.append( translated_id )
+
+        """Remember this gene."""
         if translated_id not in geneid_results:
             geneid_results[ translated_id ] = []
+            
+        """Store the translation pairing"""
         geneid_results[translated_id].append(ii)
-        
+       
     #
     # Write an excel table,
     # while also filling data structures for the scatterplot
@@ -1270,10 +1348,10 @@ def plot_enrichments_for_speciesunion(uid, con):
                 sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
         
-                if x[0] == unionid:
+                if x[0] == unionid and foundit == False:
                     foundit = True
-                    fout.write(geneid.__str__() + "\t")
-                    fout.write(get_genename(geneid, con) + "\t")
+                    fout.write(x[1].__str__() + "\t")
+                    fout.write(get_genename(x[1], con) + "\t")
                     fout.write(x[2].__str__() + "\t")
                     fout.write(x[3].__str__() + "\t")
                     fout.write(x[4].__str__() + "\t")
@@ -1301,19 +1379,30 @@ def plot_enrichments_for_speciesunion(uid, con):
 
     add_speciesunionfile(xlpath, uid, "Excel table with enrichment stats for species union " + spunionname, con )
 
-#     sql = "SELECT COUNT(*) from Files where path='" + xlpath + "'"
-#     cur.execute(sql)
-#     if cur.fetchone()[0] == 0:
-#         sql = "INSERT INTO Files (path, note) VALUES('" + xlpath + "', 'Excel table with enrichment stats for species union " + spunionname + "')"
-#         cur.execute(sql)
-#         con.commit()
-#         sql = "SELECT fileid from Files where path='" + xlpath + "'"
-#         cur.execute(sql)
-#         fileid = cur.fetchone()[0]
-#         sql = "INSERT INTO SpeciesunionFiles (spunionid,fileid) VALUES(" + uid.__str__() + ","
-#         sql += fileid.__str__() + ")"
-#         cur.execute(sql)
-#         con.commit()
+
+    #plot_enrichment_12x4_speciesunion(uid, geneid_results, con )
+    unionidnames = []
+    for unionid in unionids:    
+        unionidnames.append( get_unionname(unionid, con) )  
+        
+    #for unionid in unionids:
+    #    print "1389:", unionid, unionid_maxvals[unionid].__len__()
+    #    print "1390:", unionid, unionid_meanvals[unionid].__len__()
+    #    print "1391:", unionid, unionid_sumvals[unionid].__len__()
+        
+    scatterdata = []
+    for unionid in unionids:
+        scatterdata.append(  unionid_maxvals[unionid] )
+    for unionid in unionids:
+        scatterdata.append(  unionid_meanvals[unionid] )
+    for unionid in unionids:
+        scatterdata.append(  unionid_sumvals[unionid] )
+        
+    scatter_names = unionidnames + unionidnames + unionidnames    
+    cranpath = scatter9x4(scatterdata, scatter_names, "enrich.9x4." + spunionname, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment") 
+     
+    print "\n1399: returning from plot_en.._spunion early."
+    return
    
     #
     # Scatterplots

@@ -218,6 +218,21 @@ def get_enrichment_stats_for_replicate(repid, con):
         gene_stats[ geneid ] = stats
     return gene_stats
 
+def get_enrichment_stats_for_union( unionid, con ):
+    """Returns gene_stats[geneid] = [stats]"""
+    cur = con.cursor()
+    sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        return None
+    gene_stats = {}
+    for ii in x:
+        geneid = ii[1]
+        stats = ii[2:]
+        gene_stats[ geneid ] = stats
+    return gene_stats
+
 def does_species_exist(speciesname, con):
     cur = con.cursor()
     sql = "SELECT count(*) FROM Species where name='" + speciesname + "'"
@@ -372,7 +387,7 @@ def add_speciesunion(name, member_unions, con):
         sql = "SELECT unionid from Unions where name='" + mu.__str__() + "'"
         cur.execute(sql)
         muid = cur.fetchone()
-        if muid == None:
+        if muid == None:            
             print "\n. The union group", mu, "hasn't been imported yet."
             print " This union will be skipped."
             continue
@@ -444,10 +459,10 @@ def get_species_unionids(con):
         unionids.append( ii[0] )
     return unionids
 
-def get_unionids_in_speciesunion(unionid, con):
+def get_unionids_in_speciesunion(spunionid, con):
     """Returns the union IDs sorted alphabetically by their group names."""
     cur = con.cursor()
-    cur.execute("SELECT memunionid from SpeciesunionUnions where spunionid=" + unionid.__str__() )
+    cur.execute("SELECT memunionid from SpeciesunionUnions where spunionid=" + spunionid.__str__() )
     x = cur.fetchall()
     if x == None:
         return None
