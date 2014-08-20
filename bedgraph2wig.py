@@ -75,8 +75,8 @@ for l in fin.xreadlines():
         for ii in range(start, stop):
             #sites.append( ii )
             #site_value[ii] = value
-            if ii%printspan == 0:
-                sys.stdout.write(".")
+            #if ii%printspan == 0:
+            #    sys.stdout.write(".")
             fout.write(ii.__str__() + "\t" + value + "\n")
 fin.close()
 fout.close()

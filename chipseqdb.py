@@ -109,10 +109,15 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     chromname_id = {}
     
     count = 0
+    total_count = estimate_line_count(gffpath)
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
     curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
     for l in fin.xreadlines():
+        count += 1
+        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+        sys.stdout.flush()
+        
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
             if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
@@ -156,12 +161,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
                     for t in note.split():
                         if t.startswith("orf"):
                             gene = t # use this name instead of the orfName
-            
-            count += 1
-            if count%50 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-                                       
+                                                  
             sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
             cur.execute(sql) 
     fin.close()
@@ -173,7 +173,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
         sql = "SELECT COUNT(*) from Genes where chrom=" + ii[0].__str__()
         cur.execute(sql)
         count = cur.fetchone()[0]
-        print ". Chromosome", ii[1], "contains", count, "genes."
+        print "    --> Chromosome", ii[1], "contains", count, "genes."
     
     #cur.execute("SELECT COUNT(*) FROM Genes")
     #count_genes = cur.fetchone()[0]
@@ -203,9 +203,9 @@ def import_pillars(pillarspath, con):
     for l in fin.xreadlines():
         if l.startswith("orf"):
             count += 1
-            if count%100 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()            
+            #if count%100 == 0:
+                #sys.stdout.write(".")
+                #sys.stdout.flush()            
             l = l.strip()
             tokens = l.split()
             #print tokens
@@ -242,13 +242,15 @@ def import_summits(summitpath, repid, con):
     # Build a library of summits
     #
     count = 0
+    total_count = estimate_line_count(summitpath)
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
     for l in fin.xreadlines():
         count += 1
+        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+        sys.stdout.flush()
+        
         if count%100==0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
             con.commit()
         
         if l.__len__() > 0 and False == l.startswith("#"):
@@ -278,9 +280,22 @@ def import_summits(summitpath, repid, con):
     count_genes = cur.fetchone()[0]
     return con
 
+
+def blocks(files, size=65536):
+    """THis is a helper method for estimate_line_count"""
+    while True:
+        b = files.read(size)
+        if not b: break
+        yield b
+
+def estimate_line_count(filepath):
+    """Returns an estimation of the number of lines in the file"""
+    with open(filepath, "r") as f:
+        return sum(bl.count("\n") for bl in blocks(f))
+
 def import_bdg(bdgpath, repid, con):
     """Imports a BedGraph file with enrichment scores tracked across genome sequence sites."""
-    print "\n. Importing enrichment values from", bdgpath,"for replicate", repid
+    print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
 
     cur = con.cursor()
     
@@ -307,13 +322,14 @@ def import_bdg(bdgpath, repid, con):
     nearest_up_gene = None
     nearest_down_gene = None
     count = 0
+    total_count = estimate_line_count(bdgpath)
     for l in fin.xreadlines():
         if l.__len__() > 5:
             count += 1
-            if count%20000==0:
-                sys.stdout.write(".")
+            if count%10 == 0:
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
-            
+                        
             tokens = l.split()
             chromname = tokens[0]
             if curr_chromname == chromname:
@@ -345,12 +361,7 @@ def import_bdg(bdgpath, repid, con):
             start = int(tokens[1]) # start of this enrichment window
             stop = int(tokens[2])
             eval = float(tokens[3]) # enrichment value across this window
-            
-#            """Print a period every 30K sites to indicate to the user that this program is still alive."""
-#             for ii in range(start, stop):
-#                 if ii%10000 == 0:
-#                     sys.stdout.write(".")
-#                     sys.stdout.flush()
+        
             
             """Add this score to the tally for the upstream gene."""
             if nearest_up_gene_i != None:
@@ -404,12 +415,13 @@ def import_bdg(bdgpath, repid, con):
                                 geneid_max[nearest_down_gene] = eval
             
     count = 0
+    total_count = geneid_sum.__len__()
     for geneid in geneid_sum:
         if geneid_n[geneid] > 0:
             count += 1
             if count%5000==0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+                #sys.stdout.write(".")
+                #sys.stdout.flush()
                 con.commit()
             sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
@@ -430,7 +442,7 @@ def import_bdg(bdgpath, repid, con):
 
 def resolve_aliasids(con):
     """This method inserts data into the table GeneHomology."""
-    print "\n. Resolving homologous gene IDs."
+    print "\n. Resolving homologous gene IDs between species."
     
     """Remove any prior GeneHomology entires. We're going to rebuild the entire table."""
     cur = con.cursor()
@@ -447,15 +459,21 @@ def resolve_aliasids(con):
         id = ii[0]
         genename2id[ name ] = id
     
+    sql = "SELECT count(*) from Genes"
+    cur.execute(sql)
+    total_count = cur.fetchone()[0]
+    
     count = 0
     sql = "SELECT * from Genes"
     cur.execute(sql)
     for g in cur.fetchall():
-        
         count += 1
-        if count%50 == 0:
-            sys.stdout.write(".")
+        if count%5 == 0:
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
+        if count%2000 == 0:
+            #sys.stdout.write(".")
+            #sys.stdout.flush()
             """Note the commit happens here"""
             con.commit()
         
@@ -505,8 +523,8 @@ def map_summits2genes(con, repid, speciesid=None, chromid=None):
                 closest_down = ""
                 for g in genes:
                     if count%100==0:
-                        sys.stdout.write(".")
-                        sys.stdout.flush()
+                        #sys.stdout.write(".")
+                        #sys.stdout.flush()
                         con.commit()
                     
                     gid = g[0]
