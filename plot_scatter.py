@@ -175,15 +175,22 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     colwidth = 1.0 / float(width)
     rowheight = 1.0 / float(height)
     
-    count = 0
+
+    """This first loop is to determine total_count"""
     total_count = 0
-    for ii in range(0, height):
-        total_count += 1
-    total_count = total_count * (width/float(height))
-   
     for ii in range(0, width):
         mod = 0
+        for qq in range(1,width):
+            if qq%height == 0:
+                if ii >= qq:
+                    mod = qq
+        for jj in range(mod+(ii%height), mod+height):
+            total_count += 1 
 
+    """Now we do the real work"""
+    count = 0
+    for ii in range(0, width):
+        mod = 0
         for qq in range(1,width):
             if qq%height == 0:
                 if ii >= qq:
