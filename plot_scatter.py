@@ -149,6 +149,9 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     height, width = number of scatterplots
     values[ii] = list of data. There should be 'width' number of entries in values.
     
+    NOTE: in making the scatterplots, cases where both the x-axis and y-axis series are (0,0) will
+    be ignored from the plot.
+    
     """    
     if names.__len__() != width:
         print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
@@ -219,15 +222,21 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     
             # X values
             cranstr += "x<-c("
-            for v in values_a:
-                cranstr += v.__str__() + ","
+            for xx in range(0, values_a.__len__()):
+                v = values_a[xx]
+                if v != 0 or values_b[xx] != 0:
+                #for v in values_a:
+                    cranstr += v.__str__() + ","
             cranstr = re.sub(",$", "", cranstr)
             cranstr += ");\n"
         
             # Y values
             cranstr += "y<-c("
-            for v in values_b:
-                cranstr += v.__str__() + ","
+            for yy in range(0, values_b.__len__()):
+                v = values_b[yy]
+                if v != 0 or values_a[yy] != 0:
+                #for v in values_a:
+                    cranstr += v.__str__() + ","
             cranstr = re.sub(",$", "", cranstr)
             cranstr += ");\n"
             
@@ -258,10 +267,11 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             cranstr += ", pch=" + pch
             cranstr += ");\n"
             
-            if ii == 0: #left most column
+            """Write labels across left-side margin"""
+            if ii == 0:
                 cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1.7);\n"
-            if (jj+1)%height==0:
-                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1.7);\n"
+            
+            
             
             """Write some summary statistics into the plotting area."""
             
@@ -273,11 +283,11 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                     corr_valsa.append( values_a[ww] )
                     corr_valsb.append( values_b[ww] )
             (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
             
             """Spearman's non-linear non-parametric rank correlation."""
             (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.88*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
             #cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\", cex=1.2);\n"
             #cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.85*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
             
@@ -285,39 +295,33 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                 cranstr += "abline(0,1)\n"
             
             """Add histograms to this panel."""
-            #
-            # continue here
-            #
-            cranstr += "hist_a <- hist(x, plot=FALSE, breaks=30);\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
-            cranstr += "hist_b <- hist(y, plot=FALSE, breaks=30);\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
-            #cranstr += "xx <- seq(min(x), max(x), length.out=num.dnorm);\n" # evaluation points for the overlaid density
-            #cranstr += "xy <- dnorm(xx, mean=mean(x), sd=sd(x));\n" # density points
-            #cranstr += "yx <- seq(min(y), max(y), length.out=num.dnorm);\n"
-            #cranstr += "yy <- dnorm(yx, mean=mean(y), sd=sd(y));\n"
+            seq_delta = lim/float(10.0)
+            cranstr += "hist_a <- hist(x, plot=FALSE, breaks=c( seq(0," + lim.__str__() + "," + seq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
+            cranstr += "hist_b <- hist(y, plot=FALSE, breaks=c( seq(0," + lim.__str__() + "," + seq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
             
             """The top histogram"""
             cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
             cranstr += (ii*colwidth + (0.8*colwidth)).__str__() + ", "
             cranstr += ( (jj%height)*rowheight + 0.5*rowheight).__str__()+ "," 
             cranstr += ( (jj%height)*rowheight + rowheight).__str__()+ ")"
-            if ii > 0 or jj > 0:
-                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
              
-            cranstr += "barplot(hist_a$density, axes=FALSE, space=0);\n" # barplot
-            #cranstr += "lines(seq(from=0, to=lhist-1), length.out=num.dnorm), xy, col=dcol);\n" # line
+            cranstr += "barplot(hist_a$density, axes=FALSE, space=0, col='" + col + "');\n" # barplot
+
+            """Write labels for top row"""
+            if (jj+1)%height==0:
+                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1.7);\n"
  
             """The right-side histogram"""
-            cranstr += "par( fig=c(" + (ii*colwidth + 0.7*colwidth).__str__() + ","
+            cranstr += "par( fig=c(" + (ii*colwidth + 0.61*colwidth).__str__() + ","
             cranstr += (ii*colwidth + colwidth).__str__() + ", "
             cranstr += ( (jj%height)*rowheight).__str__()+ "," 
             cranstr += ( (jj%height)*rowheight + 0.8*rowheight).__str__()+ ")"
-            if ii > 0 or jj > 0:
-                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
 
-            cranstr += "barplot(hist_b$density, axes=FALSE, space=0, horiz=TRUE);\n" # barplot
-            #cranstr += "lines(seq(from=0, to=lhist-1, length.out=num.dnorm), xy, col=dcol);\n" # line
+            cranstr += "barplot(hist_b$density, axes=FALSE, space=0, horiz=TRUE, col='" + col + "');\n" # barplot
 
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
     
