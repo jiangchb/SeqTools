@@ -168,6 +168,8 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
     
+    #cranstr += "require(mvtnorm);\n"
+    
     pdfpath = filekeyword + ".pdf"
     print "\n. Writing a scatterplot to", pdfpath
     cranstr += "pdf(\"" + pdfpath + "\", width=" + (3*width).__str__() + ", height=" + (3*height).__str__() + ");\n"    
@@ -203,9 +205,9 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             sys.stdout.flush()
             
             cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
-            cranstr += ((ii+1)*colwidth).__str__() + ", "
+            cranstr += (ii*colwidth + (0.8*colwidth)).__str__() + ", "
             cranstr += ( (jj%height)*rowheight).__str__()+ "," 
-            cranstr += (( (jj%height)+1)*rowheight).__str__()+ ")"
+            cranstr += ( (jj%height)*rowheight + 0.8*rowheight).__str__()+ ")"
             if ii > 0 or jj > 0:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
@@ -281,7 +283,42 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             
             if force_square:
                 cranstr += "abline(0,1)\n"
-                
+            
+            """Add histograms to this panel."""
+            #
+            # continue here
+            #
+            cranstr += "hist_a <- hist(x, plot=FALSE, breaks=30);\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
+            cranstr += "hist_b <- hist(y, plot=FALSE, breaks=30);\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
+            #cranstr += "xx <- seq(min(x), max(x), length.out=num.dnorm);\n" # evaluation points for the overlaid density
+            #cranstr += "xy <- dnorm(xx, mean=mean(x), sd=sd(x));\n" # density points
+            #cranstr += "yx <- seq(min(y), max(y), length.out=num.dnorm);\n"
+            #cranstr += "yy <- dnorm(yx, mean=mean(y), sd=sd(y));\n"
+            
+            """The top histogram"""
+            cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
+            cranstr += (ii*colwidth + (0.8*colwidth)).__str__() + ", "
+            cranstr += ( (jj%height)*rowheight + 0.5*rowheight).__str__()+ "," 
+            cranstr += ( (jj%height)*rowheight + rowheight).__str__()+ ")"
+            if ii > 0 or jj > 0:
+                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+            cranstr += ");\n"
+             
+            cranstr += "barplot(hist_a$density, axes=FALSE, space=0);\n" # barplot
+            #cranstr += "lines(seq(from=0, to=lhist-1), length.out=num.dnorm), xy, col=dcol);\n" # line
+ 
+            """The right-side histogram"""
+            cranstr += "par( fig=c(" + (ii*colwidth + 0.7*colwidth).__str__() + ","
+            cranstr += (ii*colwidth + colwidth).__str__() + ", "
+            cranstr += ( (jj%height)*rowheight).__str__()+ "," 
+            cranstr += ( (jj%height)*rowheight + 0.8*rowheight).__str__()+ ")"
+            if ii > 0 or jj > 0:
+                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+            cranstr += ");\n"
+
+            cranstr += "barplot(hist_b$density, axes=FALSE, space=0, horiz=TRUE);\n" # barplot
+            #cranstr += "lines(seq(from=0, to=lhist-1, length.out=num.dnorm), xy, col=dcol);\n" # line
+
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
     
     cranstr += "dev.off();\n"
