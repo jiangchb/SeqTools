@@ -153,7 +153,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     
     """  
     
-    print "156:", width, height
+    #print "156:", width, height
       
     if names.__len__() != width:
         print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
@@ -176,11 +176,12 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     pdfpath = filekeyword + ".pdf"
     print "\n. Computing IDR and plotting to", pdfpath
     cranstr += "pdf(\"" + pdfpath + "\", width=" + (9*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
-    cranstr += "par(mar=c(1.8,2,2.8,1), oma=c(1.5,2,1,1)  );\n"
+    cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
+    #cranstr += "par(mar=c(4,6,2.8,1), oma=c(1.5,2,1,1)  );\n"
     colwidth = 1.0 / (3.0 * float(height))
     rowheight = 1.0 / float(height)
     gridsize = (height*height - (height-1)*(0.5*height))
-    print "179:", colwidth, rowheight
+    #print "179:", colwidth, rowheight
     
     """This first loop is to determine total_count"""
     total_count = 0
@@ -205,10 +206,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         for jj in range(mod+(ii%height), mod+height):       
             count += 1
             
-            print "202:", ii, jj, count
+            #print "202:", ii, jj, count
 
             if count > gridsize and (count-1)%gridsize == 0:
-                cranstr += "par(mar=c(1.8,2,2.8,1), oma=c(1.5,2,1,1)  );\n"
+                cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
+                #cranstr += "par(mar=c(4,6,2.8,1), oma=c(1.5,2,1,1)  );\n"
                 cranstr += "plot.new();\n"
             
             if ii == jj:
@@ -257,15 +259,15 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ((ii%height)*colwidth + colwidth).__str__() + ", "
             cranstr += ( (jj%height)*rowheight).__str__() + "," 
             cranstr += ( (jj%height)*rowheight + rowheight).__str__() + ")"
-            print "252:", count, gridsize
+            #print "252:", count, gridsize
             if count > 1:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
             
-            print ii, colwidth
-            print ii*colwidth, (ii*colwidth + colwidth), ( (jj%height)*rowheight), ( (jj%height)*rowheight + rowheight)
+            #print ii, colwidth
+            #print ii*colwidth, (ii*colwidth + colwidth), ( (jj%height)*rowheight), ( (jj%height)*rowheight + rowheight)
             
-            cranstr += "plot(rankx, ranky, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
+            cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
             if force_square:
                 cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
             col = "black"
@@ -285,15 +287,21 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", col=\"" + col + "\""
             cranstr += ", pch=" + pch
             cranstr += ", las=1"
-            cranstr += ", main=\"" +ii.__str__() + ":" + jj.__str__() + "\""
+            #cranstr += ", main=\"" +ii.__str__() + ":" + jj.__str__() + "\""
             cranstr += ");\n"             
                         
-            """Write labels across left-side margin"""
-            if ii == 0:
-                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1.7);\n"
+            #"""Write labels across left-side margin"""
+            #if ii == 0:
+            #    cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1.7);\n"
             #
             if force_square:
                 cranstr += "abline(0,1)\n"
+            
+            """Custom write axis labels"""
+            if (jj+1)%height==0:
+                cranstr += "mtext(\"" + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
+            if ii == 0:
+                cranstr += "mtext(\"" + names[jj] + "\", side=3, line=1, col=\"black\", cex=1);\n"
             
             """Use the idr library in R to compute IDR estimates."""
             cranstr += "library(idr);\n"
@@ -306,6 +314,10 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += "idr.out <- est.IDR( cbind(x, y), mu, sigma, rho, p, eps=0.001);\n"
             cranstr += "uv <- get.correspondence(rankx, ranky, seq(0.01, 0.99, by=1/length(rankx) ) );\n"
             
+            #"""Write labels for top row"""
+            #if (jj+1)%height==0:
+            #    cranstr += "mtext(\"" + names[ii] + " vs. " + names[jj] + "\", side=3, line=1, col=\"black\", cex=1.2);\n"
+            
             """Plot the psi values from IDR."""
             cranstr += "par( fig=c(" + (height*colwidth + (ii%height)*colwidth).__str__() + ","
             cranstr += (height*colwidth + (ii%height)*colwidth + colwidth).__str__() + ", "
@@ -315,7 +327,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
             
-            cranstr += "plot(uv$psi.n$t, uv$psi.n$value, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=2"
+            cranstr += "plot(uv$psi.n$t, uv$psi.n$value, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=0.8"
             col = "black"
             pch = "1"
             if ii < height:
@@ -337,6 +349,12 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += "lines(uv$psi.n$smoothed.line, lwd=4);\n"
             cranstr += "abline(coef=c(0,1), lty=3);\n"
             
+            if (jj+1)%height == 0 and ii==0:
+                cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
+                cranstr += "mtext(\"psi\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+                """Write labels for top row"""
+                cranstr += "mtext(\"IDR Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
+            
             """Plot the psi-prime values from IDR"""
             cranstr += "par( fig=c(" + ( (2*height*colwidth) + (ii%height)*colwidth).__str__() + ","
             cranstr += ( (2*height*colwidth) + (ii%height)*colwidth + colwidth).__str__() + ", "
@@ -346,7 +364,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
              
-            cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=2"
+            cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=1.0"
             col = "black"
             pch = "1"
             if ii < height:
@@ -368,9 +386,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += "lines(uv$dpsi.n$smoothed.line, lwd=4);\n"
             cranstr += "abline(h=1, lty=3);\n"
             
-            """Write labels for top row"""
-            if (jj+1)%height==0:
-                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1.7);\n"
+            """Write custome axis labels."""
+            if (jj+1)%height == 0 and ii==0:
+                cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
+                cranstr += "mtext(\"psi'\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+                cranstr += "mtext(\"IDR Change of Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
             
             """Write the IDR data to a text file, so that Python can import the data."""
             tablepath = filekeyword + ".xls"

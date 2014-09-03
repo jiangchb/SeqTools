@@ -826,21 +826,25 @@ def plot_summits_union_helper(unionid, con, keyword=None):
 
 
     
-    scatter_names = repid_name + repid_name
+    #scatter_names = repid_name + repid_name
+    scatter_names = []
+    for r in repid_name:
+        scatter_names.append( r + "-max")
+    for r in repid_name:
+        scatter_names.append( r + "-ns")
     scatter_data = repid_maxs + repid_ns
     width = scatter_names.__len__()
     height = repid_name.__len__()
             
-    filekeyword = "summits.idr." + width.__str__() + "x" + height.__str__() + "."
-    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword + unionname, title="IDR for summit scores for " + speciesname, xlab="", ylab="")
+    filekeyword = "summits.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
+    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for summit scores for " + speciesname, xlab="", ylab="")
 
-    #scatter_idr_nxm(4, 2, idr_scatter_values, ["rep1", "rep2","rep1", "rep2"], filekeyword, title="", xlab="", ylab="", force_square=True)
     scatter_names = repid_name + repid_name + repid_name
     scatter_data = repid_maxs + repid_ns + repid_rank
     width = scatter_names.__len__()
     height = repid_name.__len__()
-    filekeyword = "summits." + width.__str__() + "x" + height.__str__() + "."
-    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword + unionname, title="Summit scores for " + speciesname, xlab="", ylab="")
+    filekeyword = "summits." + width.__str__() + "x" + height.__str__() + "." + unionname
+    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Summit scores for " + speciesname, xlab="", ylab="")
 
 
 
@@ -1020,20 +1024,27 @@ def plot_enrichment_union_helper(unionid, con, keyword=None):
         repid_name.append( repname )
     
     #scipy.stats.mstats.kruskalwallis()
-
-    scatter_names = repid_name + repid_name + repid_name
+    scatter_names = []
+    for r in repid_name:
+        scatter_names.append(r + "-max")
+    for r in repid_name:
+        scatter_names.append("-mmean")
+    for r in repid_name:
+        scatter_names.append(r + "-sum")
+        
+    #scatter_names = repid_name + repid_name + repid_name
     scatter_data = repid_maxs + repid_means + repid_sums
     width = scatter_names.__len__()
     height = repid_name.__len__()    
-    filekeyword = "enrich.idr." + width.__str__() + "x" + height.__str__() + "."
-    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword + unionname, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
+    filekeyword = "enrich.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
+    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
     
     scatter_names = repid_name + repid_name + repid_name + repid_name
     scatter_data = repid_maxs + repid_means + repid_sums + repid_ranks
     width = scatter_names.__len__()
     height = repid_name.__len__()
-    filekeyword = "enrich." + width.__str__() + "x" + height.__str__() + "."
-    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword + unionname, title="Fold Enrichment for " + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
+    filekeyword = "enrich." + width.__str__() + "x" + height.__str__() + "." + unionname
+    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Fold Enrichment for " + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
 
 
 def compute_enrichments_for_reps_in_group(rgroupid, con):
@@ -1306,7 +1317,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     
     """Also plot the IDR stats"""
     idr_scatter_values = [ values["max enrichment"][0], values["max enrichment"][1], values["mean enrichment"][0], values["mean enrichment"][1] ]
-    filekeyword = "enrich.idr." + repgroupname
+    filekeyword = "enrich.idr.4x2." + repgroupname
     scatter_idr_nxm(4, 2, idr_scatter_values, ["rep1-max", "rep2-max","rep1-mean", "rep2-mean"], filekeyword, title="", xlab="", ylab="", force_square=True)
     
     """Write an Excel Table"""
