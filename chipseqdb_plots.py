@@ -131,9 +131,7 @@ def plot_summits_for_union(unionid, con):
     seen_genes = [] # a list of genes that have data for this union
     
     """Scatterplot."""
-    cranpath = plot_summits_union_helper(unionid, con)
-    add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
-    add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
+    plot_summits_union_helper(unionid, con)
     
     """Venn diagram of genes with/without summits in both replicates."""
     venn_data = {}
@@ -824,8 +822,6 @@ def plot_summits_union_helper(unionid, con, keyword=None):
         repid_rank.append( x_rank)
         repid_name.append( repname )
 
-
-    
     #scatter_names = repid_name + repid_name
     scatter_names = []
     for r in repid_name:
@@ -835,17 +831,22 @@ def plot_summits_union_helper(unionid, con, keyword=None):
     scatter_data = repid_maxs + repid_ns
     width = scatter_names.__len__()
     height = repid_name.__len__()
-            
-    filekeyword = "summits.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
-    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for summit scores for " + speciesname, xlab="", ylab="")
+    
+    #"""IDR scatters"""
+    #filekeyword = "summits.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
+    #(cranpath, sinkpath, idr_stats) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for summit scores for " + speciesname, xlab="", ylab="")
+    #add_unionfile( cranpath, unionid, "R script for a scatterplot with IDR statistics for the summit scores for union " + unionname, con)
+    #add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with IDR statistics for the summit scores for union " + unionname, con)
 
+    """Normal data: max, ns, and rank scatters."""
     scatter_names = repid_name + repid_name + repid_name
     scatter_data = repid_maxs + repid_ns + repid_rank
     width = scatter_names.__len__()
     height = repid_name.__len__()
     filekeyword = "summits." + width.__str__() + "x" + height.__str__() + "." + unionname
-    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Summit scores for " + speciesname, xlab="", ylab="")
-
+    cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Summit scores for " + speciesname, xlab="", ylab="")
+    add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
+    add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)
 
 
 def plot_enrichments_for_union(unionid, con, keyword=None):
@@ -860,11 +861,8 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     rgroupids.sort()
     
     print "\n. Plotting enrichments for union", unionname
-
-    cranpath = plot_enrichment_union_helper(unionid, con)
-    add_unionfile(cranpath, unionid, "R script for a scatterplot comparing fold enrichment for all replicates in the union " + unionname, con)
-    add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing fold enrichment for all replicates in the union " + unionname, con)
-
+    plot_enrichment_union_helper(unionid, con)
+    
     #
     # What gene IDs apply to this union?
     #
@@ -1028,23 +1026,25 @@ def plot_enrichment_union_helper(unionid, con, keyword=None):
     for r in repid_name:
         scatter_names.append(r + "-max")
     for r in repid_name:
-        scatter_names.append("-mmean")
-    for r in repid_name:
-        scatter_names.append(r + "-sum")
-        
+        scatter_names.append(r + "-mean")
+
     #scatter_names = repid_name + repid_name + repid_name
-    scatter_data = repid_maxs + repid_means + repid_sums
+    scatter_data = repid_maxs + repid_means
     width = scatter_names.__len__()
     height = repid_name.__len__()    
     filekeyword = "enrich.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
-    scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
+    (cranpath, sinkpath, idr_stats) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
+    add_unionfile(cranpath, unionid, "R script for a scatterplot comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
+    add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
     
-    scatter_names = repid_name + repid_name + repid_name + repid_name
-    scatter_data = repid_maxs + repid_means + repid_sums + repid_ranks
+    scatter_names = repid_name + repid_name
+    scatter_data = repid_maxs + repid_means
     width = scatter_names.__len__()
     height = repid_name.__len__()
     filekeyword = "enrich." + width.__str__() + "x" + height.__str__() + "." + unionname
-    return scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Fold Enrichment for " + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
+    cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Fold Enrichment for " + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
+    add_unionfile(cranpath, unionid, "R script for a scatterplot comparing fold enrichment for all replicates in the union " + unionname, con)
+    add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing fold enrichment for all replicates in the union " + unionname, con)
 
 
 def compute_enrichments_for_reps_in_group(rgroupid, con):
@@ -1318,18 +1318,43 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     """Also plot the IDR stats"""
     idr_scatter_values = [ values["max enrichment"][0], values["max enrichment"][1], values["mean enrichment"][0], values["mean enrichment"][1] ]
     filekeyword = "enrich.idr.4x2." + repgroupname
-    scatter_idr_nxm(4, 2, idr_scatter_values, ["rep1-max", "rep2-max","rep1-mean", "rep2-mean"], filekeyword, title="", xlab="", ylab="", force_square=True)
+    (cranpath, sinkpath, idr_stats) = scatter_idr_nxm(4, 2, idr_scatter_values, ["rep1-max", "rep2-max","rep1-mean", "rep2-mean"], filekeyword, title="", xlab="", ylab="", force_square=True)
+    add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
     
+    #print "1324:", idr_stats
+    #print "1325:", idr_stats.keys()
+    
+    """Map IDR stats to genes."""
+    genes = get_genes_for_species(con, speciesid1)
+    geneids = []
+    for ii in genes:
+        geneids.append( ii[0] )
+    geneids.sort()
+    
+    
+    idr_stats_keys = idr_stats.keys()
+    idr_stats_keys.sort()
+    #print idr_stats
+    
+    """Get a list of the comparison names."""
+    compnames = []
+    for ii in idr_stats_keys:
+        for cn in idr_stats[ii]:
+            if cn not in compnames:
+                compnames.append( cn )
+
     """Write an Excel Table"""
     xlpath = "enrich." + repgroupname + ".xls"
-    print "\n. Writing a table to", xlpath
+    print "\n. Writing a table with fold-enrichment and IDR to", xlpath
     fout = open(xlpath, "w")
     fout.write("GeneID\tGeneName\t")
     for rgname in [rep1name,rep2name]:
         fout.write("max(" + rgname + ")\t")
         fout.write("mean(" + rgname + ")\t")
         fout.write("sum(" + rgname + ")\t")
-        fout.write("rank(" + rgname + ")\t")        
+        fout.write("rank(" + rgname + ")\t")
+    for cn in compnames:   
+        fout.write("IDR(" + cn + ")\t")     
     fout.write("\n")
     for ii in range(0, geneids.__len__() ):
         genename = get_genename(geneids[ii], con)
@@ -1343,9 +1368,15 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         fout.write(y_maxe[ii].__str__() + "\t")
         fout.write(y_meane[ii].__str__() + "\t")
         fout.write(y_sume[ii].__str__() + "\t")
-        fout.write(y_ranke[ii].__str__() )
+        fout.write(y_ranke[ii].__str__() + "\t")
+        """Write IDR stats for this gene, if we have them."""
+        if ii in idr_stats_keys:
+            for cn in compnames:
+                print ii, cn
+                fout.write( idr_stats[ii][cn].__str__() + "\t")
         fout.write("\n")
     fout.close()
+    #exit()
 
     add_repgroupfile(xlpath,rgroupid,"Excel table with enrichment stats for replicate group " + repgroupname, con)
 
@@ -1577,12 +1608,10 @@ def plot_enrichments_for_speciesunion(uid, con):
         scatterdata.append(  unionid_maxvals[unionid] )
     for unionid in unionids:
         scatterdata.append(  unionid_meanvals[unionid] )
-    for unionid in unionids:
-        scatterdata.append(  unionid_sumvals[unionid] )
-    for unionid in unionids:
-        scatterdata.append(  unionid_rankmeanvals[unionid] )
+    #for unionid in unionids:
+    #    scatterdata.append(  unionid_rankmeanvals[unionid] )
 
-    scatter_names = unionidnames + unionidnames + unionidnames + unionidnames
+    scatter_names = unionidnames + unionidnames
     #cranpath = scatter12x3(scatterdata, scatter_names, "enrich.12x3." + spunionname, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment") 
     width = scatter_names.__len__()
     height = unionidnames.__len__()

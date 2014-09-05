@@ -145,16 +145,26 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
 
 def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
     """
-    height, width = number of scatterplots
+    This method generates a PDF grid of scatterplots. Each grid is height*height, and there 3 grids on each page.
+    The leftmost grid is a scatterplot of the ranked values in values[0:height-1] compared to each other.
+    The middle grid is the Psi(t) plots from the IDR analysis.
+    The rightmost grid is the Psi'(t) plots.
+    
+    If width > height, then it must be a factor of height. For example, width can be 2xheight, 3xheight,
+    but not 1.1xheight.
+    For each |height| sized set of arrays in values, a PDF page with three grids (described above) will be
+    plotted.
+
     values[ii] = list of data. There should be 'width' number of entries in values.
     
-    NOTE: in making the scatterplots, cases where both the x-axis and y-axis series are (0,0) will
-    be ignored from the plot.
-    
+    NOTE: in making the scatterplots, paired values of (0,0) will be ignored from the plot.
+    This is a decision that is unique to the IDR analysis.
     """  
+        
+    if width <= 1:
+        print "Error plot_scatter.py 159: The method scatter_idr_nxm requires a width of at least 2."
+        exit()
     
-    #print "156:", width, height
-      
     if names.__len__() != width:
         print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
         print names
@@ -172,18 +182,31 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
+    tablepaths = {} # key = tablepath for IDR output data, value = the name of the comparison
     
     pdfpath = filekeyword + ".pdf"
     print "\n. Computing IDR and plotting to", pdfpath
     cranstr += "pdf(\"" + pdfpath + "\", width=" + (9*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
     cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
-    #cranstr += "par(mar=c(4,6,2.8,1), oma=c(1.5,2,1,1)  );\n"
-    colwidth = 1.0 / (3.0 * float(height))
-    rowheight = 1.0 / float(height)
-    gridsize = (height*height - (height-1)*(0.5*height))
-    #print "179:", colwidth, rowheight
+    colwidth = 1.0 / (3.0 * float(height-1))
+    rowheight = 1.0 / float(height-1)
+    gridsize = (height*height - (height-1)*(0.5*height)) # the number of scatterplots in each grid.
     
-    """This first loop is to determine total_count"""
+    ii_jj_compname = {}
+    for ii in range(0, width):
+        ii_jj_compname[ii] = {}
+        mod = 0
+        for qq in range(1, width):
+            if qq%height == 0:
+                if ii >= qq:
+                    mod = qq
+        for jj in range(mod+(ii%height), mod+height):
+            ii_jj_compname[ii][jj] = names[ii] + "-" + names[jj]
+    compname_idmap = {}
+    
+    """This first loop is to determine total_count.
+    total_count is used solely for displaying a progress bar,
+    and is not essential to the algorithm's accuracy."""
     total_count = 0
     for ii in range(0, width):
         mod = 0
@@ -194,7 +217,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         for jj in range(mod+(ii%height), mod+height):
             total_count += 1 
 
-    """Now we do the real work"""
+    """Now we iterate through pairs of arrays in values."""
     count = 0
     for ii in range(0, width):
         mod = 0
@@ -205,21 +228,19 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
 
         for jj in range(mod+(ii%height), mod+height):       
             count += 1
-            
-            #print "202:", ii, jj, count
 
             if count > gridsize and (count-1)%gridsize == 0:
                 cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
-                #cranstr += "par(mar=c(4,6,2.8,1), oma=c(1.5,2,1,1)  );\n"
                 cranstr += "plot.new();\n"
             
-            if ii == jj:
+            if ii == jj: # We can't do IDR on data that is exactly identical.
                 continue
 
-                 
+            """Progress bar display"""
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
-                                    
+            
+                
             values_a = values[ii]
             values_b = values[jj]
             
@@ -227,45 +248,55 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 print "Error: different sizes for values_a and values_b. Mark point 225."
                 exit()
     
-            """ "X values"""
-            cranstr += "x<-c("
+            """Next we build the x and y arrays for the R scipt.
+            Note that we reject all x,y pairs where both x=0 and y=0."""
+            r_ids2erg = {}
+            #genen_rn = {} # key = gene index in the R script, gene index in the values
+    
+            """x and y"""
+            if ii_jj_compname[ii][jj] not in compname_idmap:
+                compname_idmap[ ii_jj_compname[ii][jj] ] = {}
+            genecount = 0
+            xcranstr = "x<-c("
+            ycranstr = "y<-c("
+            """xcranstr and ycranstr are local string variables for just this inner loop."""
             for xx in range(0, values_a.__len__()):
-                v = values_a[xx]
-                if v != 0 or values_b[xx] != 0:
-                    cranstr += v.__str__() + ","
-            cranstr = re.sub(",$", "", cranstr)
-            cranstr += ");\n"
+                if values_a[xx] != 0 or values_b[xx] != 0:
+                    xcranstr += values_a[xx].__str__() + ","
+                    ycranstr += values_b[xx].__str__() + ","
+                    """The gene with x and y value == genecount is actually
+                    the xx'th gene listed in values_a and values_b.
+                    This translation will be useful later,
+                    when we read IDR values from the R output."""
+                    compname_idmap[ ii_jj_compname[ii][jj] ][genecount] = xx
+                    
+                    #ii_jj_idmap[ii][jj][genecount] = xx
+                    genecount += 1
+            xcranstr = re.sub(",$", "", xcranstr)
+            xcranstr += ");\n"
+            ycranstr = re.sub(",$", "", ycranstr)
+            ycranstr += ");\n"
+            cranstr += xcranstr
+            cranstr += ycranstr
             
-            """Y values"""
-            cranstr += "y<-c("
-            for yy in range(0, values_b.__len__()):
-                v = values_b[yy]
-                if v != 0 or values_a[yy] != 0:
-                #for v in values_a:
-                    cranstr += v.__str__() + ","
-            cranstr = re.sub(",$", "", cranstr)
-            cranstr += ");\n"
-            
+            """rank"""
             cranstr += "rankx <- rank(-x);\n"
             cranstr += "ranky <- rank(-y);\n"
             cranstr += "lim <- max( max(rankx), max(ranky) );\n"
             
+            """lim is the plotting range upper limit."""
             maxa = values_a.__len__()
             maxb = values_b.__len__()
             lim = max( [maxa, maxb] )    
             
-            """Plot the ranked data"""
+            """Plot rank in the leftmost grid"""
             cranstr += "par( fig=c(" + ((ii%height)*colwidth).__str__() + ","
             cranstr += ((ii%height)*colwidth + colwidth).__str__() + ", "
-            cranstr += ( (jj%height)*rowheight).__str__() + "," 
-            cranstr += ( (jj%height)*rowheight + rowheight).__str__() + ")"
-            #print "252:", count, gridsize
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
             if count > 1:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
-            
-            #print ii, colwidth
-            #print ii*colwidth, (ii*colwidth + colwidth), ( (jj%height)*rowheight), ( (jj%height)*rowheight + rowheight)
             
             cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
             if force_square:
@@ -287,21 +318,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", col=\"" + col + "\""
             cranstr += ", pch=" + pch
             cranstr += ", las=1"
-            #cranstr += ", main=\"" +ii.__str__() + ":" + jj.__str__() + "\""
             cranstr += ");\n"             
                         
-            #"""Write labels across left-side margin"""
-            #if ii == 0:
-            #    cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1.7);\n"
-            #
             if force_square:
                 cranstr += "abline(0,1)\n"
             
-            """Custom write axis labels"""
+            """Leftmost grid: write custom write axis labels"""
             if (jj+1)%height==0:
                 cranstr += "mtext(\"" + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
-            if ii == 0:
-                cranstr += "mtext(\"" + names[jj] + "\", side=3, line=1, col=\"black\", cex=1);\n"
+            if ii%height == 0:
+                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2.8, col=\"black\", cex=1);\n"
             
             """Use the idr library in R to compute IDR estimates."""
             cranstr += "library(idr);\n"
@@ -314,15 +340,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += "idr.out <- est.IDR( cbind(x, y), mu, sigma, rho, p, eps=0.001);\n"
             cranstr += "uv <- get.correspondence(rankx, ranky, seq(0.01, 0.99, by=1/length(rankx) ) );\n"
             
-            #"""Write labels for top row"""
-            #if (jj+1)%height==0:
-            #    cranstr += "mtext(\"" + names[ii] + " vs. " + names[jj] + "\", side=3, line=1, col=\"black\", cex=1.2);\n"
-            
             """Plot the psi values from IDR."""
-            cranstr += "par( fig=c(" + (height*colwidth + (ii%height)*colwidth).__str__() + ","
-            cranstr += (height*colwidth + (ii%height)*colwidth + colwidth).__str__() + ", "
-            cranstr += ( (jj%height)*rowheight).__str__() + "," 
-            cranstr += ( (jj%height)*rowheight + rowheight).__str__() + ")"
+            cranstr += "par( fig=c(" + (height*colwidth - colwidth + (ii%height)*colwidth).__str__() + ","
+            cranstr += (height*colwidth + (ii%height)*colwidth).__str__() + ", "
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
             if ii > 0 or jj > 0:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
@@ -356,10 +378,12 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 cranstr += "mtext(\"IDR Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
             
             """Plot the psi-prime values from IDR"""
-            cranstr += "par( fig=c(" + ( (2*height*colwidth) + (ii%height)*colwidth).__str__() + ","
-            cranstr += ( (2*height*colwidth) + (ii%height)*colwidth + colwidth).__str__() + ", "
-            cranstr += ( (jj%height)*rowheight).__str__() + "," 
-            cranstr += ( (jj%height)*rowheight + rowheight).__str__() + ")"
+            cranstr += "par( fig=c(" + ( (2*height*colwidth) - 2*colwidth + (ii%height)*colwidth).__str__() + ","
+            cranstr += ( (2*height*colwidth) - colwidth + (ii%height)*colwidth).__str__() + ", "
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+            
+            
             if ii > 0 or jj > 0:
                 cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
             cranstr += ");\n"
@@ -393,8 +417,9 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 cranstr += "mtext(\"IDR Change of Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
             
             """Write the IDR data to a text file, so that Python can import the data."""
-            tablepath = filekeyword + ".xls"
-            #cranstr += "write.table(idr.out, \"" + tablepath + "\", sep=\"\t\");\n"
+            tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
+            tablepaths[tablepath] = ii_jj_compname[ii][jj]
+            cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
             
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
     
@@ -404,7 +429,38 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     fout.write( cranstr )
     fout.close()
     os.system("r --no-save --slave < " + cranpath)
-    return cranpath 
+    
+    idr_stats = read_idr_results(tablepaths, compname_idmap)
+    return (cranpath, sinkpath, idr_stats) 
+
+def read_idr_results(tablepaths, compname_idmap):
+    """Read the IDR tables, save the data in idr_stats, and then destroy the tables.
+    
+    Returns idr_stats:
+        idr_stats[gene number][comparison name] = IDR
+    """
+    idr_stats = {} # hash of hashes, key = gene N in values, value = hash, key = name of comparison, value = IDR for the gene
+    compnames = []
+    for tablepath in tablepaths:
+        compname = tablepaths[tablepath]
+        idmap = compname_idmap[compname] # idmap[gene ID in R script] = gene ID in the genes array
+        if compname not in compnames:
+            compnames.append( compname )
+        fin = open(tablepath, "r")
+        for line in fin.xreadlines():
+            if line.__len__() > 2:
+                tokens = line.split()
+                if tokens.__len__() == 3:
+                    genen = int( re.sub("\"", "", tokens[0]) ) - 1
+                    genen = idmap[ genen ]
+                    lidr = float(tokens[1])
+                    idr = float(tokens[2])
+                    if genen not in idr_stats:
+                        idr_stats[ genen ] = {}
+                    idr_stats[genen][compname] = lidr
+        fin.close()
+        os.system("rm " + tablepath)
+        return idr_stats 
 
 def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
     """

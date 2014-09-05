@@ -85,7 +85,7 @@ def build_speciesunions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
     
     # geneid in the Speciesunion tables point to translated gene IDs from the pillars.
-    # This means that to find this gene ID in a particular Union, you may need to use
+    # This means that to find this gene ID in a particular Union, you need to use
     # the table GeneHomology to find alias gene IDs for another species.
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummitStats(spunionid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
