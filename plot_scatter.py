@@ -2,7 +2,7 @@ import math, os, re, sys
 
 from scipy import stats as scipystats
 
-def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=False):    
+def scatter1(values_ii, values_jj, filekeyword, xlab="", ylab="", force_square=False):    
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
     
@@ -13,22 +13,22 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=Fal
 
     # X values
     cranstr += "x<-c("
-    for v in values_a:
+    for v in values_ii:
         cranstr += v.__str__() + ","
     cranstr = re.sub(",$", "", cranstr)
     cranstr += ");\n"
 
     # Y values
     cranstr += "y<-c("
-    for v in values_b:
+    for v in values_jj:
         cranstr += v.__str__() + ","
     cranstr = re.sub(",$", "", cranstr)
     cranstr += ");\n"
     
     cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
 
-    maxx = max(values_a)
-    maxy = max(values_b)
+    maxx = max(values_ii)
+    maxy = max(values_jj)
     lim = max( [maxx, maxy] )    
     if force_square:
         cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
@@ -41,16 +41,16 @@ def scatter1(values_a, values_b, filekeyword, xlab="", ylab="", force_square=Fal
     """Pearson's linear value correlation."""
     corr_valsa = []
     corr_valsb = []
-    for ww in range(0, values_a.__len__()):
-        if values_a[ww] != 0 and values_b[ww] != 0:
-            corr_valsa.append( values_a[ww] )
-            corr_valsb.append( values_b[ww] )
+    for ww in range(0, values_ii.__len__()):
+        if values_ii[ww] != 0 and values_jj[ww] != 0:
+            corr_valsa.append( values_ii[ww] )
+            corr_valsb.append( values_jj[ww] )
     (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-    cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
     
     """Spearman's non-linear non-parametric rank correlation."""
     (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-    cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
     
     cranstr += "dev.off();\n"
     
@@ -82,8 +82,8 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
     sets = values.keys()
     for ii in range(0, sets.__len__()):
         setname = sets[ii]
-        values_a = values[setname][0]
-        values_b = values[setname][1]
+        values_ii = values[setname][0]
+        values_jj = values[setname][1]
 
         cranstr += "par( fig=c(" + (ii*colwidth).__str__() + "," + ((ii+1)*colwidth).__str__() + ", 0, 1)"
         if ii != 0:
@@ -92,22 +92,22 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
 
         # X values
         cranstr += "x<-c("
-        for v in values_a:
+        for v in values_ii:
             cranstr += v.__str__() + ","
         cranstr = re.sub(",$", "", cranstr)
         cranstr += ");\n"
     
         # Y values
         cranstr += "y<-c("
-        for v in values_b:
+        for v in values_jj:
             cranstr += v.__str__() + ","
         cranstr = re.sub(",$", "", cranstr)
         cranstr += ");\n"
         
         cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
 
-        maxx = max(values_a)
-        maxy = max(values_b)
+        maxx = max(values_ii)
+        maxy = max(values_jj)
         lim = max( [maxx, maxy] )        
         if force_square:
             cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
@@ -120,16 +120,16 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
         """Pearson's linear value correlation."""
         corr_valsa = []
         corr_valsb = []
-        for ww in range(0, values_a.__len__()):
-            if values_a[ww] != 0 and values_b[ww] != 0:
-                corr_valsa.append( values_a[ww] )
-                corr_valsb.append( values_b[ww] )
+        for ww in range(0, values_ii.__len__()):
+            if values_ii[ww] != 0 and values_jj[ww] != 0:
+                corr_valsa.append( values_ii[ww] )
+                corr_valsb.append( values_jj[ww] )
         (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-        cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
         
         """Spearman's non-linear non-parametric rank correlation."""
-        (rho, pvalue) = scipystats.spearmanr( values_a, values_b )
-        cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+        (rho, pvalue) = scipystats.spearmanr( values_ii, values_jj )
+        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
     
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=1.8);\n"
     cranstr += "dev.off();\n"
@@ -182,268 +182,277 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
-    tablepaths = {} # key = tablepath for IDR output data, value = the name of the comparison
+    tablepaths = {} # key = tablepath for IDR output data, value = tuple(the name of the comparison, ii, jj)
     
+    """Setup the document."""
     pdfpath = filekeyword + ".pdf"
     print "\n. Computing IDR and plotting to", pdfpath
     cranstr += "pdf(\"" + pdfpath + "\", width=" + (9*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
-    cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
+    cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"  
     colwidth = 1.0 / (3.0 * float(height-1))
     rowheight = 1.0 / float(height-1)
     gridsize = (height*height - (height-1)*(0.5*height)) # the number of scatterplots in each grid.
     
-    ii_jj_compname = {}
+    """value_pairs is a list of pairs (ii,jj) where ii and jj are indices into values.
+    The idea is that the values for each pair should be compared."""
+    value_pairs = [] 
     for ii in range(0, width):
-        ii_jj_compname[ii] = {}
         mod = 0
         for qq in range(1, width):
             if qq%height == 0:
                 if ii >= qq:
                     mod = qq
         for jj in range(mod+(ii%height), mod+height):
-            ii_jj_compname[ii][jj] = names[ii] + "-" + names[jj]
-    compname_idmap = {}
+            if ii != jj:
+                value_pairs.append( (ii,jj) )
+    
+    ii_jj_compname = {}
+    ii_jj_idmap = {}
+    for (ii,jj) in value_pairs:
+        if ii not in ii_jj_compname:
+            ii_jj_compname[ii] = {}
+        ii_jj_compname[ii][jj] = names[ii] + "-" + names[jj]
+        if ii not in ii_jj_idmap:
+            ii_jj_idmap[ii] = {}
+        ii_jj_idmap[ii][jj] = {}
     
     """This first loop is to determine total_count.
     total_count is used solely for displaying a progress bar,
     and is not essential to the algorithm's accuracy."""
-    total_count = 0
-    for ii in range(0, width):
-        mod = 0
-        for qq in range(1, width):
-            if qq%height == 0:
-                if ii >= qq:
-                    mod = qq
-        for jj in range(mod+(ii%height), mod+height):
-            total_count += 1 
+    total_count = value_pairs.__len__()
 
     """Now we iterate through pairs of arrays in values."""
-    count = 0
-    for ii in range(0, width):
-        mod = 0
-        for qq in range(1, width):
-            if qq%height == 0:
-                if ii >= qq:
-                    mod = qq
+    for count in range(0, value_pairs.__len__()):
+        if count > gridsize and (count-1)%gridsize == 0:
+            cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
+            cranstr += "plot.new();\n"
+        if ii == jj: # We can't do IDR on data that is exactly identical.
+            continue
 
-        for jj in range(mod+(ii%height), mod+height):       
-            count += 1
+        """OK, Progress bar display"""
+        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+        sys.stdout.flush()
 
-            if count > gridsize and (count-1)%gridsize == 0:
-                cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
-                cranstr += "plot.new();\n"
-            
-            if ii == jj: # We can't do IDR on data that is exactly identical.
-                continue
+        """Extract the values we're going to work with"""        
+        ii = value_pairs[count][0]
+        jj = value_pairs[count][1]
+        values_ii = values[ii]
+        values_jj = values[jj]
+        
+        """Sanity Check:"""
+        if values_ii.__len__() != values_jj.__len__():
+            print "Error: different sizes for values_ii and values_jj. Mark point 225."
+            exit()
 
-            """Progress bar display"""
-            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-            sys.stdout.flush()
-            
-                
-            values_a = values[ii]
-            values_b = values[jj]
-            
-            if values_a.__len__() != values_b.__len__():
-                print "Error: different sizes for values_a and values_b. Mark point 225."
-                exit()
-    
-            """Next we build the x and y arrays for the R scipt.
-            Note that we reject all x,y pairs where both x=0 and y=0."""
-            r_ids2erg = {}
-            #genen_rn = {} # key = gene index in the R script, gene index in the values
-    
-            """x and y"""
-            if ii_jj_compname[ii][jj] not in compname_idmap:
-                compname_idmap[ ii_jj_compname[ii][jj] ] = {}
-            genecount = 0
-            xcranstr = "x<-c("
-            ycranstr = "y<-c("
-            """xcranstr and ycranstr are local string variables for just this inner loop."""
-            for xx in range(0, values_a.__len__()):
-                if values_a[xx] != 0 or values_b[xx] != 0:
-                    xcranstr += values_a[xx].__str__() + ","
-                    ycranstr += values_b[xx].__str__() + ","
-                    """The gene with x and y value == genecount is actually
-                    the xx'th gene listed in values_a and values_b.
-                    This translation will be useful later,
-                    when we read IDR values from the R output."""
-                    compname_idmap[ ii_jj_compname[ii][jj] ][genecount] = xx
+        """Next we build the x and y array strings for the R script.
+        Note that we reject all x,y pairs in the paired data where both x=0 and y=0."""
+        r_ids2erg = {}
+        #genen_rn = {} # key = gene index in the R script, gene index in the values
+
+        """x and y"""
+        genecount = 0
+        xcranstr = "x<-c("
+        ycranstr = "y<-c("
+        """xcranstr and ycranstr are local string variables for just this inner loop."""
+        for xx in range(0, values_ii.__len__()):
+            if values_ii[xx] != 0 or values_jj[xx] != 0:
+                xcranstr += values_ii[xx].__str__() + ","
+                ycranstr += values_jj[xx].__str__() + ","
+                """The gene with x and y value == genecount is actually
+                the xx'th gene listed in values_ii and values_jj.
+                This translation will be useful later,
+                when we read IDR values from the R output."""
+                ii_jj_idmap[ii][jj][genecount] = xx
+                genecount += 1
+        xcranstr = re.sub(",$", "", xcranstr)
+        xcranstr += ");\n"
+        ycranstr = re.sub(",$", "", ycranstr)
+        ycranstr += ");\n"
+        cranstr += xcranstr
+        cranstr += ycranstr
+        
+        """rank"""
+        cranstr += "rankx <- rank(-x);\n"
+        cranstr += "ranky <- rank(-y);\n"
+        cranstr += "lim <- max( max(rankx), max(ranky) );\n"
+        
+        """lim is the plotting range upper limit."""
+        maxa = values_ii.__len__()
+        maxb = values_jj.__len__()
+        lim = max( [maxa, maxb] )    
+        
+        """Plot rank in the leftmost grid"""
+        cranstr += "par( fig=c(" + ((ii%height)*colwidth).__str__() + ","
+        cranstr += ((ii%height)*colwidth + colwidth).__str__() + ", "
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        if count > 1:
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        cranstr += ");\n"
+        
+        cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
+        if force_square:
+            cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
+        col = "black"
+        pch = "1"
+        if ii < height:
+            col = "mediumblue"
+            pch = "3"
+        elif ii < 2*height:
+            col = "red3"
+            pch = "5"
+        elif ii < 3*height:
+            col = "green4"
+            pch = "1"
+        elif ii < 4*height:
+            col = "darkorchid3"
+            pch = "23"
+        cranstr += ", col=\"" + col + "\""
+        cranstr += ", pch=" + pch
+        cranstr += ", las=1"
+        cranstr += ");\n"             
                     
-                    #ii_jj_idmap[ii][jj][genecount] = xx
-                    genecount += 1
-            xcranstr = re.sub(",$", "", xcranstr)
-            xcranstr += ");\n"
-            ycranstr = re.sub(",$", "", ycranstr)
-            ycranstr += ");\n"
-            cranstr += xcranstr
-            cranstr += ycranstr
-            
-            """rank"""
-            cranstr += "rankx <- rank(-x);\n"
-            cranstr += "ranky <- rank(-y);\n"
-            cranstr += "lim <- max( max(rankx), max(ranky) );\n"
-            
-            """lim is the plotting range upper limit."""
-            maxa = values_a.__len__()
-            maxb = values_b.__len__()
-            lim = max( [maxa, maxb] )    
-            
-            """Plot rank in the leftmost grid"""
-            cranstr += "par( fig=c(" + ((ii%height)*colwidth).__str__() + ","
-            cranstr += ((ii%height)*colwidth + colwidth).__str__() + ", "
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
-            if count > 1:
-                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
-            cranstr += ");\n"
-            
-            cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
-            if force_square:
-                cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
-            col = "black"
+        if force_square:
+            cranstr += "abline(0,1)\n"
+        
+        """Leftmost grid: write custom write axis labels"""
+        if (jj+1)%height==0:
+            cranstr += "mtext(\"" + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
+        if ii%height == 0:
+            cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2.8, col=\"black\", cex=1);\n"
+        
+        """Use the idr library in R to compute IDR estimates."""
+        cranstr += "library(idr);\n"
+        cranstr += "rankx <- rank(x);\n"
+        cranstr += "ranky <- rank(y);\n"
+        cranstr += "mu <- 2.6;\n"
+        cranstr += "sigma <- 1.3;\n"
+        cranstr += "rho <- 0.8;\n"
+        cranstr += "p <- 0.7;\n"
+        cranstr += "idr.out <- est.IDR( cbind(x, y), mu, sigma, rho, p, eps=0.001);\n"
+        cranstr += "uv <- get.correspondence(rankx, ranky, seq(0.01, 0.99, by=1/length(rankx) ) );\n"
+        
+        """Plot the psi values from IDR."""
+        cranstr += "par( fig=c(" + (height*colwidth - colwidth + (ii%height)*colwidth).__str__() + ","
+        cranstr += (height*colwidth + (ii%height)*colwidth).__str__() + ", "
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        if ii > 0 or jj > 0:
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        cranstr += ");\n"
+        
+        cranstr += "plot(uv$psi.n$t, uv$psi.n$value, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=0.8"
+        col = "black"
+        pch = "1"
+        if ii < height:
+            col = "mediumblue"
+            pch = "3"
+        elif ii < 2*height:
+            col = "red3"
+            pch = "5"
+        elif ii < 3*height:
+            col = "green4"
             pch = "1"
-            if ii < height:
-                col = "mediumblue"
-                pch = "3"
-            elif ii < 2*height:
-                col = "red3"
-                pch = "5"
-            elif ii < 3*height:
-                col = "green4"
-                pch = "1"
-            elif ii < 4*height:
-                col = "darkorchid3"
-                pch = "23"
-            cranstr += ", col=\"" + col + "\""
-            cranstr += ", pch=" + pch
-            cranstr += ", las=1"
-            cranstr += ");\n"             
-                        
-            if force_square:
-                cranstr += "abline(0,1)\n"
-            
-            """Leftmost grid: write custom write axis labels"""
-            if (jj+1)%height==0:
-                cranstr += "mtext(\"" + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
-            if ii%height == 0:
-                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2.8, col=\"black\", cex=1);\n"
-            
-            """Use the idr library in R to compute IDR estimates."""
-            cranstr += "library(idr);\n"
-            cranstr += "rankx <- rank(x);\n"
-            cranstr += "ranky <- rank(y);\n"
-            cranstr += "mu <- 2.6;\n"
-            cranstr += "sigma <- 1.3;\n"
-            cranstr += "rho <- 0.8;\n"
-            cranstr += "p <- 0.7;\n"
-            cranstr += "idr.out <- est.IDR( cbind(x, y), mu, sigma, rho, p, eps=0.001);\n"
-            cranstr += "uv <- get.correspondence(rankx, ranky, seq(0.01, 0.99, by=1/length(rankx) ) );\n"
-            
-            """Plot the psi values from IDR."""
-            cranstr += "par( fig=c(" + (height*colwidth - colwidth + (ii%height)*colwidth).__str__() + ","
-            cranstr += (height*colwidth + (ii%height)*colwidth).__str__() + ", "
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
-            if ii > 0 or jj > 0:
-                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
-            cranstr += ");\n"
-            
-            cranstr += "plot(uv$psi.n$t, uv$psi.n$value, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=0.8"
-            col = "black"
+        elif ii < 4*height:
+            col = "darkorchid3"
+            pch = "23"
+        cranstr += ", col=\"" + col + "\""
+        cranstr += ", pch=" + pch
+        cranstr += ", las=1"
+        cranstr += ");\n"
+        cranstr += "lines(uv$psi.n$smoothed.line, lwd=4);\n"
+        cranstr += "abline(coef=c(0,1), lty=3);\n"
+        
+        if (jj+1)%height == 0 and ii==0:
+            cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"psi\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+            """Write labels for top row"""
+            cranstr += "mtext(\"IDR Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
+        
+        """Plot the psi-prime values from IDR"""
+        cranstr += "par( fig=c(" + ( (2*height*colwidth) - 2*colwidth + (ii%height)*colwidth).__str__() + ","
+        cranstr += ( (2*height*colwidth) - colwidth + (ii%height)*colwidth).__str__() + ", "
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        
+        if ii > 0 or jj > 0:
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        cranstr += ");\n"
+         
+        cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=1.0"
+        col = "black"
+        pch = "1"
+        if ii < height:
+            col = "mediumblue"
+            pch = "3"
+        elif ii < 2*height:
+            col = "red3"
+            pch = "5"
+        elif ii < 3*height:
+            col = "green4"
             pch = "1"
-            if ii < height:
-                col = "mediumblue"
-                pch = "3"
-            elif ii < 2*height:
-                col = "red3"
-                pch = "5"
-            elif ii < 3*height:
-                col = "green4"
-                pch = "1"
-            elif ii < 4*height:
-                col = "darkorchid3"
-                pch = "23"
-            cranstr += ", col=\"" + col + "\""
-            cranstr += ", pch=" + pch
-            cranstr += ", las=1"
-            cranstr += ");\n"
-            cranstr += "lines(uv$psi.n$smoothed.line, lwd=4);\n"
-            cranstr += "abline(coef=c(0,1), lty=3);\n"
-            
-            if (jj+1)%height == 0 and ii==0:
-                cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
-                cranstr += "mtext(\"psi\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
-                """Write labels for top row"""
-                cranstr += "mtext(\"IDR Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
-            
-            """Plot the psi-prime values from IDR"""
-            cranstr += "par( fig=c(" + ( (2*height*colwidth) - 2*colwidth + (ii%height)*colwidth).__str__() + ","
-            cranstr += ( (2*height*colwidth) - colwidth + (ii%height)*colwidth).__str__() + ", "
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
-            cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
-            
-            
-            if ii > 0 or jj > 0:
-                cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
-            cranstr += ");\n"
-             
-            cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=1.0"
-            col = "black"
-            pch = "1"
-            if ii < height:
-                col = "mediumblue"
-                pch = "3"
-            elif ii < 2*height:
-                col = "red3"
-                pch = "5"
-            elif ii < 3*height:
-                col = "green4"
-                pch = "1"
-            elif ii < 4*height:
-                col = "darkorchid3"
-                pch = "23"
-            cranstr += ", col=\"" + col + "\""
-            cranstr += ", pch=" + pch
-            cranstr += ", las=1"
-            cranstr += ");\n"
-            cranstr += "lines(uv$dpsi.n$smoothed.line, lwd=4);\n"
-            cranstr += "abline(h=1, lty=3);\n"
-            
-            """Write custome axis labels."""
-            if (jj+1)%height == 0 and ii==0:
-                cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
-                cranstr += "mtext(\"psi'\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
-                cranstr += "mtext(\"IDR Change of Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
-            
-            """Write the IDR data to a text file, so that Python can import the data."""
-            tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
-            tablepaths[tablepath] = ii_jj_compname[ii][jj]
-            cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
-            
-    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
+        elif ii < 4*height:
+            col = "darkorchid3"
+            pch = "23"
+        cranstr += ", col=\"" + col + "\""
+        cranstr += ", pch=" + pch
+        cranstr += ", las=1"
+        cranstr += ");\n"
+        cranstr += "lines(uv$dpsi.n$smoothed.line, lwd=4);\n"
+        cranstr += "abline(h=1, lty=3);\n"
+        
+        """Write custome axis labels."""
+        if (jj+1)%height == 0 and ii==0:
+            cranstr += "mtext(\"t\", side=1, line=2, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"psi'\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"IDR Change of Correspondence Curve\", side=3, line=1, col=\"black\", cex=1.2);\n"
+        
+        if count == 0:
+            cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
+        
+        """Write the IDR data to a text file, so that Python can import the data."""
+        tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
+        tablepaths[tablepath] = (ii_jj_compname[ii][jj], ii, jj)
+        cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
     
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"
     fout = open(cranpath, "w")
     fout.write( cranstr )
     fout.close()
-    os.system("r --no-save --slave < " + cranpath)
+    os.system("r --no-save --slave --silent --quiet < " + cranpath)
     
-    idr_stats = read_idr_results(tablepaths, compname_idmap)
-    return (cranpath, sinkpath, idr_stats) 
+    #print tablepaths
+    #exit()
+    
+    idr_stats = read_idr_results(tablepaths, ii_jj_idmap)
+    if idr_stats == False:
+        print "\n. Error: the scatterplot with IDR data could not be created."
+        print ". See previous error messages for more informaiton."
+        exit()
+    return (cranpath, sinkpath, idr_stats, value_pairs) 
 
-def read_idr_results(tablepaths, compname_idmap):
+def read_idr_results(tablepaths, ii_jj_idmap):
     """Read the IDR tables, save the data in idr_stats, and then destroy the tables.
     
     Returns idr_stats:
-        idr_stats[gene number][comparison name] = IDR
+        idr_stats[gene number][ii][jj] = local IDR
+        
+    Return False if any errors occur.
     """
     idr_stats = {} # hash of hashes, key = gene N in values, value = hash, key = name of comparison, value = IDR for the gene
     compnames = []
     for tablepath in tablepaths:
-        compname = tablepaths[tablepath]
-        idmap = compname_idmap[compname] # idmap[gene ID in R script] = gene ID in the genes array
+        #print "447:", tablepath
+        if False == os.path.exists(tablepath):
+            print "\n. Error in read_idr_results:"
+            print ". The R output table cannot be found at", tablepath
+            return False
+        compname = tablepaths[tablepath][0]
+        ii = tablepaths[tablepath][1]
+        jj = tablepaths[tablepath][2]
+        #print "454:", compname, ii, jj
+        idmap = ii_jj_idmap[ii][jj] # idmap[gene ID in R script] = gene ID in the genes array
         if compname not in compnames:
             compnames.append( compname )
         fin = open(tablepath, "r")
@@ -457,10 +466,12 @@ def read_idr_results(tablepaths, compname_idmap):
                     idr = float(tokens[2])
                     if genen not in idr_stats:
                         idr_stats[ genen ] = {}
-                    idr_stats[genen][compname] = lidr
+                    if ii not in idr_stats[genen]:
+                        idr_stats[genen][ii] = {}
+                    idr_stats[genen][ii][jj] = lidr
         fin.close()
         os.system("rm " + tablepath)
-        return idr_stats 
+    return idr_stats 
 
 def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
     """
@@ -535,33 +546,33 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             
             #print (ii*colwidth), ((ii+1)*colwidth), ( (jj%4)*colwidth), (( (jj%4)+1)*colwidth)
             
-            values_a = values[ii]
-            values_b = values[jj]
+            values_ii = values[ii]
+            values_jj = values[jj]
     
             # X values
             cranstr += "x<-c("
-            for xx in range(0, values_a.__len__()):
-                v = values_a[xx]
-                if v != 0 or values_b[xx] != 0:
-                #for v in values_a:
+            for xx in range(0, values_ii.__len__()):
+                v = values_ii[xx]
+                if v != 0 or values_jj[xx] != 0:
+                #for v in values_ii:
                     cranstr += v.__str__() + ","
             cranstr = re.sub(",$", "", cranstr)
             cranstr += ");\n"
         
             # Y values
             cranstr += "y<-c("
-            for yy in range(0, values_b.__len__()):
-                v = values_b[yy]
-                if v != 0 or values_a[yy] != 0:
-                #for v in values_a:
+            for yy in range(0, values_jj.__len__()):
+                v = values_jj[yy]
+                if v != 0 or values_ii[yy] != 0:
+                #for v in values_ii:
                     cranstr += v.__str__() + ","
             cranstr = re.sub(",$", "", cranstr)
             cranstr += ");\n"
             
             cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
             
-            maxa = max(values_a)
-            maxb = max(values_b)
+            maxa = max(values_ii)
+            maxb = max(values_jj)
             
             lim = max( [maxa, maxb] )
             if force_square:
@@ -596,18 +607,18 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             """Pearson's linear value correlation."""
             corr_valsa = []
             corr_valsb = []
-            for ww in range(0, values_a.__len__()):
-                if values_a[ww] != 0 and values_b[ww] != 0:
-                    corr_valsa.append( values_a[ww] )
-                    corr_valsb.append( values_b[ww] )
+            for ww in range(0, values_ii.__len__()):
+                if values_ii[ww] != 0 and values_jj[ww] != 0:
+                    corr_valsa.append( values_ii[ww] )
+                    corr_valsb.append( values_jj[ww] )
             (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+            cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
             
             """Spearman's non-linear non-parametric rank correlation."""
             (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_a))/2).__str__() + ", " + (0.87*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
-            #cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\", cex=1.2);\n"
-            #cranstr += "text(" + ((max(values_a)-min(values_a))/2).__str__() + ", " + (0.85*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
+            cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.87*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+            #cranstr += "text(" + ((max(values_ii)-min(values_ii))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\", cex=1.2);\n"
+            #cranstr += "text(" + ((max(values_ii)-min(values_ii))/2).__str__() + ", " + (0.85*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
             
             if force_square:
                 cranstr += "abline(0,1)\n"

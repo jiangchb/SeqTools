@@ -91,6 +91,13 @@ def build_speciesunions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
     con.commit() 
 
+def build_idr_tables(con):
+    cur = con.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneRepgroupEnrichIdr(geneid INTEGER, repid1 INTEGER, repid2 INTEGER, lidr FLOAT, idr FLOAT)") # lidr is local IDR, idr is IDR for observations that are as irreproducible, or more, than this observation
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneUnionEnrichIdr(geneid INTEGER, repgroupid1 INTEGER, repgroupid2 INTEGER, lidr FLOAT, idr FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GeneSpeciesunionEnrichIdr(geneid INTEGER, unionid1 INTEGER, unionid2 INTEGER, lidr FLOAT, idr FLOAT)")
+    con.commit()
+
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
     cur = con.cursor()
     
