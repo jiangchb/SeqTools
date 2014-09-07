@@ -191,7 +191,10 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"  
     colwidth = 1.0 / (3.0 * float(height-1))
     rowheight = 1.0 / float(height-1)
-    gridsize = (height*height - (height-1)*(0.5*height)) # the number of scatterplots in each grid.
+    gridsize = ( (height-1)*(height-1) - (height-2)*(0.5*(height-1))) # the number of scatterplots in each grid.
+    print height, width, gridsize, colwidth, rowheight
+    #exit()
+    
     
     """value_pairs is a list of pairs (ii,jj) where ii and jj are indices into values.
     The idea is that the values for each pair should be compared."""
@@ -223,9 +226,9 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
 
     """Now we iterate through pairs of arrays in values."""
     for count in range(0, value_pairs.__len__()):
-        if count > gridsize and (count-1)%gridsize == 0:
-            cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
-            cranstr += "plot.new();\n"
+        #if count >= gridsize and count%gridsize == 0:
+        #    cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
+        #    cranstr += "plot.new();\n"
         if ii == jj: # We can't do IDR on data that is exactly identical.
             continue
 
@@ -282,13 +285,19 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         lim = max( [maxa, maxb] )    
         
         """Plot rank in the leftmost grid"""
-        cranstr += "par( fig=c(" + ((ii%height)*colwidth).__str__() + ","
-        cranstr += ((ii%height)*colwidth + colwidth).__str__() + ", "
-        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
-        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
-        if count > 1:
-            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
-        cranstr += ");\n"
+        #
+        # continue here - something is wrong.
+        #
+        parstr = "par( fig=c(" + ((ii%(height))*colwidth).__str__() + ","
+        parstr += ((ii%(height))*colwidth + colwidth).__str__() + ", "
+        parstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+        parstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        if count > 0 and count%gridsize != 0:
+            parstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        parstr += ");\n"
+        
+        print "299:", ii, jj, parstr
+        cranstr += parstr
         
         cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
         if force_square:
@@ -335,8 +344,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         """Plot the psi values from IDR."""
         cranstr += "par( fig=c(" + (height*colwidth - colwidth + (ii%height)*colwidth).__str__() + ","
         cranstr += (height*colwidth + (ii%height)*colwidth).__str__() + ", "
-        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
-        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        cranstr += ( ( (jj%(height) - 1)%(height-1) )*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%(height) - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
         if ii > 0 or jj > 0:
             cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         cranstr += ");\n"
@@ -359,6 +368,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
+        #cranstr += ", main=\"" + ii.__str__() + ":" + jj.__str__() + "\""
         cranstr += ");\n"
         cranstr += "lines(uv$psi.n$smoothed.line, lwd=4);\n"
         cranstr += "abline(coef=c(0,1), lty=3);\n"

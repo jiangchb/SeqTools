@@ -1010,7 +1010,7 @@ def plot_enrichment_union_helper(unionid, con, keyword=None):
     repid_means = []
     repid_sums = []
     repid_ranks = []
-    repid_name = []    
+    repid_names = []    
     speciesname = ""
     speciesid = None
     geneids = None
@@ -1044,28 +1044,26 @@ def plot_enrichment_union_helper(unionid, con, keyword=None):
         repid_maxs.append( x_maxe)
         repid_sums.append( x_sume)
         repid_ranks.append( x_ranke )
-        repid_name.append( repname )
+        repid_names.append( repname )
     
-    #scipy.stats.mstats.kruskalwallis()
     scatter_names = []
-    for r in repid_name:
-        scatter_names.append(r + "-max")
-    for r in repid_name:
-        scatter_names.append(r + "-mean")
+    for repname in repid_names:
+        scatter_names.append(repname + "-max")
+    for repname in repid_names:
+        scatter_names.append(repname + "-mean")
 
-    #scatter_names = repid_name + repid_name + repid_name
     scatter_data = repid_maxs + repid_means
     width = scatter_names.__len__()
-    height = repid_name.__len__()    
+    height = repid_names.__len__()    
     filekeyword = "enrich.idr." + width.__str__() + "x" + height.__str__() + "." + unionname
     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
     add_unionfile(cranpath, unionid, "R script for a scatterplot comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
     add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
     
-    scatter_names = repid_name + repid_name
+    #scatter_names = repid_name + repid_name
     scatter_data = repid_maxs + repid_means
     width = scatter_names.__len__()
-    height = repid_name.__len__()
+    height = repid_names.__len__()
     filekeyword = "enrich." + width.__str__() + "x" + height.__str__() + "." + unionname
     cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Fold Enrichment for " + unionname, xlab="fold-enrichment", ylab="fold-enrichment")
     add_unionfile(cranpath, unionid, "R script for a scatterplot comparing fold enrichment for all replicates in the union " + unionname, con)
