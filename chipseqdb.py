@@ -60,6 +60,7 @@ def build_db(dbpath = None):
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
         
     build_unions(con)
+    build_idr_tables(con)
     con.commit()
     
     if dbpath != None and dbpath != False:

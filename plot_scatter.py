@@ -187,13 +187,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     """Setup the document."""
     pdfpath = filekeyword + ".pdf"
     print "\n. Computing IDR and plotting to", pdfpath
-    cranstr += "pdf(\"" + pdfpath + "\", width=" + (9*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
+    cranstr += "pdf(\"" + pdfpath + "\", width=" + (12*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
     cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"  
-    colwidth = 1.0 / (3.0 * float(height-1))
+    colwidth = 1.0 / (4.0 * float(height-1))
     rowheight = 1.0 / float(height-1)
     gridsize = ( (height-1)*(height-1) - (height-2)*(0.5*(height-1))) # the number of scatterplots in each grid.
-    print height, width, gridsize, colwidth, rowheight
-    #exit()
     
     
     """value_pairs is a list of pairs (ii,jj) where ii and jj are indices into values.
@@ -285,9 +283,6 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         lim = max( [maxa, maxb] )    
         
         """Plot rank in the leftmost grid"""
-        #
-        # continue here - something is wrong.
-        #
         parstr = "par( fig=c(" + ((ii%(height))*colwidth).__str__() + ","
         parstr += ((ii%(height))*colwidth + colwidth).__str__() + ", "
         parstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
@@ -296,7 +291,6 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             parstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         parstr += ");\n"
         
-        print "299:", ii, jj, parstr
         cranstr += parstr
         
         cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
@@ -419,11 +413,90 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         if count == 0:
             cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
+    
+        """Plot the IDR values for the x replicate."""
+        #cranstr += "par( fig=c(" + ( (3*height*colwidth) - 3*colwidth + (ii%height)*colwidth).__str__() + ","
+        cranstr += "par( fig=c(" + (3*(height-1)*colwidth + (ii%height)*colwidth).__str__() + ","
+        cranstr += (3*(height-1)*colwidth + (ii%height)*colwidth + colwidth).__str__() + ","
+        #cranstr += ( (2*height*colwidth) - colwidth + (ii%height)*colwidth).__str__() + ", "
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + 0.5*rowheight).__str__() + ")"
+        if ii > 0 or jj > 0:
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        cranstr += ");\n" 
+
+        cranstr += "plot(x, idr.out$idr, xlab=\"" + names[ii] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
+        #cranstr += "ylim=c(0, max(idr.out$idr)),"
+        cranstr += "cex.lab=1.0"
+        col = "black"
+        pch = "1"
+        if ii < height:
+            col = "mediumblue"
+            pch = "3"
+        elif ii < 2*height:
+            col = "red3"
+            pch = "5"
+        elif ii < 3*height:
+            col = "green4"
+            pch = "1"
+        elif ii < 4*height:
+            col = "darkorchid3"
+            pch = "23"
+        cranstr += ", col=\"" + col + "\""
+        cranstr += ", pch=" + pch
+        cranstr += ", las=1"
+        cranstr += ", log='y'"
+        cranstr += ");\n"
+
+        
+        """Write custome axis labels."""
+        if (jj+1)%height == 0 and ii==0:
+            cranstr += "mtext(\"value\", side=1, line=2, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"idr\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"idr vs. Values\", side=3, line=1, col=\"black\", cex=1.2);\n"
+        
+        if count == 0:
+            cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
+
+        #"""Plot the IDR values for the y replicate."""
+        cranstr += "par( fig=c(" + (3*(height-1)*colwidth + (ii%height)*colwidth).__str__() + ","
+        cranstr += (3*(height-1)*colwidth + (ii%height)*colwidth + colwidth).__str__() + ","
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + 0.5*rowheight).__str__() + "," 
+        cranstr += ( ( (jj%height - 1)%(height-1) )*rowheight + rowheight).__str__() + ")"
+        if ii > 0 or jj > 0:
+            cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
+        cranstr += ");\n" 
+
+        cranstr += "plot(y, idr.out$idr, xlab=\"" + names[jj] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
+        #cranstr += "ylim=c(0, max(idr.out$idr)),"
+        cranstr += "cex.lab=1.0"
+        col = "black"
+        pch = "1"
+        if ii < height:
+            col = "mediumblue"
+            pch = "3"
+        elif ii < 2*height:
+            col = "red3"
+            pch = "5"
+        elif ii < 3*height:
+            col = "green4"
+            pch = "1"
+        elif ii < 4*height:
+            col = "darkorchid3"
+            pch = "23"
+        cranstr += ", col=\"" + col + "\""
+        cranstr += ", pch=" + pch
+        cranstr += ", las=1"
+        cranstr += ", log='y'"
+        cranstr += ");\n"
         
         """Write the IDR data to a text file, so that Python can import the data."""
         tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
         tablepaths[tablepath] = (ii_jj_compname[ii][jj], ii, jj)
         cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
+    
+    
+    
     
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"

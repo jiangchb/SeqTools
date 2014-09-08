@@ -982,14 +982,43 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     idr_scatter_names = [ get_repgroup_name(rgroupids[0],con) + "-max", get_repgroup_name(rgroupids[1], con) + "-max", get_repgroup_name(rgroupids[0], con) + "-mean", get_repgroup_name(rgroupids[1], con) + "-mean" ]
     
     filekeyword = "enrich.idr.4x2." + unionname
+    """idr_stats[gene number in the geneid list][rep ii][rep jj] = lidr"""
     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(4, 2, idr_scatter_values, idr_scatter_names, filekeyword, title="", xlab="", ylab="", force_square=True)
     add_unionfile(cranpath, unionid,"" + unionname, con)
     add_unionfile(re.sub("cran", "pdf", cranpath), unionid,"" + unionname, con) 
     
-    #
-    # continue here - add value_pairs to SQL database
-    #
-
+    
+    """Now insert the IDR stats into the SQL database."""
+    
+    """First, clear any previous entries for the pair of this replicate group."""
+    for ii in range(0, rgroupids.__len__() ):
+        for jj in range(0, rgroupids.__len__() ):
+            sql = "DELETE from GeneUnionEnrichIdr where repgroupid1=" + rgroupids[ii].__str__() + " and repgroupid2=" + rgroupids[jj].__str__()
+            cur.execute(sql)
+            con.commit()
+    
+    """Next insert the data into SQL."""
+    geneids = geneid_results.keys()
+    for gg in range(0, geneid_results.__len__() ):
+        geneid = geneids[gg]
+        if gg in idr_stats:
+            for ii in range(0, rgroupids.__len__() ):
+                if ii in idr_stats[gg]:
+                    for jj in range(0, rgroupids.__len__() ):
+                        if jj in idr_stats[gg][ii]:
+                            this_idr = idr_stats[gg][ii][jj]
+                            ii_repgroupid = rgroupids[ii]
+                            jj_repgroupid = rgroupids[jj]
+                            sql = "INSERT into GeneUnionEnrichIdr(geneid,repgroupid1,repgroupid2,lidr)"
+                            sql += " VALUES("
+                            sql += geneid.__str__() + ","
+                            sql += ii_repgroupid.__str__() + ","
+                            sql += jj_repgroupid.__str__() + ","
+                            sql += this_idr.__str__() + ")"
+                            print sql
+                            cur.execute(sql)
+                            
+    con.commit()
 
 def plot_enrichment_union_helper(unionid, con, keyword=None):
     """This is a helper method for plot_enrichments_for_union.
