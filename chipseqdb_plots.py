@@ -1015,7 +1015,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
                             sql += ii_repgroupid.__str__() + ","
                             sql += jj_repgroupid.__str__() + ","
                             sql += this_idr.__str__() + ")"
-                            print sql
+                            #print sql
                             cur.execute(sql)
                             
     con.commit()
@@ -1389,14 +1389,31 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
     
     """Update the IDR stats into the database"""
-    for ii in range(0, geneids.__len__() ):
-        for pair in value_pairs:
-            pass
-            #
-            # continue here - insert data into SQL
-            #
-            #print "chipseq_plot.py 1354:", ii, pair
 
+    """First, clear any previous entries for the pair of this replicate group."""
+    sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repid1.__str__() + " and repid2=" + repid2.__str__()
+    cur.execute(sql)
+    con.commit()
+    
+    for gg in range(0, geneids.__len__() ):
+        geneid = geneids[gg]
+        if gg in idr_stats:
+            for ii in range(0, repids.__len__() ):
+                if ii in idr_stats[gg]:
+                    for jj in range(0, repids.__len__() ):
+                        if jj in idr_stats[gg][ii]:
+                            this_idr = idr_stats[gg][ii][jj]
+                            ii_repid = repids[ii]
+                            jj_repid = repids[jj]
+                            sql = "INSERT into GeneRepgroupEnrichIdr(geneid, repid1, repid2, lidr)"
+                            sql += " VALUES(" + geneid.__str__() + ","
+                            sql += ii_repid.__str__() + ","
+                            sql += jj_repid.__str__() + ","
+                            sql += this_idr.__str__() + ")"
+                            #print sql
+                            cur.execute(sql)
+    con.commit()
+            
     """Write an Excel Table"""
     xlpath = "enrich." + repgroupname + ".xls"
     print "\n. Writing a table with fold-enrichment and IDR to", xlpath
