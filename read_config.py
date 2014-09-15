@@ -70,6 +70,9 @@ def read_config(path):
             summitpath = re.sub(" ", "", summitpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
+            if False == os.path.exists( summitpath ):
+                print "\n. Error: I can't find the SUMMITS file at", summitpath
+                exit()
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["summitpath"] = summitpath
         
         elif l.startswith("ENRICHMENTS"):
@@ -77,6 +80,9 @@ def read_config(path):
             bdgpath = re.sub(" ", "", bdgpath)
             if curr_rep not in params["species"][curr_species]["rgroups"][curr_rgroup]["reps"]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep] = {}
+            if False == os.path.exists( bdgpath ):
+                print "\n. Error: I can't find the ENRICHMENTS file file at", bdgpath
+                exit()
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["bdgpath"] = bdgpath
         
         elif l.startswith("UNION"):
