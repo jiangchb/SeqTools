@@ -445,11 +445,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
-        cranstr += ", log='y'"
+        #cranstr += ", log='y'"
         cranstr += ");\n"
 
         
-        """Write custome axis labels."""
+        """Write custom axis labels."""
         if (jj+1)%height == 0 and ii==0:
             cranstr += "mtext(\"value\", side=1, line=2, col=\"black\", cex=1.2);\n"
             cranstr += "mtext(\"idr\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
@@ -487,16 +487,13 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
-        cranstr += ", log='y'"
+        #cranstr += ", log='y'"
         cranstr += ");\n"
         
         """Write the IDR data to a text file, so that Python can import the data."""
         tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
         tablepaths[tablepath] = (ii_jj_compname[ii][jj], ii, jj)
         cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
-    
-    
-    
     
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"
@@ -556,7 +553,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True, plot_as_rank = []):    
     """
     height, width = number of scatterplots
     values[ii] = list of data. There should be 'width' number of entries in values.
@@ -564,6 +561,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     NOTE: in making the scatterplots, cases where both the x-axis and y-axis series are (0,0) will
     be ignored from the plot.
     
+    plot_as_rank is a list of indices into values which should be plotted as rank, rather than their raw value.
     """    
     if names.__len__() != width:
         print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
@@ -629,37 +627,47 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             
             #print (ii*colwidth), ((ii+1)*colwidth), ( (jj%4)*colwidth), (( (jj%4)+1)*colwidth)
             
-            values_ii = values[ii]
-            values_jj = values[jj]
-    
+            if ii in plot_as_rank and jj in plot_as_rank:
+                lim = max(values[ii].__len__(), values[jj].__len__())
+            else:
+                lim = max( max(values[ii]), max(values[jj]) )
+            
             # X values
+            found_one = False
             cranstr += "x<-c("
-            for xx in range(0, values_ii.__len__()):
-                v = values_ii[xx]
-                if v != 0 or values_jj[xx] != 0:
+            for xx in range(0, values[ii].__len__()):
+                v = values[ii][xx]
+                if v != 0 or values[jj][xx] != 0:
+                #for v in values_ii:
+                    found_one = True
+                    cranstr += v.__str__() + ","
+            cranstr = re.sub(",$", "", cranstr)
+            cranstr += ");\n"
+            
+            """Sanity check: 'x' has more than one value."""
+            if found_one == False:
+                """Skip to the next ii,jj, iteration."""
+                continue
+        
+            # Y values
+            cranstr += "y<-c("
+            for yy in range(0, values[jj].__len__()):
+                v = values[jj][yy]
+                if v != 0 or values[ii][yy] != 0:
                 #for v in values_ii:
                     cranstr += v.__str__() + ","
             cranstr = re.sub(",$", "", cranstr)
             cranstr += ");\n"
         
-            # Y values
-            cranstr += "y<-c("
-            for yy in range(0, values_jj.__len__()):
-                v = values_jj[yy]
-                if v != 0 or values_ii[yy] != 0:
-                #for v in values_ii:
-                    cranstr += v.__str__() + ","
-            cranstr = re.sub(",$", "", cranstr)
-            cranstr += ");\n"
+            if ii in plot_as_rank and jj in plot_as_rank:
+                cranstr += "x <- rank(-x);\n"
+                cranstr += "y <- rank(-y);\n"
+            
+            cranstr += "lim <- max( max(x), max(y) );\n"
             
             cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
-            
-            maxa = max(values_ii)
-            maxb = max(values_jj)
-            
-            lim = max( [maxa, maxb] )
             if force_square:
-                cranstr += ", xlim=range(0," + lim.__str__() + "), ylim=range(0," + lim.__str__() + ")"
+                cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
             
             col = "black"
             pch = "1"
@@ -690,19 +698,18 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             """Pearson's linear value correlation."""
             corr_valsa = []
             corr_valsb = []
-            for ww in range(0, values_ii.__len__()):
-                if values_ii[ww] != 0 and values_jj[ww] != 0:
-                    corr_valsa.append( values_ii[ww] )
-                    corr_valsb.append( values_jj[ww] )
-            (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
-            
-            """Spearman's non-linear non-parametric rank correlation."""
-            (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-            cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.87*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
-            #cranstr += "text(" + ((max(values_ii)-min(values_ii))/2).__str__() + ", " + (0.95*max( [maxa, maxb] )).__str__() + ", \"R=%.3f"%rho + ", P=%.3f"%pvalue + "\", cex=1.2);\n"
-            #cranstr += "text(" + ((max(values_ii)-min(values_ii))/2).__str__() + ", " + (0.85*max( [maxa, maxb] )).__str__() + ", \"" + ii.__str__() + "," + jj.__str__() + "\");\n"
-            
+            for ww in range(0, values[ii].__len__()):
+                if values[ii][ww] != 0 and values[jj][ww] != 0:
+                    corr_valsa.append( values[ii][ww] )
+                    corr_valsb.append( values[jj][ww] )
+            if corr_valsa.__len__() > 0 and corr_valsb.__len__() > 0:
+                (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
+                cranstr += "text(" + ((lim-min(corr_valsa))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                
+                """Spearman's non-linear non-parametric rank correlation."""
+                (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
+                cranstr += "text(" + ((lim-min(corr_valsa))/2).__str__() + ", " + (0.87*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                
             if force_square:
                 cranstr += "abline(0,1)\n"
             

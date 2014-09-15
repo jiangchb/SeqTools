@@ -171,6 +171,8 @@ def get_geneids_from_union(con, unionid):
     return genes
 
 def get_summits(con, repid, chromid):
+     """Returns a list of Summits entires from the table Summits. Each element of the returned list
+     is a tuple, containing all the parts of each Summit row."""
      cur = con.cursor()
      sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
      #print "53:", sql
@@ -294,7 +296,7 @@ def add_replicate(repname, speciesid, con):
     
     sql = "SELECT * from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__() + ""
     cur.execute(sql)
-    print "\n. Adding the replicate", repname, " [", cur.fetchall(), "]"
+    print "\n. Adding the replicate", repname#, " [", cur.fetchall(), "]"
     
     return con
 
@@ -589,3 +591,20 @@ def add_speciesunionfile(filepath, spunionid, note, con):
     cur.execute(sql)
     con.commit()
 
+def are_replicates_same_species(repids, con):
+    """Verify that all replicates belong to the same species."""
+    cur = con.cursor()
+    repid_species = {}
+    for repid in repids:
+        cur.execute("SELECT species from Replicates where id=" + repid.__str__())
+        data = cur.fetchone()
+        if data != None:
+            repid_species[repid] = data[0]
+        else:
+            repid_species[repid] = None
+    for ii in range(0, repids.__len__()-1 ):
+        if repid_species[ repids[ii] ] != repid_species[ repids[ii+1] ]:
+            return False
+            #print "\n. Error while computing summits for replicates in the group", repgroupname
+            #print ". It appears that not all the replicates belong to the same species."
+    return True

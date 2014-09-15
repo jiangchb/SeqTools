@@ -6,6 +6,7 @@
 
 import sqlite3 as lite
 import os, sys
+from version import *
 
 from chipseqdb_api import *
 
@@ -15,7 +16,7 @@ def print_db_stats(con):
     for sp in species:
         print "    --> " + sp[1].__str__() + " (" + get_genes_for_species(con, sp[0]).__len__().__str__() + " genes)"
     return
-    
+
 def build_db(dbpath = None):
     """Initializes all the tables. Returns the DB connection object.
     If tables already exist, they will NOT be overwritten."""
@@ -29,6 +30,10 @@ def build_db(dbpath = None):
     con = lite.connect(dbpath)
 
     cur = con.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS About(version FLOAT)")
+    cur.execute("DELETE from About")
+    cur.execute("INSERT INTO About(version) VALUES(" + VERSION.__str__() + ")")
+    
     # These data come from the GFF:
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")

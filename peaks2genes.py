@@ -175,11 +175,11 @@ def build_gn2sm(chr_sumsite_stats):
             downgene = chr_sumsite_stats[chr][sumsite][3]
             if upgene != None and upd != None:
                 if upgene not in gene_summits:
-                    gene_summits[ upgene ] = [] # continue here
+                    gene_summits[ upgene ] = [] 
                 gene_summits[ upgene ].append(  (sumsite, -1*int(upd), chr_sumsite_stats[chr][sumsite][4])  )       
             if downgene != None and downd != None:
                 if downgene not in gene_summits:
-                    gene_summits[ downgene ] = [] # continue here
+                    gene_summits[ downgene ] = [] 
                 gene_summits[ downgene ].append(  (sumsite, -1*int(downd), chr_sumsite_stats[chr][sumsite][4])  )       
     
     # sort summits by distance to gene
