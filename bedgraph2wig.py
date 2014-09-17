@@ -51,19 +51,20 @@ if False == os.path.exists(bedgraphpath):
 printspan = 10000 # print an update every N sites
 last_seen_chrom = None
 fin = open(bedgraphpath, "r")
+fout = open(bedgraphpath + ".wig", "w")
 for l in fin.xreadlines():
     if l.__len__() > 2:
         tokens = l.split()
         chromname = tokens[0]
 
         if last_seen_chrom != None and chromname != last_seen_chrom:
-            fout.close()
+            #fout.close()
             last_seen_chrom = None
 
 
         if last_seen_chrom == None:
             outpath = bedgraphpath + "." + chromname + ".wig"
-            fout = open( outpath, "w")
+            #fout = open( outpath, "w")
             fout.write("track type=WIG\n")
             fout.write("variableStep chrom=" + chromname + "\n")
             last_seen_chrom = chromname

@@ -141,7 +141,7 @@ def plot_summits_for_union(unionid, con):
         genes = get_geneids_from_repgroup(con, rgroupid)
         seen_genes += genes
         venn_data[ rgroupname ] = genes
-    vennpath = plot_venn_diagram( venn_data, "summits." + unionname.__str__() )
+    vennpath = plot_venn_diagram( venn_data, unionname.__str__() + ".summits" )
     add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for union " + unionname, con)
 
    
@@ -149,7 +149,7 @@ def plot_summits_for_union(unionid, con):
     """
     1. Update the table UnionGenes with genes that have a peak in all repgroups in this union.
     2. Write the Excel table listing the genes and their scores in the repgroups."""
-    xlpath = "summits." + unionname + ".xls"
+    xlpath = unionname + ".summits.xls"
     print "\n. Writing a table to", xlpath
     fout = open(xlpath, "w")
     fout.write("geneID\tname\t")
@@ -308,7 +308,7 @@ def plot_summits_for_speciesunion(uid, con):
                 if translated_id not in seen_genes:
                     seen_genes.append( translated_id )
         venn_data[ unionname ] = translated_genes
-    vennpath = plot_venn_diagram( venn_data, spunionname + ".summits." )
+    vennpath = plot_venn_diagram( venn_data, spunionname + ".summits" )
     add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for species-union " + spunionname, con)
 
 
@@ -396,7 +396,7 @@ def plot_summits_for_speciesunion(uid, con):
     #cranpath = scatter9x3(scatterdata, scatter_names, "summits.9x3." + spunionname, title="Summits " + spunionname)
     width = scatter_names.__len__()
     height = unionnames.__len__()
-    filekeyword = spunionname + ".summits."
+    filekeyword = spunionname + ".summits"
     cranpath = scatter_nxm(width, height, scatterdata, scatter_names, filekeyword, title="Summits " + spunionname)
     add_speciesunionfile(cranpath, uid, "", con)
     add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "", con)
@@ -544,7 +544,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
         x = get_geneids_with_summits(con, repid)
         for ii in x:
             venn_data[ repid_repname[repid] ].append(ii[0]) # NOTE: ii[0] is a gene ID
-    vennpath = plot_venn_diagram( venn_data, "summits." + repgroupname)
+    vennpath = plot_venn_diagram( venn_data, repgroupname + ".summits")
     add_repgroupfile(vennpath, rgroupid, "Venn diagram comparing genes with summits for replicategroup " + repgroupname, con)
     
  
@@ -574,7 +574,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     """Write an Excel table with genes and their scores in each replicate.
     During the iteration over genes, also update the SQL tables with summary
     statistics about summits."""
-    xlpath = "summits." + repgroupname + ".xls"
+    xlpath = repgroupname + ".summits.xls"
     print "\n. Writing a table to", xlpath
     fout = open(xlpath, "w")
     fout.write("GeneID\tGeneName\t")
@@ -890,7 +890,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     rgid_meanvals = {}
     rgid_sumvals = {}
     rgid_groupname = {}
-    xlpath = unionname + "enrich.xls"
+    xlpath = unionname + ".enrich.xls"
     print "\n. Writing a table to", xlpath
     fout = open(xlpath, "w")
     fout.write("GeneID\tGeneName\t")
@@ -1130,6 +1130,16 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
             if geneid not in geneids:
                 geneids.append( geneid )
     
+#     """Sanity Check: repid_festats[x] must be the same length for all x."""
+#     for ii in range(0, repids.__len__()-2):
+#         this_repid = repids[ii]
+#         that_repid = repids[ii+1]
+#         if repid_festats[this_repid].__len__() != repid_festats[that_repid].__len__():
+#             print "\n. Error, chipseqdb_plot.py 1136, festats not the same length for", repid_repname[this_repid], "and", repid_repname[that_repid]
+#             print "\.", repid_festats[this_repid].__len__().__str__() + " vs. " + repid_festats[that_repid].__len__().__str__()
+#             exit()
+    
+    geneids_inall = []
     maxfe = []
     meanfe = []
     sumfe = []
@@ -1140,6 +1150,7 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
             if geneid not in repid_festats[repid]:
                 found_in_all = False
         if found_in_all:
+            geneids_inall.append(geneid)
             this_max = 0
             this_mean = [] 
             this_sum = 0
@@ -1156,9 +1167,11 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
             maxfe.append( this_max )
             meanfe.append( this_mean )
             sumfe.append( this_sum )
+        else:
+            print "1160: not found_in_all", geneid
             
-    for ii in range(0, geneids.__len__() ):
-        geneid = geneids[ii]
+    for ii in range(0, geneids_inall.__len__() ):
+        geneid = geneids_inall[ii]
         sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, sumenrich)"
         sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
         sql += maxfe[ii].__str__() + ","
@@ -1416,7 +1429,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     con.commit()
             
     """Write an Excel Table"""
-    xlpath = repgroupname + "enrich.xls"
+    xlpath = repgroupname + ".enrich.xls"
     print "\n. Writing a table with fold-enrichment and IDR to", xlpath
     fout = open(xlpath, "w")
     fout.write("GeneID\tGeneName\t")

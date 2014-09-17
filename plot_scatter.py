@@ -256,7 +256,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         ycranstr = "y<-c("
         """xcranstr and ycranstr are local string variables for just this inner loop."""
         for xx in range(0, values_ii.__len__()):
-            if values_ii[xx] != 0 or values_jj[xx] != 0:
+            if values_ii[xx] != 0 and values_jj[xx] != 0:
                 xcranstr += values_ii[xx].__str__() + ","
                 ycranstr += values_jj[xx].__str__() + ","
                 """The gene with x and y value == genecount is actually
