@@ -36,6 +36,18 @@ def get_chrom_id(con, name):
     else:
         return x[0]
 
+def get_all_repids(con):
+    cur = con.cursor()
+    cur.execute("SELECT id from Replicates")
+    x = cur.fetchall()
+    if x != None:
+        repids = []
+        for ii in x:
+            repids.append(ii[0])
+        return repids
+    else:
+        return []
+
 def get_repid(repname, speciesid, con):    
     cur = con.cursor()
     cur.execute("SELECT id from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__())
@@ -184,6 +196,8 @@ def get_summits(con, repid, chromid):
          return x
 
 def get_summit_scores_for_gene(geneid, repid, con):
+    """Returns an array of tuples, one tuple for each summit at gene ID, with the tuples sorted in descending
+    order based on their summit score."""
     cur = con.cursor()
     sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ") order by score"
     #print "60:", sql
@@ -193,6 +207,35 @@ def get_summit_scores_for_gene(geneid, repid, con):
         scores.append( s[0] )
     return scores
 
+def get_summit_scores_for_replicate(repid, con):
+    """Return geneid_ss[geneid] = (max_score, max_qvalue)"""
+    cur = con.cursor()
+    sql = "select * from Summits where replicate=" + repid.__str__()
+    cur.execute(sql)
+    geneid_scores = {}
+    geneid_qvalues = {}
+    for s in cur.fetchall():
+        summitid = s[0]
+        score = s[5]
+        qvalue = s[7]
+        sql = "select * from GeneSummits where summit=" + summitid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x != None:
+            geneid = x[0]
+            #print geneid
+            if geneid not in geneid_scores:
+                geneid_scores[geneid] = []
+                geneid_qvalues[geneid] = []
+            geneid_scores[geneid].append( score )
+            geneid_qvalues[geneid].append( qvalue )
+    geneid_ss = {} # key = geneid, value = tuple(max score, max qvalue)
+    for geneid in geneid_scores:
+        max_score = max( geneid_scores[geneid] )
+        max_qvalue = max( geneid_qvalues[geneid] )
+        geneid_ss[geneid] = (max_score, max_qvalue)
+    return geneid_ss[geneid]
+                
 def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)
     if scores.__len__() == 0:

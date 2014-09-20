@@ -456,6 +456,13 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     for repid in repids:
         repid_gene_summitscores[repid] = {}
     
+    #
+    # to-do continue here: the next loop can be optimized to only iterate over those gene IDs
+    # for which there exists a summit score. In its current form, this loop iterates
+    # over all gene IDs in the species, when -- in most cases -- only a small fraction
+    # of those genes have summit scores.
+    #
+    
     count = 1    
     genes = get_genes_for_species(con, repid_species[ repids[0] ])
     total_count = genes.__len__()
@@ -1328,8 +1335,6 @@ def get_enrichment_plot_array_for_union(unionid, gene_aliases, con):
 def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=None):
     """Plots a comparison of FE between replicates 1 and 2 of the replicates in the repgroup.
     If there are more than 2 replicates, then their data won't be plotted."""
-    #
-    # to-do: extend this method to work for N replicates
     
     cur = con.cursor()
         
@@ -1468,7 +1473,53 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     """Add an entry to the SQL database, listing the Excel file."""
     add_repgroupfile(xlpath,rgroupid,"Excel table with enrichment stats for replicate group " + repgroupname, con)
 
-
+def plot_summits_vs_enrichments_for_replicates(repids, con):
+    cur = con.cursor()
+    
+    for repid in repids:
+        cur.execute("SELECT * from Replicates where id=" + repid.__str__())
+        
+        cur.execute("SELECT name from Replicates where id=" + repid.__str__())
+        x = cur.fetchone()
+        #print "1482:", x
+        if x != None:
+            repname = x[0].__str__()
+        else:
+            print "\n. chipseqdb_plot.py 1477: Error, I can't find a name for the replicate", repid
+            exit()
+        
+        """Get the FE data"""
+        festats = get_enrichment_stats_for_replicate(repid, con)
+        
+        """Get the summit data"""
+        ssstats = get_summit_scores_for_replicate(repid, con)
+    
+        #print festats
+        #print ssstats
+        #exit()
+    
+        fearray = []
+        sarray = []
+        qarray = []
+        geneids = []
+        for geneid in festats:
+            if geneid in ssstats:
+                sarray.append( ssstats[geneid][0] )
+                qarray.append( ssstats[geneid][1] )
+            else:
+                sarray.append( 0.0 )
+                qarray.append( 0.0 )
+            fearray.append( festats[geneid][2] )
+            geneids.append(geneid)
+            
+        scatter_values = [fearray,sarray,fearray,sarray,fearray,qarray,fearray,qarray]
+        scatter_names = ["FE", "summit score", "rank(FE)", "rank(summit score)", "FE", "summit Q-val", "rank(FE)", "rank(summit Q-val)"]
+        plot_as_rank = [2,3,6,7]
+        width = 8
+        height = 2
+        filekeyword = repname + ".enrich_x_summit"
+        scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False, plot_as_rank = [])
+    
 def compute_enrichments_for_speciesunion(uid, con):
     """Fills up the table SpeciesunionEnrichmentStats and also writes an excel tables."""
     
