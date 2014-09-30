@@ -553,15 +553,21 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True, plot_as_rank = []):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True, plot_as_rank = [], skip_identity = False):    
     """
-    height, width = number of scatterplots
-    values[ii] = list of data. There should be 'width' number of entries in values.
+    Creates a multi-panel collection of scatterplots. The dimensions are N scatterplots by M scatterplots.
+    n = width, number of scatterplots
+    m = height, number of scatterplots.
     
-    NOTE: in making the scatterplots, cases where both the x-axis and y-axis series are (0,0) will
-    be ignored from the plot.
+    values[ii] = list of data for data series ii. values.__len__() should equal width
     
-    plot_as_rank is a list of indices into values which should be plotted as rank, rather than their raw value.
+    NOTE: in making the scatterplots, data pairs where both the x-axis and y-axis series are (0,0) 
+    will be ignored from the plot.
+    
+    plot_as_rank is a list of indices into the values array which should be plotted as rank, rather than their raw value.
+    
+    If skip_identify = True, then the multi-panel plot will not include same-vs.-same scatterplots, and the dimensions
+    will be updated accordingly.
     """    
     if names.__len__() != width:
         print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
@@ -576,7 +582,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             exit()
         if values[ii].__len__() == 0:
             print "\n. ERROR scatter_nxm can't deal with empty value arrays, i.e., you have no data to plot."
-            exit()
+            return None
     
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
@@ -633,7 +639,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                 lim = max( max(values[ii]), max(values[jj]) )
             
             # X values
-            found_one = False
+            found_one = False # did we find at least one valid (x,y) point in the graph that's worth plotting?
             cranstr += "x<-c("
             for xx in range(0, values[ii].__len__()):
                 v = values[ii][xx]

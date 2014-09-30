@@ -56,7 +56,7 @@ def build_db(dbpath = None):
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INT, distance INT)") # a mapping of Summits to nearby Genes
     cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummitStats(repgroupid INTEGER, geneid INTEGER, maxsummit FLOAT, nsummits FLOAT)")
     
-    cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)") #geneid is the canonical geneID from pillars
+    cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)") #geneid is the canonical geneID from pillars
     cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
     
     cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
@@ -327,6 +327,7 @@ def import_bdg(bdgpath, repid, con):
     geneid_sum = {} # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
     geneid_n = {} # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
     geneid_max = {}
+    geneid_maxsite = {} # key = geneid, value = the site number of the maximum FE in the gene's regulatory region
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
@@ -370,6 +371,8 @@ def import_bdg(bdgpath, repid, con):
                 geneid_n[nearest_down_gene] = 0
                 geneid_max[nearest_up_gene] = 0
                 geneid_max[nearest_down_gene] = 0
+                geneid_maxsite[nearest_up_gene] = 0
+                geneid_maxsite[nearest_down_gene] = 0
                 
             start = int(tokens[1]) # start of this enrichment window
             stop = int(tokens[2])
@@ -388,6 +391,8 @@ def import_bdg(bdgpath, repid, con):
                             geneid_n[nearest_up_gene] += 1
                             if eval > geneid_max[nearest_up_gene]:
                                 geneid_max[nearest_up_gene] = eval
+                                #print "394:", start, ii, eval
+                                geneid_maxsite[nearest_up_gene] = ii - start
                 else:
                     """The nearest_up_gene_i counter is stale. Update it."""
                     while nearest_up_gene_i != None and nearest_down_gene_i != None and False == (start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3]):
@@ -403,6 +408,7 @@ def import_bdg(bdgpath, repid, con):
                             geneid_sum[nearest_up_gene] = 0.0
                             geneid_n[nearest_up_gene] = 0
                             geneid_max[nearest_up_gene] = 0
+                            #geneid_maxsite[nearest_up_gene] = 0
                         
                         if nearest_down_gene_i >= genes.__len__():
                             nearest_down_gene_i = None
@@ -410,6 +416,7 @@ def import_bdg(bdgpath, repid, con):
                             geneid_sum[nearest_down_gene] = 0.0
                             geneid_n[nearest_down_gene] = 0
                             geneid_max[nearest_down_gene] = 0
+                            #geneid_maxsite[nearest_up_gene] = 0
                         #print nearest_up_gene_i, nearest_down_gene_i
                         
             """Add to the tally for the downstream gene."""
@@ -426,6 +433,9 @@ def import_bdg(bdgpath, repid, con):
                             geneid_n[nearest_down_gene] += 1
                             if eval > geneid_max[nearest_down_gene]:
                                 geneid_max[nearest_down_gene] = eval
+                                #print "436:", start, ii, eval
+                                geneid_maxsite[nearest_down_gene] = start - ii
+                                
             
     count = 0
     total_count = geneid_sum.__len__()
@@ -436,11 +446,12 @@ def import_bdg(bdgpath, repid, con):
                 #sys.stdout.write(".")
                 #sys.stdout.flush()
                 con.commit()
-            sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich)  "
+            sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite)  "
             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
             sql += "," + geneid_max[geneid].__str__()
             sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
             sql += "," + geneid_sum[geneid].__str__()
+            sql += "," + geneid_maxsite[geneid].__str__()
             sql += ")"
             cur.execute(sql)
     con.commit()        

@@ -212,8 +212,7 @@ def get_summit_scores_for_replicate(repid, con):
     cur = con.cursor()
     sql = "select * from Summits where replicate=" + repid.__str__()
     cur.execute(sql)
-    geneid_scores = {}
-    geneid_qvalues = {}
+    geneid_ssstats = {}
     for s in cur.fetchall():
         summitid = s[0]
         score = s[5]
@@ -223,18 +222,23 @@ def get_summit_scores_for_replicate(repid, con):
         x = cur.fetchone()
         if x != None:
             geneid = x[0]
+            summitid = x[1]
+            distance = x[2]
             #print geneid
-            if geneid not in geneid_scores:
-                geneid_scores[geneid] = []
-                geneid_qvalues[geneid] = []
-            geneid_scores[geneid].append( score )
-            geneid_qvalues[geneid].append( qvalue )
+            if geneid not in geneid_ssstats:
+                geneid_ssstats[geneid] = {}
+            geneid_ssstats[geneid][summitid] = (score, qvalue, distance)
     geneid_ss = {} # key = geneid, value = tuple(max score, max qvalue)
-    for geneid in geneid_scores:
-        max_score = max( geneid_scores[geneid] )
-        max_qvalue = max( geneid_qvalues[geneid] )
-        geneid_ss[geneid] = (max_score, max_qvalue)
-    return geneid_ss[geneid]
+    for geneid in geneid_ssstats:
+        scores = []
+        for summitid in geneid_ssstats[geneid]:
+            scores.append( geneid_ssstats[geneid][summitid][0] )
+        max_score = max(scores)
+        for summitid in geneid_ssstats[geneid]:
+            if geneid_ssstats[geneid][summitid][0] == max_score:
+                geneid_ss[geneid] = (max_score, geneid_ssstats[geneid][summitid][1], geneid_ssstats[geneid][summitid][2])
+    #print "237:", geneid_ss
+    return geneid_ss
                 
 def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)
