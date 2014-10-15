@@ -144,6 +144,8 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
     return cranpath
 
 def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
+    
+    
     """
     This method generates a PDF grid of scatterplots. Each grid is height*height, and there 3 grids on each page.
     The leftmost grid is a scatterplot of the ranked values in values[0:height-1] compared to each other.

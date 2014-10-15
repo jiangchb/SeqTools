@@ -208,7 +208,9 @@ def get_summit_scores_for_gene(geneid, repid, con):
     return scores
 
 def get_summit_scores_for_replicate(repid, con):
-    """Return geneid_ss[geneid] = (max_score, max_qvalue)"""
+    """Returns geneid_ssstats[geneid][summitid] = (score, Q value, distance to TSS)
+    with one entry for every summit that exists for this replicate.
+    """
     cur = con.cursor()
     sql = "select * from Summits where replicate=" + repid.__str__()
     cur.execute(sql)
@@ -224,21 +226,22 @@ def get_summit_scores_for_replicate(repid, con):
             geneid = x[0]
             summitid = x[1]
             distance = x[2]
-            #print geneid
             if geneid not in geneid_ssstats:
                 geneid_ssstats[geneid] = {}
             geneid_ssstats[geneid][summitid] = (score, qvalue, distance)
-    geneid_ss = {} # key = geneid, value = tuple(max score, max qvalue)
-    for geneid in geneid_ssstats:
-        scores = []
-        for summitid in geneid_ssstats[geneid]:
-            scores.append( geneid_ssstats[geneid][summitid][0] )
-        max_score = max(scores)
-        for summitid in geneid_ssstats[geneid]:
-            if geneid_ssstats[geneid][summitid][0] == max_score:
-                geneid_ss[geneid] = (max_score, geneid_ssstats[geneid][summitid][1], geneid_ssstats[geneid][summitid][2])
-    #print "237:", geneid_ss
-    return geneid_ss
+    return geneid_ssstats
+    
+    
+#     geneid_ss = {} # key = geneid, value = tuple(max score, max qvalue)
+#     for geneid in geneid_ssstats:
+#         scores = []
+#         for summitid in geneid_ssstats[geneid]:
+#             scores.append( geneid_ssstats[geneid][summitid][0] )
+#         max_score = max(scores)
+#         for summitid in geneid_ssstats[geneid]:
+#             if geneid_ssstats[geneid][summitid][0] == max_score:
+#                 geneid_ss[geneid] = (max_score, geneid_ssstats[geneid][summitid][1], geneid_ssstats[geneid][summitid][2])
+#     return geneid_ss
                 
 def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)
@@ -368,6 +371,8 @@ def clear_unions(con):
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionGenes"
     cur.execute(sql)
+    sql = "DROP TABLE IF EXISTS UnionSummits"
+    cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionSummitStats"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionEnrichmentStats"
@@ -381,6 +386,8 @@ def clear_speciesunions(con):
     sql = "DROP TABLE IF EXISTS SpeciesunionUnions"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS SpeciesunionGenes"
+    cur.execute(sql)
+    sql = "DROP TABLE IF EXISTS SpeciesunionSummits"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS SpeciesunionSummitStats"
     cur.execute(sql)
@@ -525,7 +532,7 @@ def remove_all_for_gene(gene, con):
     geneid = gene[0]
     genename = gene[1]
         
-    tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummitStats", "GeneSummits", "RepgroupGenes", "GeneHomology", "GeneAlias", "Genes"]
+    tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummits", "GeneSummits", "RepgroupGenes", "GeneHomology", "GeneAlias", "Genes"]
     for t in tables:
         if t == "GeneSummits":
             sql = "DELETE FROM " + t + " where gene=" + geneid.__str__()
