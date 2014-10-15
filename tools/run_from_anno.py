@@ -27,8 +27,15 @@ id_tag = {} # True/False
 id_species = {}
 id_sam = {}
 
-con = read_anno(DATADIR + "/" + APATH)
+con = read_anno(DATADIR + "/" + APATH, APATH + ".db")
 
+cur = con.cursor()
+sql = "select count(*) from Annotations"
+cur.execute(sql)
+count = cur.fetchone()[0]
+print "\n. I found", count, "annotations."
+
+exit()
 
 
 fin = open(DATADIR + "/" + APATH, "r")
@@ -79,7 +86,8 @@ exit()
 """Make a list of commands to launch the bowtie script (a.k.a. hybrid_runme.py)"""
 commands = []
 for sample in id_sampleid.values():
-    for repid in id_repid
+    for repid in id_repid:
+        pass
 
 
 
