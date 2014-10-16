@@ -127,18 +127,22 @@ if jump <= 2:
     annoids = []
     for ii in x:
         annoids.append( ii[0] )
+    
+    sql = "drop table AnnoReads"
+    cur.execute(sql)
+    build_anno_db(con)
     for annoid in annoids:
         extract_perfect_reads(annoid, con)
 
+"""Remove hybrid reads that aren't unique."""
 if jump <= 3:
-    pass
+    get_hybrid_pairs(con)
     
-sql = "select * from BowtieFilterStats"
-cur.execute(sql)
-x = cur.fetchall()
-for ii in x:
-    print ii
-        
+if jump <= 4:
+    find_hybrid_unique_reads(con)
+    
+    
+    
 """Get pairs of experiment-control for MACS2 peak-calling."""
 get_macs_pairs(con)
 

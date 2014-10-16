@@ -10,10 +10,13 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT, annoid INTEGER, mismatch INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
+    cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT)") # reads without mismatches
+    cur.execute("CREATE TABLE IF NOT EXISTS AnnoReads(readid INTEGER primary key, annoid INT, mismatch INT)") # map reads to annotations
+    cur.execute("CREATE TABLE IF NOT EXISTS UniqueReads(readid INTEGER primary key, annoid INT)") # reads that are unique to an annotation
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS BowtieFilterStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     con.commit()
 
 def get_setting(keyword, con):
@@ -138,3 +141,63 @@ def import_annotations(apath, con, sample_restrict=None):
                     con.commit()
                     #print ".", annoid, "is a hybrid", st[0], st[1]               
     return con
+
+def get_hybrid_pairs(con):
+    cur = con.cursor()
+    cur.execute("DELETE from HybridPairs")
+    con.commit()
+    
+    hannoids = [] #list of hybrid annotations IDS
+    sql = "select annoid from Hybrids"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        hannoids.append( ii[0] )
+    seen_annoids = []
+    for annoid in hannoids:
+        
+        if annoid in seen_annoids:
+            continue # skip, we've already paired this one.
+        
+        sql = "select species1, species2 from Hybrids where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x.__len__() == 0:
+            print "\n. An error occurred - 157 - ", annoid
+            exit()
+        species1 = x[0]
+        species2 = x[1]
+        
+        sql = "select library_name from Annotations where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x.__len__() == None:
+            print "\n. An error occurred - 164 - ", annoid
+            exit()
+        library_name = x[0]
+        
+        sql = "select annoid from Annotations where library_name='" + library_name + "' and species='" + species2 + "'"
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x.__len__() == 0:
+            print "\n. An error occurred - 171 -", annoid
+            exit()
+        pair_id = x[0]
+        
+        if pair_id in seen_annoids:
+            continue
+        
+        seen_annoids.append( pair_id )
+        seen_annoids.append( annoid )
+        sql = "insert or replace into HybridPairs (annoid1, annoid2) VALUES("
+        sql += annoid.__str__() + "," + pair_id.__str__() + ")"
+        cur.execute(sql)
+        con.commit()
+    
+    sql = "select * from HybridPairs"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        print ii
+            
+            
