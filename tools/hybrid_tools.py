@@ -1,11 +1,12 @@
 import re, os, sys
+from sets import Set
 
-def extract_perfect_reads(annoid, con):
+def extract_perfect_reads(annoid, con, chrom_filter = None):
     """Extracts reads that match perfectly, without mismatches."""
     """Writes a new (shorted) SAM file, and also returns a hash of read IDs."""
     cur = con.cursor()
     
-    sql = "delete from AnnoReads where annoid=" + annoid.__str__()
+    sql = "delete from Reads where annoid=" + annoid.__str__()
     cur.execute(sql)
     con.commit()
     
@@ -47,26 +48,28 @@ def extract_perfect_reads(annoid, con):
                     continue
                 elif t == "XM:i:0":
                     readname = tokens[0]
-                    sql = "insert or replace into Reads(readname) VALUES("
-                    sql += "'" + readname + "')"
-                    cur.execute(sql)
                     
-                    sql = "select last_insert_rowid()"
-                    cur.execute(sql)
-                    x = cur.fetchone()
-                    readid = x[0]
-                    
-                    sql = "insert into AnnoReads(readid,annoid,mismatch) VALUES("
-                    sql += readid.__str__() + "," + annoid.__str__() + ",0)"
+                    """The chrom_filter allows for reads to be considered
+                    only if they match the filter, such "Chr1".
+                    This is useful for generating toy-sized test databases
+                    on a restricted number of reads."""
+                    if chrom_filter != None:
+                        chrom = tokens[2]
+                        if False == chrom.__contains__(chrom_filter):
+                            continue
+                    sql = "insert into Reads(readname,annoid,mismatch) VALUES("
+                    sql += "'" + readname + "',"
+                    sql += annoid.__str__() + ",0)"
                     cur.execute(sql)
                     
                     #fout.write(line)
                     continue # skip to the next line
     con.commit()
-    sql = "select count(*) from AnnoReads where annoid=" + annoid.__str__() + " and mismatch=0"
+    sql = "select count(*) from Reads where annoid=" + annoid.__str__() + " and mismatch=0"
     cur.execute(sql)
     count = cur.fetchone()[0]
-    print "\n. OK, I found", count, "perfect reads, out of", total, "reads."
+    ratio = float(count)/total
+    print "\n. OK, I found", count, "perfect reads out of", total, "reads (",ratio,") in", sampath
     fin.close()
     #fout.close()
     
@@ -97,30 +100,85 @@ def find_hybrid_unique_reads(con):
         annoid2 = pair[1]
 
         print "\n. Finding unique reads between", annoid1, annoid2
-
-        """Find reads unique to annoid1"""
-        sql = "select readid from AnnoReads where annoid=" + annoid1.__str__() + " and readid not in (select readid from AnnoReads where annoid=" + annoid2.__str__() + ")"
+           
+        sql = "select readname, readid from Reads where annoid=" + annoid1.__str__()
         cur.execute(sql)
         x = cur.fetchall()
+        set1 = {}
         for ii in x:
+            set1[ ii[0] ] = ii[1]
+        
+        sql = "select readname, readid from Reads where annoid=" + annoid2.__str__()
+        cur.execute(sql)
+        x = cur.fetchall()
+        set2 = {}
+        for ii in x:
+            set2[ ii[0] ] = ii[1]
+        
+        """Convert to Set, so that we can call the difference method"""
+        names1 = set( set1.keys() )
+        names2 = set( set2.keys() )
+        
+        """Process unique reads for the first species."""
+        unique_read_names = names1.difference(names2)
+        print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
+
+        """Sanity Check"""
+        """ The first read of unique_read_names should have just one entry in Reads"""
+        rqqq = next(iter(unique_read_names))
+        sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+        if count > 1:
+            print "\n. We have a problem - python 153"
+            print ".", rqqq, annoid1, annoid2
+            exit()        
+
+        """Write the Unique reads to the UniqueReads table."""
+        print "\n. Updating the table UniqueReads"
+        count = 0
+        for name in unique_read_names:
+            count += 1
+            if count%10000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                con.commit()
+            
+            readid = set1[name]
             sql = "insert into UniqueReads(readid, annoid) VALUES("
-            sql += ii[0].__str__() + ","
+            sql += readid.__str__() + ","
             sql += annoid1.__str__() + ")"
-            #print sql
-            cur.execute(sql)
-        con.commit()
-
-        sql = "select readid from AnnoReads where annoid=" + annoid2.__str__() + " and readid not in (select readid from AnnoReads where annoid=" + annoid1.__str__() + ")"
+            cur.execute(sql)        
+        
+        """Repeat for the second species."""
+        unique_read_names = names2.difference(names1)
+        print "\n. N unique reads in", annoid2,"=", unique_read_names.__len__(), "of", names2.__len__(), "total reads."
+         
+        rqqq = next(iter(unique_read_names))
+        sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
         cur.execute(sql)
-        x = cur.fetchall()
-        for ii in x:
-            sql = "insert into UniqueReads(readid, annoid) VALUES("
-            sql += ii[0].__str__() + ","
-            sql += annoid2.__str__() + ")"
-            #print sql
-            cur.execute(sql)    
-        con.commit()   
+        count = cur.fetchone()[0]
+        if count > 1:
+            print "\n. We have a problem - python 153"
+            print ".", rqqq, annoid1, annoid2
+            exit()
+    
+        count = 0
+        for name in unique_read_names:
+            count += 1
+            if count%10000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                con.commit()
                 
+            readid = set2[name]
+            sql = "insert into UniqueReads(readid, annoid) VALUES("
+            sql += readid.__str__() + ","
+            sql += annoid2.__str__() + ")"
+            cur.execute(sql)            
+        con.commit()
+        
+        """Now check what we inserted."""
         sql = "select count(*) from UniqueReads where annoid=" + annoid1.__str__()
         cur.execute(sql)
         count1 = cur.fetchone()[0]
@@ -129,12 +187,12 @@ def find_hybrid_unique_reads(con):
         cur.execute(sql)
         count2 = cur.fetchone()[0]
         
-        print "\n. I found", count1, "unique reads for annotation", annoid1
-        print "\n. I found", count2, "unique reads for annotation", annoid2
-
-#     sql = "insert or replace into FilteredBowtieOutput(annoid, sampath) VALUES("
-#     sql += annoid.__str__() + ",'" + outsampath + "')"
-#     cur.execute(sql)
-#     con.commit()
+        sql = "insert or replace into UniqueReadStats(annoid, nunique) VALUES("
+        sql += annoid1.__str__() + "," + count1.__str__() + ")"
+        cur.execute(sql)
+        sql = "insert or replace into UniqueReadStats(annoid, nunique) VALUES("
+        sql += annoid2.__str__() + "," + count2.__str__() + ")"
+        cur.execute(sql) 
+        con.commit()
             
     

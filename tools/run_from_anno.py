@@ -24,6 +24,9 @@ APATH = "mancera_chipseq_sample_annotation.txt"
 x = ap.getOptionalArg("--annopath")
 if x != False:
     APATH = x
+DBPATH = ap.getOptionalArg("--dbpath")
+if DBPATH == False:
+    DBPATH = APATH + ".db"
 """Software Paths:"""
 BOWTIE2 = "bowtie2"
 SAMTOOLS = "samtools -Sbu" # samtools view -Sbu in.sam | samtools sort - in.sorted
@@ -36,6 +39,7 @@ if jump == False:
 else:
     jump = int(jump)
 
+    
 def splash():
     print "============================================="
     print " run_from_anno.py"
@@ -46,7 +50,7 @@ def splash():
 splash()
 
 """Build or restore the DB"""
-con = get_db(APATH + ".db")
+con = get_db(DBPATH)
 cur = con.cursor()
 
 
@@ -128,11 +132,14 @@ if jump <= 2:
     for ii in x:
         annoids.append( ii[0] )
     
-    sql = "drop table AnnoReads"
+    sql = "drop table Reads"
     cur.execute(sql)
     build_anno_db(con)
     for annoid in annoids:
-        extract_perfect_reads(annoid, con)
+        chrom_filter = ap.getOptionalArg("--chrom_filter")
+        if chrom_filter == False:
+            chrom_filter = None
+        extract_perfect_reads(annoid, con, chrom_filter=chrom_filter)
 
 """Remove hybrid reads that aren't unique."""
 if jump <= 3:

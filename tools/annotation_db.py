@@ -12,11 +12,11 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
     cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT)") # reads without mismatches
-    cur.execute("CREATE TABLE IF NOT EXISTS AnnoReads(readid INTEGER primary key, annoid INT, mismatch INT)") # map reads to annotations
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT, annoid INT, mismatch INT)") # reads without mismatches
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReads(readid INTEGER primary key, annoid INT)") # reads that are unique to an annotation
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
     con.commit()
 
 def get_setting(keyword, con):
