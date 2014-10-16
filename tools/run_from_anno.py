@@ -4,121 +4,143 @@
 #
 
 import re, os, sys
-from read_annotation import *
+from annotation_db import *
+from hybrid_tools import *
+from argParser import ArgParser
+ap = ArgParser(sys.argv)
 
 """In what directory do the FASTQ files exist?"""
 DATADIR = "/Network/Servers/udp015817uds.ucsf.edu/Users/eugeniom/Documents/ChIP-seq_analysis/Ndt80/"
-
+x = ap.getOptionalArg("--datadir")
+if x != False:
+    DATADIR = x
 """In what directory should output be written?"""
 OUTDIR = "./"
-
-"""Path to annocation file, describining FASTQ files."""
+x = ap.getOptionalArg("--outdir")
+if x != False:
+    OUTDIR = x
+"""Path to annotation file, describining FASTQ files."""
 APATH = "mancera_chipseq_sample_annotation.txt"
+x = ap.getOptionalArg("--annopath")
+if x != False:
+    APATH = x
+"""Software Paths:"""
+BOWTIE2 = "bowtie2"
+SAMTOOLS = "samtools -Sbu" # samtools view -Sbu in.sam | samtools sort - in.sorted
+"""restricts analysis to only those annotation lines whose sample column is this value."""
+restrict_to_sample = ap.getOptionalArg("--restrict_to_sample")
+"""Jump allows for some steps to be skipped."""
+jump = ap.getOptionalArg("--jump")
+if jump == False:
+    jump = 0
+else:
+    jump = int(jump)
 
-"""Analyze rows with this sample ID from the annotation file."""
-sample = "EM14918"
+def splash():
+    print "============================================="
+    print " run_from_anno.py"
+    print " October 2014"
+    print " A script to analyze ChIP-Seq data."
+    print "=============================================" 
 
+splash()
 
-# id is library_name
-id_fastq = {}
-id_sampleid = {}
-id_repid = {}
-id_tag = {} # True/False
-id_species = {}
-id_sam = {}
-
-con = read_anno(DATADIR + "/" + APATH, APATH + ".db")
-
+"""Build or restore the DB"""
+con = get_db(APATH + ".db")
 cur = con.cursor()
+
+
+"""Write the settings into the DB"""
+sql = "insert or replace into Settings (keyword, value) VALUES('bowtie2','" + BOWTIE2 + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('datadir','" + DATADIR + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('outdir','" + OUTDIR + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
+cur.execute(sql)
+con.commit()
+
+con = import_annotations(DATADIR + "/" + APATH, con, sample_restrict=get_setting("restrict_to_sample",con) )
+
 sql = "select count(*) from Annotations"
 cur.execute(sql)
 count = cur.fetchone()[0]
-print "\n. I found", count, "annotations."
+print "\n. I found", count, "annotations in the database."
+
+
+
+"""Run Bowtie2 for each FASTQ path"""
+if jump <= 1:
+    bowtie_commands = []
+    sql = "select annoid, fastqpath, species from Annotations"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        c = get_setting("bowtie2",con)
+        annoid = ii[0]
+        fastq = ii[1]
+        species = ii[2]
+        
+        """Sanity check:"""
+        if False == os.path.exists( get_setting("datadir",con) + "/" + fastq ):
+            print "\n. Error, I can't find your FASTQ file at", fastq
+            print ". (run_from_anno.py 43)"
+            exit()
+        c += " -U " + fastq
+        
+        """Is it a hybrid?"""
+        sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+        samoutpath = re.sub(".fastq", ".sam", fastq)
+        if count > 0:
+            """Hybrids get a special SAM path"""
+            samoutpath = re.sub(".fastq", "-" + species + ".sam", fastq)
+        c += " -S " + get_setting("outdir",con) + "/" + samoutpath
+        c += " --no-unal "
+        
+        """Path to directory with genome sequences"""
+        if species == "Cdub":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
+        if species == "Calb":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
+        if species == "Ctro":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
+        bowtie_commands.append(c)
+        #print annoid, species, fastq, samoutpath
+        
+        sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
+        cur.execute(sql)
+        con.commit()
+    
+    #print "\n. Launching Bowtie2 with the following command:"
+    #for c in bowtie_commands:
+    #    pass
+        #print c
+
+"""Process Hybrid Reads into special SAM files."""
+if jump <= 2:
+    sql = "select * from Hybrids"
+    cur.execute(sql)
+    x = cur.fetchall()
+    annoids = []
+    for ii in x:
+        annoids.append( ii[0] )
+    for annoid in annoids:
+        extract_perfect_reads(annoid, con)
+
+if jump <= 3:
+    pass
+    
+sql = "select * from BowtieFilterStats"
+cur.execute(sql)
+x = cur.fetchall()
+for ii in x:
+    print ii
+        
+"""Get pairs of experiment-control for MACS2 peak-calling."""
+get_macs_pairs(con)
 
 exit()
 
-
-fin = open(DATADIR + "/" + APATH, "r")
-
-lines = []
-for l in fin.readlines():
-    ls = l.split("\r")
-    for lt in ls:
-        lines.append( lt )
-
-for l in lines:
-    tokens = l.split("\t")
-    if tokens.__len__() > 2:
-        if tokens[0] == sample:
-            fastq = tokens[3]
-            id = tokens[1]
-            species = tokens[5]
-            st = species.split("_")
-
-            for species in st:
-                if st.__len__() > 1:
-                    id = tokens[1] + "-" + species
-                    outsam = re.sub(".fastq", "-" + species + ".sam", fastq)
-                else:
-                    outsam = re.sub(".fastq", ".sam", fastq)
-                id_sam[id] = outsam
-                id_fastq[id] = fastq
-                id_species[id] = species
-                id_sampleid[id] = tokens[0]
-                id_repid[id] = tokens[10]
-                id_tag[id] = tokens[7]
-                if id_tag[id] == "YES":
-                    id_tag[id] = True
-                else:
-                    id_tag[id] = False
-                 
-
-                print id, fastq, species
-
-#print id_sam
-#print id_fastq
-#print id_species
-#print id_sampleid
-#print id_repid
-#print id_tag
-exit()
-
-"""Make a list of commands to launch the bowtie script (a.k.a. hybrid_runme.py)"""
-commands = []
-for sample in id_sampleid.values():
-    for repid in id_repid:
-        pass
-
-
-
-for (f,s) in fastq_sam:
-
-    if False == os.path.exists(DATADIR + f):
-        print "\n. I can't find " + DATADIR + f
-        continue
-    #if False == os.path.exists(DATADIR + s):
-    #    print "\n. I can't find " + DATADIR + s
-    #print s
-
-    c = "python ~/Applications/SeqTools/hybrid_runme.py"
-    if s.__contains__("Cdub"):
-        c += " --iprefix /Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
-    if s.__contains__("Calb"):
-        c += " --iprefix /Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
-    if s.__contains__("Ctro"):
-        c += " --iprefix /Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
-    c += " --fastqpath " + DATADIR + f 
-    c += " --samoutpath " + s
-    #c += " --jump 1"
-    #print c
-    #os.system(c)
-    commands.append(c)
-
-fout = open("bowtie_commands.sh", "w")
-for c in commands:
-    fout.write(c + "\n")
-fout.close()
-
-os.system("source bowtie_commands.sh")
-
-#os.system("mpirun -np 8 -machinefile hosts.txt /common/REPOSITORY/mpi_dispatch/mpi_dispatch bowtie_commands.sh")
