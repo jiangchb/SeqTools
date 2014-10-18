@@ -38,6 +38,19 @@ def get_setting(keyword, con):
     else:
         return None
 
+def get_setting_list(keyword, con):
+    cur = con.cursor()
+    sql = "select value from Settings where keyword='" + keyword + "'"
+    cur.execute(sql)
+    result = cur.fetchall()
+    if result.__len__() > 0:
+        ret_list = []
+        for ii in result:
+            ret_list.append( ii[0] )
+        return ret_list
+    else:
+        return []
+
 def get_name_for_macs(exp_annoid, control_annoid, con):
     cur = con.cursor()
     sql = "select count(*) from HybridPairs where annoid1=" + exp_annoid.__str__() + " or annoid2=" + exp_annoid.__str__()
@@ -104,7 +117,7 @@ def get_db(dbpath):
     return con
 
 
-def import_annotations(apath, con, sample_restrict=None):
+def import_annotations(apath, con):
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
     if False == os.path.exists(apath):
         print "\n. Error, I can't find your annotation file at", apath
@@ -123,8 +136,9 @@ def import_annotations(apath, con, sample_restrict=None):
         tokens = l.split()
         if tokens.__len__() > 2:
             sample = tokens[0]
-            if sample_restrict != None:
-                if sample != sample_restrict:
+            """Restrict our import to a subset of rows, if the user specificied it."""
+            if get_setting("restrict_to_sample",con) != None:
+                if sample != get_setting("restrict_to_sample",con):
                     continue
             fastq = tokens[3]
             id = tokens[1]

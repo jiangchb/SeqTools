@@ -54,9 +54,10 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
                     only if they match the filter, such "Chr1".
                     This is useful for generating toy-sized test databases
                     on a restricted number of reads."""
-                    if chrom_filter != None:
+                    cflist = get_setting_list("chrom_filter",con)
+                    if cflist.__len__() > 0:
                         chrom = tokens[2]
-                        if False == chrom.__contains__(chrom_filter):
+                        if chrom not in cflist:
                             continue
                     inserted += 1
                     sql = "insert into Reads(readname,annoid,mismatch,order) VALUES("
@@ -64,7 +65,8 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
                     sql += annoid.__str__() + ",0," + inserted.__str__() + ")"
                     cur.execute(sql)
                     
-                    #fout.write(line)
+                    """We found all the stuff for this reads; let's skip remaining tokens for this
+                    line, and just continue to the next read."""
                     continue # skip to the next line
     con.commit()
     sql = "select count(*) from Reads where annoid=" + annoid.__str__() + " and mismatch=0"

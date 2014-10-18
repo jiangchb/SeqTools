@@ -53,10 +53,7 @@ if jump <= 2:
     cur.execute(sql)
     build_anno_db(con)
     for annoid in annoids:
-        chrom_filter = ap.getOptionalArg("--chrom_filter")
-        if chrom_filter == False:
-            chrom_filter = None
-        extract_perfect_reads(annoid, con, chrom_filter=chrom_filter)
+        extract_perfect_reads(annoid, con)
 
 """Build a map of which annotations map to which species."""
 if jump <= 2.1:

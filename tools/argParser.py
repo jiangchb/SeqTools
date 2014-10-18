@@ -92,5 +92,5 @@ class ArgParser:
 					returnList.append( type(self.args[j]) )
 			return returnList
 		else:
-			return None
+			return []
 	

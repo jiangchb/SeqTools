@@ -49,15 +49,17 @@ def run_bowtie(con):
         cur.execute(sql)
         con.commit()
         
+    print "\n. Launching Bowtie2 with the following commands:"
     fout = open("bowtie_commands.sh", "w")
     for c in bowtie_commands:
+        print c
         fout.write(c + "\n")
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        print "\n. Launching Bowtie2 with the following command:"
-        for c in bowtie_commands:
-            os.system(c)
+        os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
+        #for c in bowtie_commands:
+        #    os.system(c)
 
 def write_sorted_bam(con, delete_sam = True):
     """Writes sorted BAM files for all SAM files.
