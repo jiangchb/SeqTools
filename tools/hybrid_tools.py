@@ -278,26 +278,26 @@ def write_filtered_sam(con):
         readnames = Set([])
         for ii in x:
             readnames.add( ii[0] )
-         
-        """Open the file and write the header lines."""
-        fout = open(samoutpath, "w")
-        for hl in header_lines:
-            pass
-            fout.write(hl)
-         
-        """Walk through the original SAM file and copy relevant lines into the new SAM file."""
-        count_total = 0
-        fin = open(bowtie_sampath, "r")
-        for erg_line in fin.xreadlines():
-            if False == erg_line.startswith("@"):
-                this_readid = erg_line.split()[0]
-                if this_readid in readnames:
-                    """Copy the original line into the new SAM path, because this read satisfies what we're looking for."""
-                    count_total += 1
-                    fout.write(erg_line)
-         
-        fin.close()
-        fout.close()
+        
+        if get_setting("practice_mode", con) == "0":
+            """Open the file and write the header lines."""
+            fout = open(samoutpath, "w")
+            for hl in header_lines:
+                fout.write(hl)
+             
+            """Walk through the original SAM file and copy relevant lines into the new SAM file."""
+            count_total = 0
+            fin = open(bowtie_sampath, "r")
+            for erg_line in fin.xreadlines():
+                if False == erg_line.startswith("@"):
+                    this_readid = erg_line.split()[0]
+                    if this_readid in readnames:
+                        """Copy the original line into the new SAM path, because this read satisfies what we're looking for."""
+                        count_total += 1
+                        fout.write(erg_line)
+             
+            fin.close()
+            fout.close()
         
         sql = "insert or replace into FilteredBowtieOutput (annoid, sampath) VALUES("
         sql += annoid.__str__() + ",'" + samoutpath + "')"

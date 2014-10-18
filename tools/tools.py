@@ -237,9 +237,12 @@ def bed2wig(con):
         sql += "','" + wigpath + "')"
         cur.execute(sql)
         con.commit()
-        
+
+    fout = open("run_bed2wig.sh", "w")
     for c in commands:
         print c
+        fout.write(c + "\n")
+    fout.close()
     
     if get_setting("practice_mode", con) == "0":
         for c in commands:
@@ -275,21 +278,21 @@ def write_viz_config(con):
     for s in species:
         repgroups = []
         
-        # A hack for Eugenio's data:
-        sql = "select library_name from Annotations where species='" + s + "'"
+        # A hack for Eugenio's data, in which the library_names are maybe wrong?
+#         sql = "select library_name from Annotations where species='" + s + "'"
+#         cur.execute(sql)
+#         x = cur.fetchall()
+#         for ii in x:
+#             strain_name = ii[0].split("_")[2]
+#             repgroups.append(strain_name)
+        
+        # But normally do this instead...
+        sql = "select distinct strain from Annotations where species='" + s + "'"
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
-            strain_name = ii[0].split("_")[2]
-            repgroups.append(strain_name)
-        
-        # But normally do this instead...
-        #sql = "select distinct strain from Annotations where species='" + s + "'"
-        #cur.execute(sql)
-        #x = cur.fetchall()
-        #for ii in x:
-        #    strain = ii[0]
-        #    repgroups.append( strain )
+            strain = ii[0]
+            repgroups.append( strain )
         
         for strain in repgroups:
             replicates = []
@@ -309,5 +312,8 @@ def write_viz_config(con):
                 
             for annoid in annoids:
                 print s, strain, repid, annoids
+                #
+                # continue here
+                #
                 
     
