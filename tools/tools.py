@@ -1,6 +1,64 @@
 import re, os, sys
 from annotation_db import *
 
+def run_bowtie(con):
+    """Clear previous Bowtie output paths."""
+    cur = con.cursor()
+    sql = "delete from BowtieOutput"
+    cur.execute(sql)
+    con.commit()
+    
+    bowtie_commands = []
+    sql = "select annoid, fastqpath, species from Annotations"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        c = get_setting("bowtie2",con)
+        annoid = ii[0]
+        fastq = ii[1]
+        species = ii[2]
+        
+        """Sanity check:"""
+        if False == os.path.exists( get_setting("datadir",con) + "/" + fastq ):
+            print "\n. Error, I can't find your FASTQ file at", fastq
+            print ". (run_from_anno.py 43)"
+            exit()
+        c += " -U " + get_setting("datadir",con) + "/" + fastq
+        
+        """Is it a hybrid?"""
+        sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+        samoutpath = re.sub(".fastq", ".sam", fastq)
+        if count > 0:
+            """Hybrids get a special SAM path"""
+            samoutpath = re.sub(".fastq", "-" + species + ".sam", fastq)
+        c += " -S " + get_setting("outdir",con) + "/" + samoutpath
+        c += " --no-unal "
+        
+        """Path to directory with genome sequences"""
+        if species == "Cdub":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
+        if species == "Calb":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
+        if species == "Ctro":
+            c += " -x /Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
+        bowtie_commands.append(c)
+        
+        sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
+        cur.execute(sql)
+        con.commit()
+        
+    fout = open("bowtie_commands.sh", "w")
+    for c in bowtie_commands:
+        fout.write(c + "\n")
+    fout.close()
+    
+    if get_setting("practice_mode", con) == "0":
+        print "\n. Launching Bowtie2 with the following command:"
+        for c in bowtie_commands:
+            os.system(c)
+
 def write_sorted_bam(con, delete_sam = True):
     """Writes sorted BAM files for all SAM files.
     if delete_sam == True, then the original SAM file will be deleted."""

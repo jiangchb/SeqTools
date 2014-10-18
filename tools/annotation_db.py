@@ -15,7 +15,7 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
     cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT, annoid INT, mismatch INT)") # reads without mismatches
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT, annoid INT, mismatch INT, order_seen INT)") # reads without mismatches
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReads(readid INTEGER primary key, annoid INT)") # reads that are unique to an annotation
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
@@ -120,7 +120,7 @@ def import_annotations(apath, con, sample_restrict=None):
             lines.append( lt )
     
     for l in lines[1:]:
-        tokens = l.split("\t")
+        tokens = l.split()
         if tokens.__len__() > 2:
             sample = tokens[0]
             if sample_restrict != None:
@@ -146,7 +146,8 @@ def import_annotations(apath, con, sample_restrict=None):
                 sql = "SELECT count(*) from Annotations where library_name='" + tokens[1] + "' and species='" + species + "'"
                 cur.execute(sql)
                 count = cur.fetchone()[0]
-                if count == 0:  
+                if count == 0:
+                    print tokens
                     sql = "INSERT OR REPLACE INTO Annotations (sample, library_name, indexi, fastqpath, strain, species, tf, tag, media, condition, replicate, comment)"
                     sql += " VALUES('" + sample + "','" + tokens[1] + "'," + int(tokens[2]).__str__() + ",'" + fastq
                     sql += "','" + tokens[4] + "','" + species + "','" + tokens[6]

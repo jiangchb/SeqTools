@@ -31,6 +31,7 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
     fin = open(sampath, "r")
     #fout = open(outsampath, "w")
     total = 0
+    inserted = 0
     for line in fin.xreadlines():
         outline = ""
         if line.startswith("@"):
@@ -57,9 +58,10 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
                         chrom = tokens[2]
                         if False == chrom.__contains__(chrom_filter):
                             continue
-                    sql = "insert into Reads(readname,annoid,mismatch) VALUES("
+                    inserted += 1
+                    sql = "insert into Reads(readname,annoid,mismatch,order) VALUES("
                     sql += "'" + readname + "',"
-                    sql += annoid.__str__() + ",0)"
+                    sql += annoid.__str__() + ",0," + inserted.__str__() + ")"
                     cur.execute(sql)
                     
                     #fout.write(line)
@@ -123,6 +125,13 @@ def find_hybrid_unique_reads(con):
         unique_read_names = names1.difference(names2)
         print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
 
+        #
+        # continue here
+        # NOTE: the difference method could be eliminated, and sped-up, by taking advantage
+        # of the new 'order' field in the Read table.
+        # Basically, just walk two pointers through sorted order lists.
+        #
+
         """Sanity Check"""
         """ The first read of unique_read_names should have just one entry in Reads"""
         rqqq = next(iter(unique_read_names))
@@ -154,6 +163,10 @@ def find_hybrid_unique_reads(con):
         """Repeat for the second species."""
         unique_read_names = names2.difference(names1)
         print "\n. N unique reads in", annoid2,"=", unique_read_names.__len__(), "of", names2.__len__(), "total reads."
+         
+        # see not above: this difference call could be eliminated.
+        # continue here
+        # to-do
          
         rqqq = next(iter(unique_read_names))
         sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
@@ -272,9 +285,11 @@ def write_filtered_sam(con):
         fin.close()
          
         """Finally, write the new SAM file."""
-        sql = "select readname from Reads where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
+        sql = "select readname from Reads order by order_seen where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
         cur.execute(sql)
         x = cur.fetchall()
+        
+        """readnames is a list of strings, each a unique name for a read."""
         readnames = Set([])
         for ii in x:
             readnames.add( ii[0] )
@@ -291,6 +306,8 @@ def write_filtered_sam(con):
             for erg_line in fin.xreadlines():
                 if False == erg_line.startswith("@"):
                     this_readid = erg_line.split()[0]
+                    
+                    """WARNING: this next comparison is computationally expensive!"""
                     if this_readid in readnames:
                         """Copy the original line into the new SAM path, because this read satisfies what we're looking for."""
                         count_total += 1
