@@ -137,10 +137,11 @@ def find_hybrid_unique_reads(con):
         """Write the Unique reads to the UniqueReads table."""
         print "\n. Updating the table UniqueReads"
         count = 0
+        total_count = names1.__len__()
         for name in unique_read_names:
             count += 1
             if count%10000 == 0:
-                sys.stdout.write(".")
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
                 con.commit()
             
@@ -163,11 +164,13 @@ def find_hybrid_unique_reads(con):
             print ".", rqqq, annoid1, annoid2
             exit()
     
+        unique_readids = []
         count = 0
+        total_count = names2.__len__()
         for name in unique_read_names:
             count += 1
             if count%10000 == 0:
-                sys.stdout.write(".")
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
                 con.commit()
                 
@@ -194,5 +197,112 @@ def find_hybrid_unique_reads(con):
         sql += annoid2.__str__() + "," + count2.__str__() + ")"
         cur.execute(sql) 
         con.commit()
-            
+
+def print_read_stats(con):      
+    cur = con.cursor()
+    sql = "select * from Hybrids"
+    cur.execute(sql)
+    x = cur.fetchall()
+    annoids = []
+    for ii in x:
+        annoids.append( ii[0] )
+        
+    print "\nlibrary_name\tN_total\tN_perfect\tN_unique"
+    fout = open("read_stats.xls", "w")
+        
+    for annoid in annoids:
+        sql = "select nperfect, ntotal from ReadStats where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        nperfect = x[0]
+        ntotal = x[1]
+        sql = "select nunique from UniqueReadStats where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        nunique = x[0]
+        sql = "select library_name, species from Annotations where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        rowname = x[0] + "-" + x[1]
+        l = rowname + "\t" + ntotal.__str__() + "\t" + nperfect.__str__() + "\t" + nunique.__str__() + "\t" + "%.3f"%(nperfect/float(ntotal)) + "\t" + "%.3f"%(nunique/float(ntotal))
+        print l
+        fout.write(l + "\n")
+    fout.close()
+        
+def write_filtered_sam(con):
+    """Writes a new SAM file containing only those reads that are non-mismatches
+    and which are unique to a hybrid parent species."""
+    cur = con.cursor()
+    sql = "select * from Hybrids"
+    cur.execute(sql)
+    x = cur.fetchall()
+    annoids = []
+    for ii in x:
+        annoids.append( ii[0] )
+        
+    for annoid in annoids:
+        sql = "select library_name, species, fastqpath from Annotations where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        library_name = x[0] + "-" + x[1]
+        fastq = x[2]
+        species = x[1]
+        
+        sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+        samoutpath = re.sub(".fastq", ".unique.sam", fastq)
+        if count > 0:
+            """Hybrids get a special SAM path"""
+            samoutpath = re.sub(".fastq", "-" + species + ".unique.sam", fastq)
+        
+        print "\n. I'm writing the perfect reads that are unique to", library_name, "to a new SAM file:"
+        print ". ", samoutpath
+        
+        """Read the header from the original SAM file."""
+        sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
+        cur.execute(sql)
+        bowtie_sampath = cur.fetchone()[0]
+        fin = open(bowtie_sampath, "r")
+        header_lines = []
+        for l in fin.xreadlines():
+            if False == l.startswith("@"):
+                break # stop parsing when the lines don't contain header hashes
+            header_lines.append( l )
+        fin.close()
+         
+        """Finally, write the new SAM file."""
+        sql = "select readname from Reads where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
+        cur.execute(sql)
+        x = cur.fetchall()
+        readnames = Set([])
+        for ii in x:
+            readnames.add( ii[0] )
+         
+        """Open the file and write the header lines."""
+        fout = open(samoutpath, "w")
+        for hl in header_lines:
+            pass
+            fout.write(hl)
+         
+        """Walk through the original SAM file and copy relevant lines into the new SAM file."""
+        count_total = 0
+        fin = open(bowtie_sampath, "r")
+        for erg_line in fin.xreadlines():
+            if False == erg_line.startswith("@"):
+                this_readid = erg_line.split()[0]
+                if this_readid in readnames:
+                    """Copy the original line into the new SAM path, because this read satisfies what we're looking for."""
+                    count_total += 1
+                    fout.write(erg_line)
+         
+        fin.close()
+        fout.close()
+        
+        sql = "insert or replace into FilteredBowtieOutput (annoid, sampath) VALUES("
+        sql += annoid.__str__() + ",'" + samoutpath + "')"
+        cur.execute(sql)
+        con.commit()
+        
+        print "\n. I found", count_total, "reads for the new SAM file at", samoutpath
     

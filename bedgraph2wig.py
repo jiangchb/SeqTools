@@ -34,6 +34,16 @@ if len( sys.argv ) < 2:
     usage()
     exit()
 
+def splash():
+    print "\n"
+    print "======================================"
+    print "bedgraph2wig.py"
+    print ""
+    print "written by Victor Hanson-Smith"
+    print "victorhansonsmith@gmail.com"
+    print "======================================"
+
+
 bedgraphpath = sys.argv[1]
 if False == os.path.exists(bedgraphpath):
     print "I can't find you bedgraph file at " + bedgraphpath
@@ -52,7 +62,8 @@ printspan = 10000 # print an update every N sites
 count = 0
 last_seen_chrom = None
 fin = open(bedgraphpath, "r")
-fout = open(bedgraphpath + ".wig", "w")
+wigpath = re.sub(".bdg", "wig", bedgraphpath)
+fout = open(wigpath, "w")
 fout.write("track type=WIG\n")
 for l in fin.xreadlines():
     if l.__len__() > 2:

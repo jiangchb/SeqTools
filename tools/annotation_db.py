@@ -8,6 +8,9 @@ def build_anno_db(con):
     cur = con.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS Settings(keyword, value)")
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
+    
+    """All annotations will have an entry in BowtieOutput, but hybrid annotations will also
+    have an entry in FilteredBowtieOutput."""
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
@@ -17,6 +20,12 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(exp_annoid INTEGER primary key, control_annoid INTEGER, name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(exp_annoid INTEGER primary key, bdgpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS WigFiles(exp_annoid INTEGER primary key, org_bdgpath TEXT, wigpath TEXT)")
+    
+    """All annotations will be given an entry in SortedBamFiles."""
+    cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(annoid INTEGER primary key, bampath TEXT)")
     con.commit()
 
 def get_setting(keyword, con):
@@ -29,8 +38,28 @@ def get_setting(keyword, con):
     else:
         return None
 
+def get_name_for_macs(exp_annoid, control_annoid, con):
+    cur = con.cursor()
+    sql = "select count(*) from HybridPairs where annoid1=" + exp_annoid.__str__() + " or annoid2=" + exp_annoid.__str__()
+    cur.execute(sql)
+    count = cur.fetchone()[0]
+    
+    name = ""
+    if count > 0:
+        """This data is hybrid"""
+        sql = "select library_name, species from Annotations where annoid=" + exp_annoid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        name = x[0] + "-" + x[1]
+    else:
+        """Not a hybrid read."""
+        sql = "select library_name from Annotations where annoid=" + exp_annoid.__str__()
+        cur.execute(sql)
+        name = cur.fetchone()[0]
+    return name
+
 def get_macs_pairs(con):
-    """Returns pairs of experiment/control annoids."""
+    """Returns pairs of (experiment,control) annoids for MACS2 peak-calling."""
     pairs = [] #(treatment Id, control ID)
     
     cur = con.cursor()

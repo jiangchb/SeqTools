@@ -3,9 +3,10 @@
 # to fold-enrichment track and summit list.
 #
 
-import re, os, sys
+import re, os, sys, time
 from annotation_db import *
 from hybrid_tools import *
+from tools import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
@@ -14,11 +15,13 @@ DATADIR = "/Network/Servers/udp015817uds.ucsf.edu/Users/eugeniom/Documents/ChIP-
 x = ap.getOptionalArg("--datadir")
 if x != False:
     DATADIR = x
+
 """In what directory should output be written?"""
 OUTDIR = "./"
 x = ap.getOptionalArg("--outdir")
 if x != False:
     OUTDIR = x
+
 """Path to annotation file, describining FASTQ files."""
 APATH = "mancera_chipseq_sample_annotation.txt"
 x = ap.getOptionalArg("--annopath")
@@ -27,19 +30,16 @@ if x != False:
 DBPATH = ap.getOptionalArg("--dbpath")
 if DBPATH == False:
     DBPATH = APATH + ".db"
+    
+PROJECT_NAME = ap.getArg("--project_name")
+
 """Software Paths:"""
 BOWTIE2 = "bowtie2"
-SAMTOOLS = "samtools -Sbu" # samtools view -Sbu in.sam | samtools sort - in.sorted
-"""restricts analysis to only those annotation lines whose sample column is this value."""
-restrict_to_sample = ap.getOptionalArg("--restrict_to_sample")
-"""Jump allows for some steps to be skipped."""
-jump = ap.getOptionalArg("--jump")
-if jump == False:
-    jump = 0
-else:
-    jump = int(jump)
+SAMTOOLS = "samtools"
+MPIRUN = "mpirun -np 6 --machinefile hosts.txt /common/bin/mpi_dispatch"
+MACS2 = "/common/REPOSITORY/MACS2-2.0.10.07132012/bin/macs2"
+SEQTOOLSDIR = "~/Applications/SeqTools"
 
-    
 def splash():
     print "============================================="
     print " run_from_anno.py"
@@ -49,11 +49,26 @@ def splash():
 
 splash()
 
+
+"""restricts analysis to only those annotation lines whose sample column is this value."""
+restrict_to_sample = ap.getOptionalArg("--restrict_to_sample")
+
+PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
+
+"""Jump allows for some steps to be skipped."""
+jump = ap.getOptionalArg("--jump")
+if jump == False:
+    jump = 0
+else:
+    jump = float(jump)
+    
 """Build or restore the DB"""
 con = get_db(DBPATH)
 cur = con.cursor()
 
-
+sql = "delete from Settings"
+cur.execute(sql)
+con.commit()
 """Write the settings into the DB"""
 sql = "insert or replace into Settings (keyword, value) VALUES('bowtie2','" + BOWTIE2 + "')"
 cur.execute(sql)
@@ -61,7 +76,23 @@ sql = "insert or replace into Settings (keyword, value) VALUES('datadir','" + DA
 cur.execute(sql)
 sql = "insert or replace into Settings (keyword, value) VALUES('outdir','" + OUTDIR + "')"
 cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('samtools','" + SAMTOOLS + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('macs2','" + MACS2 + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('seqtoolsdir','" + SEQTOOLSDIR + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('mpirun','" + MPIRUN + "')"
+cur.execute(sql)
 sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
+cur.execute(sql)
+sql = "insert or replace into Settings (keyword, value) VALUES('project_name','" + PROJECT_NAME + "')"
+cur.execute(sql)
+x = 0
+if PRACTICE_MODE:
+    print "\n. Practice Mode Enabled."
+    x = 1
+sql = "insert or replace into Settings (keyword, value) VALUES('practice_mode','" + x.__str__() + "')"
 cur.execute(sql)
 con.commit()
 
@@ -72,10 +103,13 @@ cur.execute(sql)
 count = cur.fetchone()[0]
 print "\n. I found", count, "annotations in the database."
 
-
-
 """Run Bowtie2 for each FASTQ path"""
 if jump <= 1:
+    """Clear previous Bowtie output paths."""
+    sql = "delete from BowtieOutput"
+    cur.execute(sql)
+    con.commit()
+    
     bowtie_commands = []
     sql = "select annoid, fastqpath, species from Annotations"
     cur.execute(sql)
@@ -117,13 +151,20 @@ if jump <= 1:
         sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
         cur.execute(sql)
         con.commit()
+        
+    fout = open("bowtie_commands.sh", "w")
+    for c in bowtiw_commands:
+        fout.write(c + "\n")
+    fout.close()
     
-    #print "\n. Launching Bowtie2 with the following command:"
-    #for c in bowtie_commands:
-    #    pass
-        #print c
+    print "\n. Launching Bowtie2 with the following command:"
+    for c in bowtie_commands:
+        os.system(c)
 
-"""Process Hybrid Reads into special SAM files."""
+"""
+    Step 2: Hybrid-related stuff
+"""
+
 if jump <= 2:
     sql = "select * from Hybrids"
     cur.execute(sql)
@@ -141,17 +182,60 @@ if jump <= 2:
             chrom_filter = None
         extract_perfect_reads(annoid, con, chrom_filter=chrom_filter)
 
-"""Remove hybrid reads that aren't unique."""
-if jump <= 3:
+"""Build a map of which annotations map to which species."""
+if jump <= 2.1:
     get_hybrid_pairs(con)
-    
-if jump <= 4:
+
+"""Remove hybrid reads that map to both parental genomes."""    
+if jump <= 2.3:
     find_hybrid_unique_reads(con)
-    
-    
-    
-"""Get pairs of experiment-control for MACS2 peak-calling."""
-get_macs_pairs(con)
+
+if jump <= 2.4:
+    """Write SAM files for hybrid reads, containing only those reads that
+    are 100% match and unique to each parent genome."""
+    write_filtered_sam(con)
+
+if jump <= 3:
+    """Convert SAM files to sorted BAM files."""
+    write_sorted_bam(con)
+
+if jump <= 3.1:
+    """Verify the SAM -> sorted BAM occurred correctly."""
+    check_bams(con)
+
+if jump <= 4:
+    """Launch MACS2"""
+    run_peak_calling(con)
+
+#
+# check macs output
+if jump <= 4.1:
+    check_peaks(con)
+
+#
+# make BDG for F-E
+if jump <= 5:
+    calculate_fe(con)
+
+if jump <= 5.1:
+    check_fe(con)
+
+if jump <= 6:
+    bed2wig(con)
+
+if jump <= 6.1:
+    check_wig(con)
+
+#
+# write config
+if jump <= 7:
+    write_viz_config(con)
+
+#
+# launch APRES
+
+if jump <= 100:
+    print_read_stats(con)
 
 exit()
 
