@@ -7,7 +7,7 @@
 # This script will convert BEDgraph files into WIG files.
 #
 
-import os, sys
+import os, re, sys
 
 def usage():
     print "\n"
@@ -62,7 +62,8 @@ printspan = 10000 # print an update every N sites
 count = 0
 last_seen_chrom = None
 fin = open(bedgraphpath, "r")
-wigpath = re.sub(".bdg", "wig", bedgraphpath)
+wigpath = re.sub(".bdg", ".wig", bedgraphpath)
+print wigpath
 fout = open(wigpath, "w")
 fout.write("track type=WIG\n")
 for l in fin.xreadlines():

@@ -1,3 +1,4 @@
+from annotation_db import *
 import re, os, sys
 from sets import Set
 
@@ -60,7 +61,7 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
                         if chrom not in cflist:
                             continue
                     inserted += 1
-                    sql = "insert into Reads(readname,annoid,mismatch,order) VALUES("
+                    sql = "insert into Reads(readname,annoid,mismatch,order_seen) VALUES("
                     sql += "'" + readname + "',"
                     sql += annoid.__str__() + ",0," + inserted.__str__() + ")"
                     cur.execute(sql)
@@ -125,7 +126,7 @@ def find_hybrid_unique_reads(con):
         
         """Process unique reads for the first species."""
         unique_read_names = names1.difference(names2)
-        print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
+        #print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
 
         #
         # continue here
@@ -136,65 +137,72 @@ def find_hybrid_unique_reads(con):
 
         """Sanity Check"""
         """ The first read of unique_read_names should have just one entry in Reads"""
-        rqqq = next(iter(unique_read_names))
-        sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
-        cur.execute(sql)
-        count = cur.fetchone()[0]
-        if count > 1:
-            print "\n. We have a problem - python 153"
-            print ".", rqqq, annoid1, annoid2
-            exit()        
-
-        """Write the Unique reads to the UniqueReads table."""
-        print "\n. Updating the table UniqueReads"
-        count = 0
-        total_count = names1.__len__()
-        for name in unique_read_names:
-            count += 1
-            if count%10000 == 0:
-                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-                sys.stdout.flush()
-                con.commit()
-            
-            readid = set1[name]
-            sql = "insert into UniqueReads(readid, annoid) VALUES("
-            sql += readid.__str__() + ","
-            sql += annoid1.__str__() + ")"
-            cur.execute(sql)        
+        if len(unique_read_names) == 0:
+            print "\n. Warning: There are no reads that map uniquely to annotation ", annoid1
+        else:
+            rqqq = next(iter(unique_read_names))
+            sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
+            cur.execute(sql)
+            count = cur.fetchone()[0]
+            if count > 1:
+                print "\n. We have a problem - python 153"
+                print ".", rqqq, annoid1, annoid2
+                exit()        
+    
+            """Write the Unique reads to the UniqueReads table."""
+            print "\n. Updating the table UniqueReads"
+            count = 0
+            total_count = names1.__len__()
+            for name in unique_read_names:
+                count += 1
+                if count%10000 == 0:
+                    sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+                    sys.stdout.flush()
+                    con.commit()
+                
+                readid = set1[name]
+                sql = "insert into UniqueReads(readid, annoid) VALUES("
+                sql += readid.__str__() + ","
+                sql += annoid1.__str__() + ")"
+                cur.execute(sql)        
         
         """Repeat for the second species."""
         unique_read_names = names2.difference(names1)
         print "\n. N unique reads in", annoid2,"=", unique_read_names.__len__(), "of", names2.__len__(), "total reads."
+        
+        if len(unique_read_names) == 0:
+            print "\nWarning: There are no reads that map uniquely to annotation ", annoid2
+        else:
          
-        # see not above: this difference call could be eliminated.
-        # continue here
-        # to-do
-         
-        rqqq = next(iter(unique_read_names))
-        sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
-        cur.execute(sql)
-        count = cur.fetchone()[0]
-        if count > 1:
-            print "\n. We have a problem - python 153"
-            print ".", rqqq, annoid1, annoid2
-            exit()
-    
-        unique_readids = []
-        count = 0
-        total_count = names2.__len__()
-        for name in unique_read_names:
-            count += 1
-            if count%10000 == 0:
-                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-                sys.stdout.flush()
-                con.commit()
-                
-            readid = set2[name]
-            sql = "insert into UniqueReads(readid, annoid) VALUES("
-            sql += readid.__str__() + ","
-            sql += annoid2.__str__() + ")"
-            cur.execute(sql)            
-        con.commit()
+            # see not above: this difference call could be eliminated.
+            # continue here
+            # to-do
+        
+            rqqq = next(iter(unique_read_names))
+            sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
+            cur.execute(sql)
+            count = cur.fetchone()[0]
+            if count > 1:
+                print "\n. We have a problem - python 153"
+                print ".", rqqq, annoid1, annoid2
+                exit()
+        
+            unique_readids = []
+            count = 0
+            total_count = names2.__len__()
+            for name in unique_read_names:
+                count += 1
+                if count%10000 == 0:
+                    sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+                    sys.stdout.flush()
+                    con.commit()
+                    
+                readid = set2[name]
+                sql = "insert into UniqueReads(readid, annoid) VALUES("
+                sql += readid.__str__() + ","
+                sql += annoid2.__str__() + ")"
+                cur.execute(sql)            
+            con.commit()
         
         """Now check what we inserted."""
         sql = "select count(*) from UniqueReads where annoid=" + annoid1.__str__()
@@ -287,7 +295,7 @@ def write_filtered_sam(con):
         fin.close()
          
         """Finally, write the new SAM file."""
-        sql = "select readname from Reads order by order_seen where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
+        sql = "select readname from Reads where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ") order by Reads.order_seen"
         cur.execute(sql)
         x = cur.fetchall()
         

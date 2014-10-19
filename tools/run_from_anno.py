@@ -40,6 +40,9 @@ else:
 if jump <= 1:
     run_bowtie(con)
 
+if jump <= 1.1:
+    check_bowtie_output(con)
+
 """Hybrid only: find non-mismatch reads."""
 if jump <= 2:
     sql = "select * from Hybrids"

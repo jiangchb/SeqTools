@@ -38,11 +38,11 @@ def run_bowtie(con):
         
         """Path to directory with genome sequences"""
         if species == "Cdub":
-            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
+            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
         if species == "Calb":
-            c += " -x /Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
+            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
         if species == "Ctro":
-            c += " -x /Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
+            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
         bowtie_commands.append(c)
         
         sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
@@ -57,9 +57,25 @@ def run_bowtie(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
+        #pass
         os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
         #for c in bowtie_commands:
         #    os.system(c)
+
+def check_bowtie_output(con):
+    cur = con.cursor()
+    sql = "select annoid, sampath from BowtieOutput"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        annoid = ii[0]
+        sampath = ii[1]
+        if False == os.path.exists( sampath ):
+            print "\n. Error, I can't find your BowtieOutput file at", sampath
+            exit()
+    print "\n. Bowtie Output is OK."
+    return
+
 
 def write_sorted_bam(con, delete_sam = True):
     """Writes sorted BAM files for all SAM files.
@@ -120,13 +136,13 @@ def write_sorted_bam(con, delete_sam = True):
         x = cur.fetchall()
         for ii in x:
             sampath = ii[0]
-            os.system("rm " + sampath)
+            #os.system("rm " + sampath)
         sql = "select sampath from FilteredBowtieOutput"
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
             sampath = ii[0]
-            os.system("rm " + sampath)
+            #os.system("rm " + sampath)
 
 def check_bams(con):
     """Will exit on error."""
@@ -213,11 +229,11 @@ def check_peaks(con):
         peaks = ii[2] + "_peaks.bed"
         summits = ii[2] + "_summits.bed"
         
-        outpaths = [tbdg, cdbg, peaks, summits]
+        outpaths = [tbdg, cbdg, peaks, summits]
         for f in outpaths:    
             #outbdg = ii[2] + "_output_FE.bdg"
             if False == os.path.exists(f):
-                print "\n. I can't find the MACS2 output file", tbdg
+                print "\n. Error, I can't find the MACS2 output file", tbdg
                 exit()
     return
 
@@ -257,7 +273,6 @@ def calculate_fe(con):
     
     if get_setting("practice_mode", con) == "0":
         os.system( get_setting("mpirun",con) + " fe_commands.sh" )
-    exit()
 
 def check_fe(con):
     cur = con.cursor()
