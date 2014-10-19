@@ -21,6 +21,7 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(exp_annoid INTEGER primary key, control_annoid INTEGER, name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsPeakPaths(exp_annoid INTEGER primary key, treatment_pileup_path TEXT, control_lambda_path TEXT, peaks_path TEXT, summits_path TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(exp_annoid INTEGER primary key, bdgpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS WigFiles(exp_annoid INTEGER primary key, org_bdgpath TEXT, wigpath TEXT)")
     
@@ -118,6 +119,10 @@ def get_db(dbpath):
 
 
 def import_annotations(apath, con):
+    #
+    # continue here -- it's not reading all the annotations correctly!
+    #
+    
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
     if False == os.path.exists(apath):
         print "\n. Error, I can't find your annotation file at", apath
@@ -132,7 +137,9 @@ def import_annotations(apath, con):
         for lt in ls:
             lines.append( lt )
     
+    """We parse all the lines, EXCEPT the header line."""
     for l in lines[1:]:
+        #print "142:", l
         tokens = l.split()
         if tokens.__len__() > 2:
             sample = tokens[0]
@@ -142,9 +149,11 @@ def import_annotations(apath, con):
                     continue
             fastq = tokens[3]
             id = tokens[1]
+            
+            """Split the species token into (potentially) multiple tokens, seperated by underscores.
+            This allows for hybrid species to be separated into two annocations, one for each parent species."""
             species = tokens[5]
             st = species.split("_")
-
             for species in st:
                 if st.__len__() > 1:
                     id = tokens[1] + "-" + species
@@ -161,13 +170,13 @@ def import_annotations(apath, con):
                 cur.execute(sql)
                 count = cur.fetchone()[0]
                 if count == 0:
-                    print tokens
                     sql = "INSERT OR REPLACE INTO Annotations (sample, library_name, indexi, fastqpath, strain, species, tf, tag, media, condition, replicate, comment)"
                     sql += " VALUES('" + sample + "','" + tokens[1] + "'," + int(tokens[2]).__str__() + ",'" + fastq
                     sql += "','" + tokens[4] + "','" + species + "','" + tokens[6]
                     sql += "'," + tag.__str__() + ",'" + tokens[8] + "','" + tokens[9] + "'," + int(tokens[10]).__str__()
                     sql += ",'" + tokens[11] 
                     sql += "')"
+                    #print sql
                     cur.execute(sql)
                     con.commit()
                 
@@ -178,12 +187,13 @@ def import_annotations(apath, con):
                 annoid = x[0][0]
                 #print ". inserted annotation #", annoid, tokens[1], species
                 
+                """If it's a hybrid, then remember this for later."""
                 if st.__len__() > 1:
                     sql = "insert or replace into Hybrids(annoid, species1, species2) "
                     sql += "VALUES('" + annoid.__str__() + "','" + st[0] + "','" + st[1] + "')"
                     cur.execute(sql)
-                    con.commit()
-                    #print ".", annoid, "is a hybrid", st[0], st[1]               
+                    #print sql
+                    con.commit()           
     return con
 
 def get_hybrid_pairs(con):
@@ -237,11 +247,5 @@ def get_hybrid_pairs(con):
         sql += annoid.__str__() + "," + pair_id.__str__() + ")"
         cur.execute(sql)
         con.commit()
-    
-    sql = "select * from HybridPairs"
-    cur.execute(sql)
-    x = cur.fetchall()
-    for ii in x:
-        print ii
-            
+                
             

@@ -74,7 +74,7 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
     cur.execute(sql)
     count = cur.fetchone()[0]
     ratio = float(count)/total
-    print "\n. OK, I found", count, "perfect reads out of", total, "reads (",ratio,") in", sampath
+    print "\n\t--> I found", count, "perfect reads out of", total, "reads. (%.3f)"%ratio
     fin.close()
     #fout.close()
     
@@ -279,8 +279,8 @@ def write_filtered_sam(con):
             """Hybrids get a special SAM path"""
             samoutpath = re.sub(".fastq", "-" + species + ".unique.sam", fastq)
         
-        print "\n. I'm writing the perfect reads that are unique to", library_name, "to a new SAM file:"
-        print ". ", samoutpath
+        print "\n. I'm writing the perfect reads that are unique in", library_name, "to a new SAM file:"
+        print "\t", samoutpath
         
         """Read the header from the original SAM file."""
         sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()

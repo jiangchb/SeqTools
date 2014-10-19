@@ -27,7 +27,14 @@ cur = con.cursor()
 sql = "select count(*) from Annotations"
 cur.execute(sql)
 count = cur.fetchone()[0]
-print "\n. I found", count, "annotations in the database."
+print "\n\t--> I found", count, "annotations in the database."
+
+# sql = "select * from Annotations"
+# cur.execute(sql)
+# x = cur.fetchall()
+# for ii in x:
+#     print ii
+# exit()
 
 """Jump allows for some steps to be skipped."""
 jump = ap.getOptionalArg("--jump")
@@ -105,6 +112,8 @@ if jump <= 7:
     write_viz_config(con)
 #
 # launch APRES
+if jump <= 8:
+    launch_viz(con)
 
 if jump <= 100:
     print_read_stats(con)

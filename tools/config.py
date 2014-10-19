@@ -35,6 +35,7 @@ def read_cli(ap):
     MPIRUN = "mpirun -np 11 --machinefile hosts.txt /common/bin/mpi_dispatch"
     MACS2 = "/common/REPOSITORY/MACS2-2.0.10.07132012/bin/macs2"
     SEQTOOLSDIR = "~/Applications/SeqTools"
+    PILLARSPATH = "/Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/Pillars.tab.txt"
         
     """restricts analysis to only those annotation lines whose sample column is this value."""
     restrict_to_sample = ap.getOptionalArg("--restrict_to_sample")
@@ -66,6 +67,8 @@ def read_cli(ap):
     sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('project_name','" + PROJECT_NAME + "')"
+    cur.execute(sql)
+    sql = "insert or replace into Settings (keyword, value) VALUES('pillars_path','" + PILLARSPATH + "')"
     cur.execute(sql)
     
     chrom_filters = ap.getOptionalList("--chrom_filter")

@@ -58,12 +58,12 @@ if False == os.path.exists(bedgraphpath):
 # keys.
 #sites = []
 
-printspan = 10000 # print an update every N sites
+printspan = 100000 # print an update every N sites
 count = 0
 last_seen_chrom = None
 fin = open(bedgraphpath, "r")
 wigpath = re.sub(".bdg", ".wig", bedgraphpath)
-print wigpath
+print "\n. Converting BDG->WIG:", bedgraphpath, "-->", wigpath
 fout = open(wigpath, "w")
 fout.write("track type=WIG\n")
 for l in fin.xreadlines():
@@ -93,6 +93,7 @@ for l in fin.xreadlines():
             #site_value[ii] = value
             if count%printspan == 0:
                 sys.stdout.write(".")
+                sys.stdout.flush()
             count += 1
             fout.write(ii.__str__() + "\t" + value + "\n")
 fin.close()

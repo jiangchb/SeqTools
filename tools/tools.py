@@ -209,7 +209,7 @@ def run_peak_calling(con):
         sql += ",'" + get_name_for_macs(exp_annoid, control_annoid, con) + "')"
         cur.execute(sql)
         con.commit()
-        
+    
     fout = open("macs_commands.sh", "w")
     for c in macs_commands:
         fout.write(c + "\n")
@@ -220,21 +220,33 @@ def run_peak_calling(con):
 
 def check_peaks(con):
     cur = con.cursor()
+    
+    sql = "delete from MacsPeakPaths"
+    cur.execute(sql)
+    con.commit()
+    
     sql = "select exp_annoid, control_annoid, name from MacsRun"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
+        exp_annoid = ii[0]
         tbdg = ii[2] + "_treat_pileup.bdg"
         cbdg = ii[2] + "_control_lambda.bdg"
         peaks = ii[2] + "_peaks.bed"
         summits = ii[2] + "_summits.bed"
-        
+    
         outpaths = [tbdg, cbdg, peaks, summits]
         for f in outpaths:    
             #outbdg = ii[2] + "_output_FE.bdg"
             if False == os.path.exists(f):
                 print "\n. Error, I can't find the MACS2 output file", tbdg
                 exit()
+                
+        """Update the SQL db."""
+        sql = "insert or replace into MacsPeakPaths(exp_annoid, treatment_pileup_path, control_lambda_path, peaks_path, summits_path) VALUES("
+        sql += exp_annoid.__str__() + ",'" + tbdg + "','" + cbdg + "','" + peaks + "','" + summits + "')"
+        cur.execute(sql)
+        con.commit()
     return
 
 def calculate_fe(con):
@@ -284,7 +296,7 @@ def check_fe(con):
         if False == os.path.exists(bdgpath):
             print "\n. Error, I can't find the BDG file at", bdgpath
             exit()
-    print "\n. FE bedgraphs OK."
+    print "\n. The fold-enrichment bedgraph files are OK."
     return
 
 def bed2wig(con):
@@ -315,7 +327,6 @@ def bed2wig(con):
 
     fout = open("run_bed2wig.sh", "w")
     for c in commands:
-        print c
         fout.write(c + "\n")
     fout.close()
     
@@ -342,6 +353,9 @@ def write_viz_config(con):
     cur = con.cursor()
     
     configpath = get_setting("project_name", con) + ".config"
+    sql = "insert or replace into Settings (keyword, value) VALUES('viz_configpath','" + configpath + "')"
+    cur.execute(sql)
+    con.commit()
     
     species = []
     sql = "select distinct species from Annotations"
@@ -349,27 +363,33 @@ def write_viz_config(con):
     x = cur.fetchall()
     for ii in x:
         species.append( ii[0] )
-        
+    
+    fout = open(configpath, "w")
+    
     for s in species:
+        fout.write("SPECIES " + s + "\n")
+        fout.write("NAME = " + s + "\n")
+        
+        if s == "Cdub":
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_dubliniensis_CD36_version_s01-m02-r08_features.gff\n")
+        if s == "Calb":
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_albicans_SC5314_A21_current_features.gff\n")
+        if s == "Ctro":
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
+        
         repgroups = []
+        sql = "select distinct strain  from Annotations where species='" + s + "'"
+        sql += " and Annotations.annoid in (select exp_annoid from MacsRun)"
         
-        # A hack for Eugenio's data, in which the library_names are maybe wrong?
-#         sql = "select library_name from Annotations where species='" + s + "'"
-#         cur.execute(sql)
-#         x = cur.fetchall()
-#         for ii in x:
-#             strain_name = ii[0].split("_")[2]
-#             repgroups.append(strain_name)
-        
-        # But normally do this instead...
-        sql = "select distinct strain from Annotations where species='" + s + "'"
+        #sql = "select distinct strain from Annotations where species='" + s + "'"
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
             strain = ii[0]
             repgroups.append( strain )
-        
         for strain in repgroups:
+            fout.write("\tREPGROUP " + strain + "\n")
+            
             replicates = []
             sql = "select distinct replicate from Annotations where species='" + s + "' and strain='" + strain + "'"
             cur.execute(sql)
@@ -377,18 +397,47 @@ def write_viz_config(con):
             for ii in x:
                 replicates.append( ii[0] )
             
-            annoids = []
             for repid in replicates:
-                sql = "select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + repid.__str__()
+                fout.write("\tREPLICATE " + repid.__str__() + "\n")
+                annoids = []
+                #sql += "where "
+                sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + repid.__str__() + ")"
                 cur.execute(sql)
                 x = cur.fetchall()
                 for ii in x:
                     annoids.append( ii[0] )
                 
-            for annoid in annoids:
-                print s, strain, repid, annoids
-                #
-                # continue here
-                #
+                for id in annoids:
+                    sql = "select summits_path from MacsPeakPaths where exp_annoid=" + id.__str__()
+                    cur.execute(sql)
+                    x = cur.fetchall()
+                    if x.__len__() < 1:
+                        print "\n. An error occurred. Checkpoing 413"
+                        exit()
+                    summitpath = x[0][0]
+                    fout.write("\tSUMMITS = " + summitpath + "\n")
+
+                    sql = "select bdgpath from MacsFE where exp_annoid=" + id.__str__()
+                    cur.execute(sql)
+                    x = cur.fetchall()
+                    if x.__len__() < 1:
+                        print "\n. An error occurred. Checkpoing 413"
+                        exit()
+                    bdgpath = x[0][0]
+                    fout.write("\tENRICHMENTS = " + bdgpath + "\n")
                 
+                pass
+    fout.close()
+
+def launch_viz(con):
+    cur = con.cursor()
+    pname = get_setting("project_name", con)
+    vcpath = get_setting("viz_configpath", con)
+    
+    c = "python ~/Applications/SeqTools/apres.py "
+    c += "--dbpath " + pname + ".viz.db"
+    c += " --pillarspath " + get_setting("pillars_path", con)
+    c += " --configpath " + vcpath
+    print c
+    
     
