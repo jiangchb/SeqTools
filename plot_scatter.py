@@ -192,8 +192,14 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     cranstr += "pdf(\"" + pdfpath + "\", width=" + (12*height).__str__() + ", height=" + (3*height).__str__() + ");\n"    
     cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"  
     colwidth = 1.0 / (4.0 * float(height-1))
+    if height == 1:
+        colwidth = 0.25
     rowheight = 1.0 / float(height-1)
+    if height == 1:
+        rowheight = 1.0
     gridsize = ( (height-1)*(height-1) - (height-2)*(0.5*(height-1))) # the number of scatterplots in each grid.
+    if height == 1:
+        gridsize = 1.0
     
     
     """value_pairs is a list of pairs (ii,jj) where ii and jj are indices into values.

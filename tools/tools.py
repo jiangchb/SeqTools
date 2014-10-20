@@ -388,7 +388,7 @@ def write_viz_config(con):
             strain = ii[0]
             repgroups.append( strain )
         for strain in repgroups:
-            fout.write("\tREPGROUP " + strain + "\n")
+            fout.write("\tREPGROUP " + strain + "-" + s + "\n")
             
             replicates = []
             sql = "select distinct replicate from Annotations where species='" + s + "' and strain='" + strain + "'"
@@ -397,11 +397,11 @@ def write_viz_config(con):
             for ii in x:
                 replicates.append( ii[0] )
             
-            for repid in replicates:
-                fout.write("\tREPLICATE " + repid.__str__() + "\n")
+            for ii in range(0, replicates.__len__() ):
+                fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
                 annoids = []
                 #sql += "where "
-                sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + repid.__str__() + ")"
+                sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + replicates[ii].__str__() + ")"
                 cur.execute(sql)
                 x = cur.fetchall()
                 for ii in x:
@@ -415,7 +415,7 @@ def write_viz_config(con):
                         print "\n. An error occurred. Checkpoing 413"
                         exit()
                     summitpath = x[0][0]
-                    fout.write("\tSUMMITS = " + summitpath + "\n")
+                    fout.write("\t\tSUMMITS = " + summitpath + "\n")
 
                     sql = "select bdgpath from MacsFE where exp_annoid=" + id.__str__()
                     cur.execute(sql)
@@ -424,7 +424,7 @@ def write_viz_config(con):
                         print "\n. An error occurred. Checkpoing 413"
                         exit()
                     bdgpath = x[0][0]
-                    fout.write("\tENRICHMENTS = " + bdgpath + "\n")
+                    fout.write("\t\tENRICHMENTS = " + bdgpath + "\n")
                 
                 pass
     fout.close()
@@ -434,10 +434,15 @@ def launch_viz(con):
     pname = get_setting("project_name", con)
     vcpath = get_setting("viz_configpath", con)
     
+    vizdbpath = pname + ".viz.db"
+    if os.path.exists(vizdbpath):
+        os.system("rm -rf " + vizdbpath)
+    
     c = "python ~/Applications/SeqTools/apres.py "
-    c += "--dbpath " + pname + ".viz.db"
+    c += "--dbpath " + vizdbpath
     c += " --pillarspath " + get_setting("pillars_path", con)
     c += " --configpath " + vcpath
-    print c
+    if get_setting("practice_mode", con) == "0":
+        os.system(c)
     
     

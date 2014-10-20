@@ -634,7 +634,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     repgroupname = get_repgroup_name(rgroupid, con) 
     repids = get_repids_in_group(rgroupid, con)
     repid_repname = {}
-    
+       
     """Get display names for the replicates."""
     for repid in repids:
         sql = "SELECT name from Replicates where id=" + repid.__str__()
@@ -653,16 +653,6 @@ def plot_summits_for_reps_in_group(rgroupid, con):
         print ". Please fix your configuration file."
         exit()
 
-    """Venn diagram of genes with/without summits in both replicates."""
-    venn_data = {}
-    for repid in repids:
-        venn_data[ repid_repname[repid] ] = []
-        x = get_geneids_with_summits(con, repid)
-        for ii in x:
-            venn_data[ repid_repname[repid] ].append(ii[0]) # NOTE: ii[0] is a gene ID
-    vennpath = plot_venn_diagram( venn_data, repgroupname + ".summits")
-    add_repgroupfile(vennpath, rgroupid, "Venn diagram comparing genes with summits for replicategroup " + repgroupname, con)
-    
     seen_genes = []
     gene_repid_npeaks = {}
     gene_repid_maxsummitid = {}
@@ -768,6 +758,21 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     
     """Register the Excel file in the database."""
     add_repgroupfile(xlpath, rgroupid, "Excel table with summit stats for replicate group " + repgroupname, con)
+
+    """If there's only one replicate in this group, then we're done."""
+    if repids.__len__() < 2:
+        return
+
+    """Venn diagram of genes with/without summits in both replicates."""
+    venn_data = {}
+    for repid in repids:
+        venn_data[ repid_repname[repid] ] = []
+        x = get_geneids_with_summits(con, repid)
+        for ii in x:
+            venn_data[ repid_repname[repid] ].append(ii[0]) # NOTE: ii[0] is a gene ID
+    vennpath = plot_venn_diagram( venn_data, repgroupname + ".summits")
+    add_repgroupfile(vennpath, rgroupid, "Venn diagram comparing genes with summits for replicategroup " + repgroupname, con)
+    
 
     """ Plot score and rank correlations."""
     repid_qvals = {} # key = repid, value = list of Q values for summits
@@ -1505,7 +1510,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     
     if repids == None:
         repids = get_repids_in_group(rgroupid, con)
-    
+        
     repid_repname = {}
     for repid in repids:
         cur.execute("SELECT name from Replicates where id=" + repid.__str__())
@@ -1535,6 +1540,9 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         scatter_rank.append( x_ranke )
         #scatter_geneid.append( geneids )
 
+    """If there's only one replicate in this group, then we're done."""
+    if repids.__len__() < 2:
+        return
     
     scatter_data = scatter_max + scatter_mean + scatter_sum + scatter_max
     scatter_names = []
@@ -1600,7 +1608,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                             #print sql
                             cur.execute(sql)
     con.commit()
-            
+
     """Write an Excel Table"""
     xlpath = repgroupname + ".enrich.xls"
     print "\n. Writing a table with fold-enrichment and IDR to", xlpath
@@ -1641,6 +1649,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     """Add an entry to the SQL database, listing the Excel file."""
     add_repgroupfile(xlpath,rgroupid,"Excel table with enrichment stats for replicate group " + repgroupname, con)
 
+            
 def plot_summits_vs_enrichments_for_replicates(repids, con):
     cur = con.cursor()
     
