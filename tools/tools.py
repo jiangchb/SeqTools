@@ -33,7 +33,8 @@ def run_bowtie(con):
         if count > 0:
             """Hybrids get a special SAM path"""
             samoutpath = re.sub(".fastq", "-" + species + ".sam", fastq)
-        c += " -S " + get_setting("outdir",con) + "/" + samoutpath
+            samoutpath = get_setting("outdir",con) + "/" + samoutpath
+        c += " -S " + samoutpath
         c += " --no-unal "
         
         """Path to directory with genome sequences"""
@@ -57,10 +58,7 @@ def run_bowtie(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        #pass
         os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
-        #for c in bowtie_commands:
-        #    os.system(c)
 
 def check_bowtie_output(con):
     cur = con.cursor()
@@ -77,7 +75,9 @@ def check_bowtie_output(con):
     return
 
 
-def write_sorted_bam(con, delete_sam = True):
+def write_sorted_bam(con):
+    print "\n. Writing sorted BAM files."
+    
     """Writes sorted BAM files for all SAM files.
     if delete_sam == True, then the original SAM file will be deleted."""
     pairs = [] # list of (annoid, sampath) pairs.
@@ -120,31 +120,16 @@ def write_sorted_bam(con, delete_sam = True):
         cur.execute(sql)
         con.commit()
 
-    if get_setting("practice_mode",con) == "0":
-        fout = open("run_sam2bam.sh", "w")
-        for c in samtools_commands:
-            fout.write(c + "\n")
-        fout.close()
-
-        mpirun = get_setting("mpirun", con)
-        os.system(mpirun + " run_sam2bam.sh")
+    fout = open("run_sam2bam.sh", "w")
+    for c in samtools_commands:
+        fout.write(c + "\n")
+    fout.close()
     
-    if delete_sam == True and get_setting("practice_mode",con) == "0":
-        """Delete the original SAM files."""
-        sql = "select sampath from BowtieOutput"
-        cur.execute(sql)
-        x = cur.fetchall()
-        for ii in x:
-            sampath = ii[0]
-            #os.system("rm " + sampath)
-        sql = "select sampath from FilteredBowtieOutput"
-        cur.execute(sql)
-        x = cur.fetchall()
-        for ii in x:
-            sampath = ii[0]
-            #os.system("rm " + sampath)
-
-def check_bams(con):
+    
+    if get_setting("practice_mode",con) == "0":
+        os.system(get_setting("mpirun", con) + " run_sam2bam.sh")
+    
+def check_bams(con, delete_sam = True):
     """Will exit on error."""
     cur = con.cursor()        
     sql = "select annoid from Annotations"
@@ -161,6 +146,22 @@ def check_bams(con):
         if False == os.path.exists( bampath ):
             print "\n. Error, I can't find your BAM file at", bampath
             exit()
+    
+    """At this point, all the BAMs look good."""
+    if delete_sam == True and get_setting("practice_mode",con) == "0":
+        """Delete the original SAM files."""
+        sql = "select sampath from BowtieOutput"
+        cur.execute(sql)
+        x = cur.fetchall()
+        for ii in x:
+            sampath = ii[0]
+            os.system("rm " + sampath)
+        sql = "select sampath from FilteredBowtieOutput"
+        cur.execute(sql)
+        x = cur.fetchall()
+        for ii in x:
+            sampath = ii[0]
+            os.system("rm " + sampath)
     return
 
 def run_peak_calling(con):
@@ -352,7 +353,7 @@ def check_wig(con):
 def write_viz_config(con):
     cur = con.cursor()
     
-    configpath = get_setting("project_name", con) + ".config"
+    configpath = get_setting("outdir", con) + "/" + get_setting("project_name", con) + ".config"
     sql = "insert or replace into Settings (keyword, value) VALUES('viz_configpath','" + configpath + "')"
     cur.execute(sql)
     con.commit()
@@ -434,7 +435,7 @@ def launch_viz(con):
     pname = get_setting("project_name", con)
     vcpath = get_setting("viz_configpath", con)
     
-    vizdbpath = pname + ".viz.db"
+    vizdbpath = get_setting("outdir", con) + "/" + pname + ".viz.db"
     if os.path.exists(vizdbpath):
         os.system("rm -rf " + vizdbpath)
     

@@ -126,7 +126,7 @@ def find_hybrid_unique_reads(con):
         
         """Process unique reads for the first species."""
         unique_read_names = names1.difference(names2)
-        #print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
+        print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
 
         #
         # continue here
@@ -164,7 +164,10 @@ def find_hybrid_unique_reads(con):
                 sql = "insert into UniqueReads(readid, annoid) VALUES("
                 sql += readid.__str__() + ","
                 sql += annoid1.__str__() + ")"
-                cur.execute(sql)        
+                cur.execute(sql)  
+        
+        sys.stdout.write("\r    --> %100.0f\n")
+        sys.stdout.flush()      
         
         """Repeat for the second species."""
         unique_read_names = names2.difference(names1)
@@ -203,6 +206,9 @@ def find_hybrid_unique_reads(con):
                 sql += annoid2.__str__() + ")"
                 cur.execute(sql)            
             con.commit()
+        
+        sys.stdout.write("\r    --> %100.0f\n")
+        sys.stdout.flush()   
         
         """Now check what we inserted."""
         sql = "select count(*) from UniqueReads where annoid=" + annoid1.__str__()
@@ -277,7 +283,7 @@ def write_filtered_sam(con):
         samoutpath = re.sub(".fastq", ".unique.sam", fastq)
         if count > 0:
             """Hybrids get a special SAM path"""
-            samoutpath = re.sub(".fastq", "-" + species + ".unique.sam", fastq)
+            samoutpath = get_setting("outdir") + "/" + re.sub(".fastq", "-" + species + ".unique.sam", fastq)
         
         print "\n. I'm writing the perfect reads that are unique in", library_name, "to a new SAM file:"
         print "\t", samoutpath
@@ -295,14 +301,21 @@ def write_filtered_sam(con):
         fin.close()
          
         """Finally, write the new SAM file."""
+        sys.stdout.write(".")
+        sys.stdout.flush()
         sql = "select readname from Reads where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ") order by Reads.order_seen"
         cur.execute(sql)
         x = cur.fetchall()
         
         """readnames is a list of strings, each a unique name for a read."""
+        count = 0
         readnames = Set([])
         for ii in x:
             readnames.add( ii[0] )
+            count += 1
+            if count%10000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
         
         if get_setting("practice_mode", con) == "0":
             """Open the file and write the header lines."""
@@ -311,16 +324,22 @@ def write_filtered_sam(con):
                 fout.write(hl)
              
             """Walk through the original SAM file and copy relevant lines into the new SAM file."""
-            count_total = 0
+            count = 0
+            count_good_reads = 0
             fin = open(bowtie_sampath, "r")
             for erg_line in fin.xreadlines():
+                count += 1
+                if count%10000 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+                
                 if False == erg_line.startswith("@"):
                     this_readid = erg_line.split()[0]
                     
                     """WARNING: this next comparison is computationally expensive!"""
                     if this_readid in readnames:
                         """Copy the original line into the new SAM path, because this read satisfies what we're looking for."""
-                        count_total += 1
+                        count_good_reads += 1
                         fout.write(erg_line)
              
             fin.close()
@@ -331,5 +350,5 @@ def write_filtered_sam(con):
         cur.execute(sql)
         con.commit()
         
-        print "\n. I found", count_total, "reads for the new SAM file at", samoutpath
+        print "\n. I found", count_good_reads, "reads for the new SAM file at", samoutpath
     

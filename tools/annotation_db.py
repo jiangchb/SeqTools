@@ -111,6 +111,8 @@ def get_db(dbpath):
     if dbpath == None or dbpath == False:
         dbpath = "test.db"
         print "\n. Creating a new database at", dbpath
+    elif False == os.path.exists(dbpath):
+        print "\n. Creating a new database at", dbpath
     else:
         print "\n. Restoring the existing database at", dbpath
     con = lite.connect(dbpath)
