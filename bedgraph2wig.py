@@ -18,19 +18,18 @@ def usage():
     print "victorhansonsmith@gmail.com"
     print ""
     print "USAGE:"
-    print "python bedgraph2wig.py FILE"
+    print "python bedgraph2wig.py FILEIN FILEOUT"
     print ""
-    print "... where FILE is the filepath to a bedgraph"
+    print "... where FILEIN is the filepath to a bedgraph"
+    print "... where FILEOUT is the filepath to a WIG file,"
+    print "      that will be created (or overwritten) by this script."
     print ""
     print "This script will parse the bedgraph and create a new"
     print "WIG file for every chromosome found within the bedgraph."
     print ""
-    print "The new WIG files will be named FILE.CHROM.wig"
-    print "...where FILE is the path to the original bedgraph,"
-    print "and CHROM is the name of the chromosome."
     print "====================================================="
 
-if len( sys.argv ) < 2:
+if len( sys.argv ) < 3:
     usage()
     exit()
 
@@ -43,11 +42,12 @@ def splash():
     print "victorhansonsmith@gmail.com"
     print "======================================"
 
-
 bedgraphpath = sys.argv[1]
 if False == os.path.exists(bedgraphpath):
     print "I can't find you bedgraph file at " + bedgraphpath
     exit()
+
+wigpath = sys.argv[2]
 
 # The output data will be built into the following hashtable:
 #site_value = {}
@@ -62,7 +62,6 @@ printspan = 100000 # print an update every N sites
 count = 0
 last_seen_chrom = None
 fin = open(bedgraphpath, "r")
-wigpath = re.sub(".bdg", ".wig", bedgraphpath)
 print "\n. Converting BDG->WIG:", bedgraphpath, "-->", wigpath
 fout = open(wigpath, "w")
 fout.write("track type=WIG\n")

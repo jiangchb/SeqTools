@@ -156,15 +156,16 @@ def check_bams(con, delete_sam = True):
         for ii in x:
             sampath = ii[0]
             os.system("rm " + sampath)
-        sql = "select sampath from FilteredBowtieOutput"
-        cur.execute(sql)
-        x = cur.fetchall()
-        for ii in x:
-            sampath = ii[0]
-            os.system("rm " + sampath)
+#         sql = "select sampath from FilteredBowtieOutput"
+#         cur.execute(sql)
+#         x = cur.fetchall()
+#         for ii in x:
+#             sampath = ii[0]
+#             os.system("rm " + sampath)
     return
 
 def run_peak_calling(con):
+    """Runs MACS2 to call peaks."""
     cur = con.cursor()
     
     sql = "delete from MacsRun"
@@ -300,44 +301,147 @@ def check_fe(con):
     print "\n. The fold-enrichment bedgraph files are OK."
     return
 
+def bam2bedgraph(con):
+    """Converts sorted BAM files to Bedgraph files."""
+    print "\n. Converting sorted BAMs to bedgraph files."
+    
+    cur = con.cursor()        
+    sql = "select annoid from Annotations"
+    cur.execute(sql)
+    x = cur.fetchall()
+
+    annoid_bampath = {}
+    for ii in x:
+        sql = "select annoid, bampath from SortedBamFiles where annoid=" + ii[0].__str__()
+        cur.execute(sql)
+        y = cur.fetchall()
+        if y.__len__() < 1:
+            print "\n. Error, the table SortedBamFiles has no records for annotation #", ii[0].__str__()
+            exit()
+        annoid = y[0][0]
+        bampath = y[0][1]
+        if False == os.path.exists( bampath ):
+            print "\n. Error, I can't find your BAM file at", bampath
+            exit()
+        annoid_bampath[annoid] =  bampath
+    
+    commands = []
+    for annoid in annoid_bampath:
+        bedpath = re.sub( ".sort.bam", ".bed", annoid_bampath[annoid] )
+        bedpath = re.sub( ".unique", "", bedpath)
+        c = get_setting("gcb", con) + " -ibam " + annoid_bampath[annoid]
+        c += " -bga "
+        c += " > " + bedpath
+        commands.append(c)
+    
+        sql = "insert or replace into BedgraphFiles (annoid, bedpath) VALUES("
+        sql += annoid.__str__() + ",'" + bedpath + "')"
+        cur.execute(sql)
+        con.commit()
+    
+    """Write a shell script with all the genomCoveredBed commands,
+    and then launch the script with mpi_dispatch."""
+    scriptpath = get_setting("outdir", con) + "/run_gcb.sh"
+    fout = open(scriptpath, "w")
+    for c in commands:
+        print c
+        fout.write(c + "\n")
+    fout.close()
+    if get_setting("practice_mode", con) == "0":
+        os.system(get_setting("mpirun",con) + " " + scriptpath)
+
+def check_bedgraphs(con):
+    cur = con.cursor()
+    sql = "select annoid, bedpath from BedgraphFiles"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        annoid = ii[0]
+        bedpath = ii[1]
+        if False == os.path.exists(bedpath):
+            print "\n. Error, I can't find your bedgraph file at", bedpath
+            exit()
+        fin = open(bedpath, "r")
+        firstline = fin.readline()
+        tokens = firstline.split()
+        fin.close()
+        if tokens.__len__() != 4:
+            print "\n. Error, the first line of your bedgraph doesn't contain 4 columns."
+            print ". It appears to not be a bedgraph file."
+            print bedpath
+            exit()
+    return
+
 def bed2wig(con):
+    """Converts Bedgraph files to WIG files, for viewing in MochiView.
+    Bedgraph filepaths are drawn from the tables ReadsWigFiles and FEWigFiles."""
+    
     cur = con.cursor()
     sql = "delete from WigFiles"
     cur.execute(sql)
     con.commit()
+
+    commands = []
+
+    """First convert the reads wig files."""
+    sql = "select annoid, bedpath from BedgraphFiles"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        annoid = ii[0]
+        bedpath = ii[1]
+        wigpath = re.sub(".bed", ".wig", bedpath)
+        
+        """THis is a sanity check to prevent the BED being overwritten."""
+        if wigpath == bedpath: # wtf.
+            wigpath = bedpath + ".wig"
+        
+        c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bedpath + "  " + wigpath
+        commands.append(c)
+        
+        sql = "insert or replace into ReadsWigFiles(annoid, wigpath) VALUES("
+        sql += annoid.__str__()
+        sql += ",'" + wigpath + "')"
+        cur.execute(sql)
+        con.commit()
     
+    """Then convert the FE wig files."""
     sql = "select exp_annoid, bdgpath from MacsFE"
     cur.execute(sql)
     x = cur.fetchall()
-    
-    commands = []
     for ii in x:
         annoid = ii[0]
         bdgpath = ii[1]
         wigpath = re.sub(".bdg", ".wig", bdgpath)
         
-        c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bdgpath
+        """THis is a sanity check to prevent the BED being overwritten."""
+        if wigpath == bdgpath: # wtf.
+            wigpath = bdgpath + ".wig"
+        
+        c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bdgpath + "  " + wigpath
         commands.append(c)
         
-        sql = "insert or replace into WigFiles(exp_annoid, org_bdgpath, wigpath) VALUES("
+        sql = "insert or replace into FEWigFiles(exp_annoid, org_bdgpath, wigpath) VALUES("
         sql += annoid.__str__()
         sql += ",'" + bdgpath
         sql += "','" + wigpath + "')"
         cur.execute(sql)
         con.commit()
 
-    fout = open("run_bed2wig.sh", "w")
+    scriptpath = "run_bed2wig.sh"
+    fout = open(scriptpath, "w")
     for c in commands:
+        print c
         fout.write(c + "\n")
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        for c in commands:
-            os.system(c)
+        os.system( get_setting("mpirun",con) + " " + scriptpath ) 
     
 def check_wig(con):
     cur = con.cursor()
-    sql = "select exp_annoid, wigpath from WigFiles"
+
+    sql = "select annoid, wigpath from ReadsWigFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
@@ -347,6 +451,23 @@ def check_wig(con):
             print "\n. Error, I can't find your WIG file ", wigpath
             exit()
         print wigpath
+
+    sql = "select exp_annoid, wigpath from FEWigFiles"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        annoid = ii[0]
+        wigpath = ii[1]
+        if False == os.path.exists( wigpath ):
+            print "\n. Error, I can't find your WIG file ", wigpath
+            exit()
+        fin = open(wigpath, "r")
+        header = fin.readline()
+        fin.close()
+        if False == header.__contains__("track type=WIG"):
+            print "\n. Error, I cannot find a valid header in your WIG file", wigpath
+            exit()
+    
     print "\n. WIG files OK."
     return
 
@@ -439,11 +560,16 @@ def launch_viz(con):
     if os.path.exists(vizdbpath):
         os.system("rm -rf " + vizdbpath)
     
+    scriptpath = get_setting("outdir", con) + "/run_viz.sh"
+    fout = open(scriptpath, "w")
+    
     c = "python ~/Applications/SeqTools/apres.py "
     c += "--dbpath " + vizdbpath
     c += " --pillarspath " + get_setting("pillars_path", con)
     c += " --configpath " + vcpath
+    fout.write(c + "\n")
+    fout.close()
     if get_setting("practice_mode", con) == "0":
-        os.system(c)
+        os.system("source " + scriptpath)
     
     

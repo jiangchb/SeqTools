@@ -235,10 +235,11 @@ def print_read_stats(con):
     annoids = []
     for ii in x:
         annoids.append( ii[0] )
-        
+
+    fout = open("read_stats.xls", "w")        
     print "\nlibrary_name\tN_total\tN_perfect\tN_unique"
-    fout = open("read_stats.xls", "w")
-        
+    fout.write("\nlibrary_name\tN_total\tN_perfect\tN_unique\n")
+     
     for annoid in annoids:
         sql = "select nperfect, ntotal from ReadStats where annoid=" + annoid.__str__()
         cur.execute(sql)
@@ -283,7 +284,7 @@ def write_filtered_sam(con):
         samoutpath = re.sub(".fastq", ".unique.sam", fastq)
         if count > 0:
             """Hybrids get a special SAM path"""
-            samoutpath = get_setting("outdir") + "/" + re.sub(".fastq", "-" + species + ".unique.sam", fastq)
+            samoutpath = get_setting("outdir", con) + "/" + re.sub(".fastq", "-" + species + ".unique.sam", fastq)
         
         print "\n. I'm writing the perfect reads that are unique in", library_name, "to a new SAM file:"
         print "\t", samoutpath

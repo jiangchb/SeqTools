@@ -23,10 +23,12 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(exp_annoid INTEGER primary key, control_annoid INTEGER, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsPeakPaths(exp_annoid INTEGER primary key, treatment_pileup_path TEXT, control_lambda_path TEXT, peaks_path TEXT, summits_path TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(exp_annoid INTEGER primary key, bdgpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS WigFiles(exp_annoid INTEGER primary key, org_bdgpath TEXT, wigpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(exp_annoid INTEGER primary key, org_bdgpath TEXT, wigpath TEXT)")
     
     """All annotations will be given an entry in SortedBamFiles."""
     cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(annoid INTEGER primary key, bampath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(annoid INTEGER primary key, bedpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(annoid INTEGER primary key, wigpath TEXT)")
     con.commit()
 
 def get_setting(keyword, con):
@@ -34,6 +36,8 @@ def get_setting(keyword, con):
     sql = "select value from Settings where keyword='" + keyword + "'"
     cur.execute(sql)
     result = cur.fetchone()
+    if result == None:
+        return None
     if result.__len__() > 0:
         return result[0]
     else:
@@ -73,7 +77,9 @@ def get_name_for_macs(exp_annoid, control_annoid, con):
     return name
 
 def get_macs_pairs(con):
-    """Returns pairs of (experiment,control) annoids for MACS2 peak-calling."""
+    """Returns pairs of (experiment,control) annoids for MACS2 peak-calling.
+    Each pair shares unique values in the table Annotations for the fields 'sample', 'replicate', and 'species'.
+    The control member of the pair has 'tag' = 0, while the treatment member of the pair has 'tag'=1."""
     pairs = [] #(treatment Id, control ID)
     
     cur = con.cursor()
@@ -91,12 +97,13 @@ def get_macs_pairs(con):
             s = cur.execute(sql)
             for z in cur.fetchall():
                 species = z[0]
-                #print sample, repid, species
+                #print "100:", sample, "repid:", repid, "species:", species
                 sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and tag=1"
                 cur.execute(sql)
                 treatments = cur.fetchall()
                 sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and tag=0"
                 cur.execute(sql)
+                #print sql
                 controls = cur.fetchall()                
                 if controls.__len__() > 1:
                     print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid
@@ -104,7 +111,7 @@ def get_macs_pairs(con):
                 control = controls[0][0]
                 for t in treatments:
                     pairs.append( (t[0],control)  ) 
-                    #print t[0], control, sample, repid, species
+                    #print "113:", "annoid", t[0], "annoid", control, "sample:", sample, "repid:",  repid, "species:", species
     return pairs
 
 def get_db(dbpath):    
@@ -120,11 +127,7 @@ def get_db(dbpath):
     return con
 
 
-def import_annotations(apath, con):
-    #
-    # continue here -- it's not reading all the annotations correctly!
-    #
-    
+def import_annotations(apath, con):    
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
     if False == os.path.exists(apath):
         print "\n. Error, I can't find your annotation file at", apath

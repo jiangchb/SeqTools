@@ -46,6 +46,11 @@ def read_cli(ap):
     x = ap.getOptionalArg("--macs2")
     if x != False:
         MACS2 = x
+
+    GENOME_COVERAGE_BED = "/common/REPOSITORY/bedtools2/bin/genomeCoverageBed"
+    x = ap.getOptionalArg("--gcb")
+    if x != False:
+        GENOME_COVERAGE_BED = x
     
     SEQTOOLSDIR = "~/Applications/SeqTools"
     x = ap.getOptionalArg("--seqtoolsdir")
@@ -62,6 +67,9 @@ def read_cli(ap):
         
     """restricts analysis to only those annotation lines whose sample column is this value."""
     restrict_to_sample = ap.getOptionalArg("--restrict_to_sample")
+    
+    """restrics the analysis to only those annotations whose 'strain' column has a value matching something in this list."""
+    restrict_to_strain = ap.getOptionalList("--restrict_to_strain")
     
     PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
         
@@ -86,12 +94,18 @@ def read_cli(ap):
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('macs2','" + MACS2 + "')"
     cur.execute(sql)
+    sql = "insert or replace into Settings (keyword, value) VALUES('gcb','" + GENOME_COVERAGE_BED + "')"
+    cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('seqtoolsdir','" + SEQTOOLSDIR + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('mpirun','" + MPIRUN + "')"
     cur.execute(sql)
-    sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
-    cur.execute(sql)
+    if restrict_to_sample != False:
+        sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
+        cur.execute(sql)
+    for strain in restrict_to_strain:
+        sql = "insert into Settings (keyword, value) VALUES('restrict_to_strain','" + strain + "')"
+        cur.execute(sql)        
     sql = "insert or replace into Settings (keyword, value) VALUES('project_name','" + PROJECT_NAME + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('pillars_path','" + PILLARSPATH + "')"
@@ -116,3 +130,15 @@ def read_cli(ap):
     
     con = import_annotations(APATH, con)
     return con
+
+def print_settings(con):
+    cur = con.cursor()
+    sql = "select keyword, value from Settings"
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x.__len__() == 0:
+        print "\n. Warning 139 - The Settings table is empty."
+    print "\n. Current Settings:"
+    for ii in x:
+        print "\t", ii[0], ":", ii[1]
+    return
