@@ -1577,7 +1577,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     width = scatter_data.__len__()
     height = repids.__len__()
     filekeyword = repgroupname + ".enrich.idr"
-    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", xlab="", ylab="", force_square=True)
+    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", xlab="", ylab="")
     if cranpath != None:
         add_repgroupfile(cranpath,rgroupid,"R script to make IDR scatterplots for replicate group " + repgroupname, con)
         add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)

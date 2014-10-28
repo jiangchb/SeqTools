@@ -377,7 +377,9 @@ def bed2wig(con):
     Bedgraph filepaths are drawn from the tables ReadsWigFiles and FEWigFiles."""
     
     cur = con.cursor()
-    sql = "delete from WigFiles"
+    sql = "delete from ReadsWigFiles"
+    cur.execute(sql)
+    sql = "delete from FEWigFiles"
     cur.execute(sql)
     con.commit()
 

@@ -561,7 +561,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True, plot_as_rank = [], skip_identity = False):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=False, plot_as_rank = [], skip_identity = False):    
     """
     Creates a multi-panel collection of scatterplots. The dimensions are N scatterplots by M scatterplots.
     n = width, number of scatterplots
