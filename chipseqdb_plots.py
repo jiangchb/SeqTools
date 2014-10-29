@@ -1088,9 +1088,9 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     for rgid in rgroupids:
         scatter_values.append( rgid_meanvals[rgid] )
         scatter_names.append( rgid_groupname[rgid] + "-mean")
-    for rgid in rgroupids:
-        scatter_values.append( rgid_sumvals[rgid] )
-        scatter_names.append( rgid_groupname[rgid] + "-sum")
+#     for rgid in rgroupids:
+#         scatter_values.append( rgid_sumvals[rgid] )
+#         scatter_names.append( rgid_groupname[rgid] + "-sum")
     for rgid in rgroupids:
         scatter_values.append( rgid_maxvals[rgid] )
         scatter_names.append( rgid_groupname[rgid] + "-rank")
@@ -1544,14 +1544,14 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     if repids.__len__() < 2:
         return
     
-    scatter_data = scatter_max + scatter_mean + scatter_sum + scatter_max
+    scatter_data = scatter_max + scatter_mean + scatter_max
     scatter_names = []
     for repid in repids:
         scatter_names.append(repid_repname[repid] + "-max")
     for repid in repids:
         scatter_names.append(repid_repname[repid] + "-mean")
-    for repid in repids:
-        scatter_names.append(repid_repname[repid] + "-sum")
+#     for repid in repids:
+#         scatter_names.append(repid_repname[repid] + "-sum")
     for repid in repids:
         scatter_names.append(repid_repname[repid] + "-rank(max)")
     plot_as_rank = [] # a list of indices in scatter_data that should be plotted as rank, rather than raw.

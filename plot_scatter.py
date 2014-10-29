@@ -642,9 +642,13 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             #print (ii*colwidth), ((ii+1)*colwidth), ( (jj%4)*colwidth), (( (jj%4)+1)*colwidth)
             
             if ii in plot_as_rank and jj in plot_as_rank:
-                lim = max(values[ii].__len__(), values[jj].__len__())
+                xlim = values[ii].__len__()
+                ylim = values[jj].__len__()
+                xlim = max(xlim,ylim)
+                ylim = xlim
             else:
-                lim = max( max(values[ii]), max(values[jj]) )
+                xlim = max( values[ii] )
+                ylim = max( values[jj] )
             
             # X values
             found_one = False # did we find at least one valid (x,y) point in the graph that's worth plotting?
@@ -677,26 +681,29 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                 cranstr += "x <- rank(-x);\n"
                 cranstr += "y <- rank(-y);\n"
             
-            cranstr += "lim <- max( max(x), max(y) );\n"
+            cranstr += "xlimit <- max(x);\n"
+            cranstr += "ylimit <- max(y);\n"
             
             cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
             if force_square:
-                cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
+                cranstr += ", xlim=range(0,max(xlimit,ylimit)), ylim=range(0,max(ylimit,xlimit))"
+            else:
+                cranstr += ", xlim=range(0,xlimit), ylim=range(0,ylimit)"
             
             col = "black"
             pch = "1"
             if ii < height:
                 col = "mediumblue"
-                pch = "3"
+                pch = "5"
             elif ii < 2*height:
                 col = "red3"
                 pch = "5"
             elif ii < 3*height:
                 col = "green4"
-                pch = "1"
+                pch = "5"
             elif ii < 4*height:
                 col = "darkorchid3"
-                pch = "23"
+                pch = "5"
             cranstr += ", col=\"" + col + "\""
             cranstr += ", pch=" + pch
             cranstr += ", las=1"
@@ -718,19 +725,20 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                     corr_valsb.append( values[jj][ww] )
             if corr_valsa.__len__() > 0 and corr_valsb.__len__() > 0:
                 (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-                cranstr += "text(" + ((lim-min(corr_valsa))/2).__str__() + ", " + (0.97*lim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.97*ylim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
                 
                 """Spearman's non-linear non-parametric rank correlation."""
                 (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-                cranstr += "text(" + ((lim-min(corr_valsa))/2).__str__() + ", " + (0.87*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.87*ylim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
                 
             if force_square:
                 cranstr += "abline(0,1)\n"
             
             """Add histograms to this panel."""
-            seq_delta = lim/float(10.0)
-            cranstr += "hist_a <- hist(x, plot=FALSE, breaks=c( seq(0," + lim.__str__() + "," + seq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
-            cranstr += "hist_b <- hist(y, plot=FALSE, breaks=c( seq(0," + lim.__str__() + "," + seq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
+            xseq_delta = xlim/float(10.0)
+            yseq_delta = ylim/float(10.0)
+            cranstr += "hist_a <- hist(x, plot=FALSE, breaks=c( seq(0," + xlim.__str__() + "," + xseq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
+            cranstr += "hist_b <- hist(y, plot=FALSE, breaks=c( seq(0," + ylim.__str__() + "," + yseq_delta.__str__() + ") ) );\n"#, length.out=20);\n"#, breaks=seq(from=0,to=" + lim.__str__() + "));\n"
             
             """The top histogram"""
             cranstr += "par( fig=c(" + (ii*colwidth).__str__() + ","
