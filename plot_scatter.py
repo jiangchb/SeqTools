@@ -308,16 +308,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         pch = "1"
         if ii < height:
             col = "mediumblue"
-            pch = "3"
+            pch = "5"
         elif ii < 2*height:
             col = "red3"
             pch = "5"
         elif ii < 3*height:
             col = "green4"
-            pch = "1"
+            pch = "5"
         elif ii < 4*height:
             col = "darkorchid3"
-            pch = "23"
+            pch = "5"
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
@@ -357,16 +357,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         pch = "1"
         if ii < height:
             col = "mediumblue"
-            pch = "3"
+            pch = "5"
         elif ii < 2*height:
             col = "red3"
             pch = "5"
         elif ii < 3*height:
             col = "green4"
-            pch = "1"
+            pch = "5"
         elif ii < 4*height:
             col = "darkorchid3"
-            pch = "23"
+            pch = "5"
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
@@ -396,16 +396,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         pch = "1"
         if ii < height:
             col = "mediumblue"
-            pch = "3"
+            pch = "5"
         elif ii < 2*height:
             col = "red3"
             pch = "5"
         elif ii < 3*height:
             col = "green4"
-            pch = "1"
+            pch = "5"
         elif ii < 4*height:
             col = "darkorchid3"
-            pch = "23"
+            pch = "5"
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
@@ -440,16 +440,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         pch = "1"
         if ii < height:
             col = "mediumblue"
-            pch = "3"
+            pch = "5"
         elif ii < 2*height:
             col = "red3"
             pch = "5"
         elif ii < 3*height:
             col = "green4"
-            pch = "1"
+            pch = "5"
         elif ii < 4*height:
             col = "darkorchid3"
-            pch = "23"
+            pch = "5"
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"
@@ -482,16 +482,16 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         pch = "1"
         if ii < height:
             col = "mediumblue"
-            pch = "3"
+            pch = "5"
         elif ii < 2*height:
             col = "red3"
             pch = "5"
         elif ii < 3*height:
             col = "green4"
-            pch = "1"
+            pch = "5"
         elif ii < 4*height:
             col = "darkorchid3"
-            pch = "23"
+            pch = "5"
         cranstr += ", col=\"" + col + "\""
         cranstr += ", pch=" + pch
         cranstr += ", las=1"

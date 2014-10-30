@@ -117,7 +117,8 @@ def build_idr_tables(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSpeciesunionEnrichIdr(geneid INTEGER, unionid1 INTEGER, unionid2 INTEGER, lidr FLOAT, idr FLOAT)")
     con.commit()
 
-def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
+def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chrom = []):
+    """filter_chrom is a list of chromosomes that should be ignored."""
     cur = con.cursor()
     
     print "\n. Importing genome features from", gffpath
@@ -149,6 +150,16 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene"):
             if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
                 continue
             chr = tokens[0]
+            
+            restrict = False
+            for f in filter_chrom:
+                if chr.__contains__(f):
+                    restrict = True
+            if restrict == True:
+                #print "\n. Skipping", l
+                """Skip this entry"""
+                continue
+
             
             if chr != curr_chromname:
                 """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
@@ -291,10 +302,11 @@ def import_summits(summitpath, repid, con):
             cur.execute(sql)
             x = cur.fetchone()
             if x == None:
-                print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
-                print ". This is most likely because there are no annoted genes located on", chr
-                print ". You should verify if this is true."
-                print ". In the meantime, I am not importing the summits on", chr
+                pass
+                #print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
+                #print ". This is most likely because there are no annoted genes located on", chr
+                #print ". You should verify if this is true."
+                #print ". In the meantime, I am not importing the summits on", chr
             else:
                 chrid = x[0]
                 sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
@@ -371,7 +383,7 @@ def import_bdg(bdgpath, repid, con):
             """Found a new chromosome."""
             chromid = get_chrom_id( con, chromname )
             if chromid == None:
-                """Skip to the next FE window."""
+                """We don't know anything about this chromosome; skip to the next FE window."""
                 continue
             
             curr_chromname = chromname
