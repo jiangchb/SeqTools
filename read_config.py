@@ -17,6 +17,9 @@ def read_config(path):
     curr_species = None
     curr_rgroup = None
     curr_rep = None
+    params["repgroup_memberorder"] = {}
+    params["union_memberorder"] = {}
+    params["spunion_memberorder"] = {}
     for l in lines:
         l = l.strip()
         

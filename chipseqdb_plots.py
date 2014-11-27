@@ -291,7 +291,6 @@ def compute_summits_for_speciesunion(uid, con):
                 print "\n. chipseqdb_plot.py 86"
                 exit()
             geneid_max[geneid] = max_max_summit_id
-            
         if geneid_nearestsummits[geneid].__len__() == unionids.__len__():
             nearest_nearest_summit_id = None
             nearest_nearest_summit_distance = None
@@ -394,12 +393,11 @@ def plot_summits_for_speciesunion(uid, con):
     vennpath = plot_venn_diagram( venn_data, spunionname + ".summits" )
     add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for species-union " + spunionname, con)
 
-
     unionid_maxsummits = {}
     unionid_nearestsummits = {}
             
     #
-    # Write an Excel table using data from UnionSummitStats
+    # Write an Excel table using data from UnionSummits
     #
     xlpath = spunionname + ".summits.xls"
     print "\n. Writing a table to", xlpath
@@ -466,7 +464,6 @@ def plot_summits_for_speciesunion(uid, con):
     for unionid in unionids:
         unionnames.append(  get_unionname( unionid, con )  )
     
-
     maxes = []
     nearests = []
     ranks = []
@@ -497,8 +494,6 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     """
      
     cur = con.cursor()
-    sql = "DELETE from RepgroupGenes where repgroupid=" + rgroupid.__str__()
-    cur.execute(sql)
     sql = "DELETE from RepgroupSummits where repgroupid=" + rgroupid.__str__()
     cur.execute(sql)
     con.commit()
@@ -577,10 +572,6 @@ def compute_summits_for_reps_in_group(rgroupid, con):
         """Is a summit at this gene found in all replicates?
         If so, there should be at least one entry for every replicate."""
         if gene_repid_maxsummitid[geneid].__len__() == repids.__len__():
-
-            """ This summit is in all replicates."""
-            sql = "INSERT into RepgroupGenes (repgroupid, geneid) VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ")"
-            cur.execute(sql)
         
             """Find the maximum summit for this gene."""
             max_summit_id = None # summit ID of the max summit for geneid
@@ -617,7 +608,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
             cur.execute(sql)
     con.commit()
     
-    sql = "SELECT COUNT(*) from RepgroupGenes where repgroupid=" + rgroupid.__str__()
+    sql = "SELECT COUNT(*) from RepgroupSummits where repgroupid=" + rgroupid.__str__()
     cur.execute(sql)
     ngenes = cur.fetchone()[0]
     print "\n    --> The replicate group", repgroupname, "has", ngenes, "genes with summits in all replicates."                      
@@ -1115,56 +1106,55 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
 # to-do
 #
 
-
-    """Also plot IDR."""
-    scatter_values = []
-    scatter_names = []
-    for rgid in rgroupids:
-        scatter_values.append( rgid_maxvals[rgid] )
-        scatter_names.append( rgid_groupname[rgid] + "-max")
-    for rgid in rgroupids:
-        scatter_values.append( rgid_meanvals[rgid] )
-        scatter_names.append( rgid_groupname[rgid] + "-mean")
-    width = scatter_values.__len__()
-    filekeyword = unionname + ".enrich.idr"
-    """idr_stats[gene number in the geneid list][rep ii][rep jj] = lidr"""
-    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", xlab="", ylab="", force_square=True)
-    if cranpath != None:
-        add_unionfile(cranpath, unionid,"" + unionname, con)
-        add_unionfile(re.sub("cran", "pdf", cranpath), unionid,"" + unionname, con) 
-    
-    
-    """Now insert the IDR stats into the SQL database."""
-    
-    """First, clear any previous entries for the pair of this replicate group."""
-    for ii in range(0, rgroupids.__len__() ):
-        for jj in range(0, rgroupids.__len__() ):
-            sql = "DELETE from GeneUnionEnrichIdr where repgroupid1=" + rgroupids[ii].__str__() + " and repgroupid2=" + rgroupids[jj].__str__()
-            cur.execute(sql)
-            con.commit()
-    
-    """Next insert the data into SQL."""
-    geneids = geneid_results.keys()
-    for gg in range(0, geneid_results.__len__() ):
-        geneid = geneids[gg]
-        if gg in idr_stats:
-            for ii in range(0, rgroupids.__len__() ):
-                if ii in idr_stats[gg]:
-                    for jj in range(0, rgroupids.__len__() ):
-                        if jj in idr_stats[gg][ii]:
-                            this_idr = idr_stats[gg][ii][jj]
-                            ii_repgroupid = rgroupids[ii]
-                            jj_repgroupid = rgroupids[jj]
-                            sql = "INSERT into GeneUnionEnrichIdr(geneid,repgroupid1,repgroupid2,lidr)"
-                            sql += " VALUES("
-                            sql += geneid.__str__() + ","
-                            sql += ii_repgroupid.__str__() + ","
-                            sql += jj_repgroupid.__str__() + ","
-                            sql += this_idr.__str__() + ")"
-                            #print sql
-                            cur.execute(sql)
-                            
-    con.commit()
+#     """Also plot IDR."""
+#     scatter_values = []
+#     scatter_names = []
+#     for rgid in rgroupids:
+#         scatter_values.append( rgid_maxvals[rgid] )
+#         scatter_names.append( rgid_groupname[rgid] + "-max")
+#     for rgid in rgroupids:
+#         scatter_values.append( rgid_meanvals[rgid] )
+#         scatter_names.append( rgid_groupname[rgid] + "-mean")
+#     width = scatter_values.__len__()
+#     filekeyword = unionname + ".enrich.idr"
+#     """idr_stats[gene number in the geneid list][rep ii][rep jj] = lidr"""
+#     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", xlab="", ylab="", force_square=True)
+#     if cranpath != None:
+#         add_unionfile(cranpath, unionid,"" + unionname, con)
+#         add_unionfile(re.sub("cran", "pdf", cranpath), unionid,"" + unionname, con) 
+#     
+#     
+#     """Now insert the IDR stats into the SQL database."""
+#     
+#     """First, clear any previous entries for the pair of this replicate group."""
+#     for ii in range(0, rgroupids.__len__() ):
+#         for jj in range(0, rgroupids.__len__() ):
+#             sql = "DELETE from GeneUnionEnrichIdr where repgroupid1=" + rgroupids[ii].__str__() + " and repgroupid2=" + rgroupids[jj].__str__()
+#             cur.execute(sql)
+#             con.commit()
+#     
+#     """Next insert the data into SQL."""
+#     geneids = geneid_results.keys()
+#     for gg in range(0, geneid_results.__len__() ):
+#         geneid = geneids[gg]
+#         if gg in idr_stats:
+#             for ii in range(0, rgroupids.__len__() ):
+#                 if ii in idr_stats[gg]:
+#                     for jj in range(0, rgroupids.__len__() ):
+#                         if jj in idr_stats[gg][ii]:
+#                             this_idr = idr_stats[gg][ii][jj]
+#                             ii_repgroupid = rgroupids[ii]
+#                             jj_repgroupid = rgroupids[jj]
+#                             sql = "INSERT into GeneUnionEnrichIdr(geneid,repgroupid1,repgroupid2,lidr)"
+#                             sql += " VALUES("
+#                             sql += geneid.__str__() + ","
+#                             sql += ii_repgroupid.__str__() + ","
+#                             sql += jj_repgroupid.__str__() + ","
+#                             sql += this_idr.__str__() + ")"
+#                             #print sql
+#                             cur.execute(sql)
+#                             
+#     con.commit()
 
 def plot_enrichment_union_helper(unionid, con, keyword=None):
     """This is a helper method for plot_enrichments_for_union.
@@ -1230,14 +1220,15 @@ def plot_enrichment_union_helper(unionid, con, keyword=None):
     for repname in repid_names:
         scatter_names.append(repname + "-mean")
 
-    scatter_data = repid_maxs + repid_means
-    width = scatter_names.__len__()
-    height = repid_names.__len__()    
-    filekeyword = unionname + ".enrich.idr.large"
-    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
-    if cranpath != None:
-        add_unionfile(cranpath, unionid, "R script for a scatterplot comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
-        add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
+# We shouldn't be doing IDR for unions
+#     scatter_data = repid_maxs + repid_means
+#     width = scatter_names.__len__()
+#     height = repid_names.__len__()    
+#     filekeyword = unionname + ".enrich.idr.large"
+#     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="IDR for Fold Enrichment for " + unionname, xlab="", ylab="")
+#     if cranpath != None:
+#         add_unionfile(cranpath, unionid, "R script for a scatterplot comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
+#         add_unionfile(re.sub("cran", "pdf", cranpath), unionid, "PDF comparing IDR statistics for fold enrichment for all replicates in the union " + unionname, con)
     
     #scatter_names = repid_name + repid_name
     scatter_data = repid_maxs + repid_means
@@ -1806,7 +1797,7 @@ def compute_enrichments_for_speciesunion(uid, con):
                 all_sums.append( ii[4] )
 
             sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, sumenrich)"
-            sql += "VALUES (" + unionid.__str__() + ","
+            sql += "VALUES (" + uid.__str__() + ","
             sql += gid.__str__() + ","
             sql += max_max.__str__() + ","
             sql += mean(all_means).__str__() + ","
@@ -1961,52 +1952,52 @@ def plot_enrichments_for_speciesunion(uid, con):
     width = scatter_names.__len__()
     height = unionidnames.__len__()
     filekeyword = spunionname + ".enrich"
-    cranpath = scatter_nxm(width, height, scatterdata, scatter_names, filekeyword, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment") 
+    cranpath = scatter_nxm(width, height, scatterdata, scatter_names, filekeyword, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment", skip_zeros=False) 
     if cranpath != None:
         add_speciesunionfile(cranpath, uid, "Multipanel scatterplot showing fold enrichment data for the species-union " + spunionname, con )
         add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "Multipanel scatterplot showing fold enrichment data for the species-union " + spunionname, con )    
     
-    idr_scatter_values = []  
-    for unionid in unionids:
-        idr_scatter_values.append( unionid_maxvals[unionid] )  
-    width = unionidnames.__len__()
-    height = unionidnames.__len__()
-    filekeyword = spunionname + ".enrich.idr"
-    """idr_stats[gene number in the geneid list][rep ii][rep jj] = lidr"""
-    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, idr_scatter_values, unionidnames, filekeyword, title="Fold Enrichment IDR", xlab="", ylab="", force_square=True)
-    if cranpath != None:
-        add_speciesunionfile(cranpath, uid,"" + unionname, con)
-        add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid,"" + unionname, con)
-
-    """Now insert the IDR stats into the SQL database."""
-    
-    """First, clear any previous entries for the pair of this replicate group."""
-    for ii in range(0, unionids.__len__() ):
-        for jj in range(0, unionids.__len__() ):
-            sql = "DELETE from GeneSpeciesunionEnrichIdr where unionid1=" + unionids[ii].__str__() + " and unionid2=" + unionids[jj].__str__()
-            cur.execute(sql)
-            con.commit()
-    
-    """Next insert the data into SQL."""
-    geneids = geneid_results.keys()
-    for gg in range(0, geneid_results.__len__() ):
-        geneid = geneids[gg]
-        if gg in idr_stats:
-            for ii in range(0, unionids.__len__() ):
-                if ii in idr_stats[gg]:
-                    for jj in range(0, unionids.__len__() ):
-                        if jj in idr_stats[gg][ii]:
-                            this_idr = idr_stats[gg][ii][jj]
-                            ii_unionid = unionids[ii]
-                            jj_unionid = unionids[jj]
-                            sql = "INSERT into GeneSpeciesunionEnrichIdr(geneid,unionid1,unionid2,lidr)"
-                            sql += " VALUES("
-                            sql += geneid.__str__() + ","
-                            sql += ii_unionid.__str__() + ","
-                            sql += jj_unionid.__str__() + ","
-                            sql += this_idr.__str__() + ")"
-                            #print sql
-                            cur.execute(sql)
+#     idr_scatter_values = []  
+#     for unionid in unionids:
+#         idr_scatter_values.append( unionid_maxvals[unionid] )  
+#     width = unionidnames.__len__()
+#     height = unionidnames.__len__()
+#     filekeyword = spunionname + ".enrich.idr"
+#     """idr_stats[gene number in the geneid list][rep ii][rep jj] = lidr"""
+#     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, idr_scatter_values, unionidnames, filekeyword, title="Fold Enrichment IDR", xlab="", ylab="", force_square=True)
+#     if cranpath != None:
+#         add_speciesunionfile(cranpath, uid,"" + unionname, con)
+#         add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid,"" + unionname, con)
+# 
+#     """Now insert the IDR stats into the SQL database."""
+#     
+#     """First, clear any previous entries for the pair of this replicate group."""
+#     for ii in range(0, unionids.__len__() ):
+#         for jj in range(0, unionids.__len__() ):
+#             sql = "DELETE from GeneSpeciesunionEnrichIdr where unionid1=" + unionids[ii].__str__() + " and unionid2=" + unionids[jj].__str__()
+#             cur.execute(sql)
+#             con.commit()
+#     
+#     """Next insert the data into SQL."""
+#     geneids = geneid_results.keys()
+#     for gg in range(0, geneid_results.__len__() ):
+#         geneid = geneids[gg]
+#         if gg in idr_stats:
+#             for ii in range(0, unionids.__len__() ):
+#                 if ii in idr_stats[gg]:
+#                     for jj in range(0, unionids.__len__() ):
+#                         if jj in idr_stats[gg][ii]:
+#                             this_idr = idr_stats[gg][ii][jj]
+#                             ii_unionid = unionids[ii]
+#                             jj_unionid = unionids[jj]
+#                             sql = "INSERT into GeneSpeciesunionEnrichIdr(geneid,unionid1,unionid2,lidr)"
+#                             sql += " VALUES("
+#                             sql += geneid.__str__() + ","
+#                             sql += ii_unionid.__str__() + ","
+#                             sql += jj_unionid.__str__() + ","
+#                             sql += this_idr.__str__() + ")"
+#                             #print sql
+#                             cur.execute(sql)
                             
     con.commit()
 

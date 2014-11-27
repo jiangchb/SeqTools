@@ -561,13 +561,17 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=False, plot_as_rank = [], skip_identity = False):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False):    
     """
     Creates a multi-panel collection of scatterplots. The dimensions are N scatterplots by M scatterplots.
     n = width, number of scatterplots
     m = height, number of scatterplots.
     
     values[ii] = list of data for data series ii. values.__len__() should equal width
+    
+    skip_zeros: If True, then any values that equal zero will be removed from the analysis.
+        This essentially allows for data from species-specific or replicate-specific genes
+        to be removed.
     
     NOTE: in making the scatterplots, data pairs where both the x-axis and y-axis series are (0,0) 
     will be ignored from the plot.
@@ -595,6 +599,25 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
     
+    
+    if skip_zeros:
+        no_zero_values = []
+        for ii in range(0, width-1):
+            no_zero_values.append( [] )
+        
+        """For each gene"""
+        for jj in range(0, values[0].__len__()):
+            found_zero = False
+            """For each data set"""
+            for ii in range(0, width-1):
+                if values[ii][jj] == 0.0:
+                    found_zero = True
+            """If we found no zeros at this gene, then let's keep it."""
+            if found_zero == False:
+                for ii in range(0, width-1):
+                    no_zero_values[ii].append( values[ii][jj] )
+        values = no_zero_values
+                
     #cranstr += "require(mvtnorm);\n"
     
     pdfpath = filekeyword + ".pdf"
@@ -625,7 +648,6 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                 if ii >= qq:
                     mod = qq
 
-
         for jj in range(mod+(ii%height), mod+height):       
             count += 1     
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
@@ -646,7 +668,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
                 ylim = values[jj].__len__()
                 xlim = max(xlim,ylim)
                 ylim = xlim
-            else:
+            else:                
                 xlim = max( values[ii] )
                 ylim = max( values[jj] )
             

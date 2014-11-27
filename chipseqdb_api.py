@@ -141,7 +141,6 @@ def get_genename_for_aliasname(name, con):
         return None
     return x[0]
 
-# August 4 2014: This  method is not currently being used. It may be depricated.
 def get_aliasids_for_geneid(geneid, con):
      cur = con.cursor()
      sql = "SELECT aliasid from GeneHomology where geneid=" + geneid.__str__()
@@ -164,7 +163,7 @@ def get_geneid_from_aliasid(aliasid, con):
         
 def get_geneids_from_repgroup(con, repgroupid):
     cur = con.cursor()
-    sql = "SELECT geneid from RepgroupGenes where repgroupid=" + repgroupid.__str__()
+    sql = "SELECT geneid from RepgroupSummits where repgroupid=" + repgroupid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     genes = []
@@ -222,6 +221,9 @@ def get_summit_scores_for_replicate(repid, con):
         sql = "select * from GeneSummits where summit=" + summitid.__str__()
         cur.execute(sql)
         x = cur.fetchone()
+        #
+        # continue here - should we iterate over all possible values?
+        #
         if x != None:
             geneid = x[0]
             summitid = x[1]
@@ -230,18 +232,7 @@ def get_summit_scores_for_replicate(repid, con):
                 geneid_ssstats[geneid] = {}
             geneid_ssstats[geneid][summitid] = (score, qvalue, distance)
     return geneid_ssstats
-    
-    
-#     geneid_ss = {} # key = geneid, value = tuple(max score, max qvalue)
-#     for geneid in geneid_ssstats:
-#         scores = []
-#         for summitid in geneid_ssstats[geneid]:
-#             scores.append( geneid_ssstats[geneid][summitid][0] )
-#         max_score = max(scores)
-#         for summitid in geneid_ssstats[geneid]:
-#             if geneid_ssstats[geneid][summitid][0] == max_score:
-#                 geneid_ss[geneid] = (max_score, geneid_ssstats[geneid][summitid][1], geneid_ssstats[geneid][summitid][2])
-#     return geneid_ss
+
                 
 def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)
@@ -308,7 +299,7 @@ def get_species_id(speciesname, con):
 
 def get_species_name(speciesid, con):
     cur = con.cursor()
-    sql = "SELECT name FROM Species where id=" + speciesid
+    sql = "SELECT name FROM Species where id=" + speciesid.__str__()
     cur.execute(sql)
     return cur.fetchone()[0]
 
@@ -532,7 +523,7 @@ def remove_all_for_gene(gene, con):
     geneid = gene[0]
     genename = gene[1]
         
-    tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummits", "GeneSummits", "RepgroupGenes", "GeneHomology", "GeneAlias", "Genes"]
+    tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummits", "GeneSummits", "GeneHomology", "GeneAlias", "Genes"]
     for t in tables:
         if t == "GeneSummits":
             sql = "DELETE FROM " + t + " where gene=" + geneid.__str__()
