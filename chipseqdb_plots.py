@@ -1667,12 +1667,17 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         sql = "select id from Summits where replicate=" + repid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
+        
+        sql = "select count(id) from Summits where replicate=" + repid.__str__()
+        cur.execute(sql)
+        count_total = cur.fetchone()[0]
+        
         summits = []
         count = 0
         for ii in x:
             """Progress indicator."""
             count += 1
-            sys.stdout.write("\r    --> " + count.__str__() + " summits." )
+            sys.stdout.write("\r    --> " + count.__str__() + " of " + count_total.__str__() + " summits." )
             sys.stdout.flush()
             
             summitid = ii[0]
@@ -1718,9 +1723,14 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         """Write an excel table."""
         xlpath = repname + ".enrich_x_summit.xls"
         fout = open(xlpath, "w")
-        fout.write("Summit_ID\tSummit_Q_Score\tFold-Enrich._at_Peak\n")
+        fout.write("Summit_ID\tChrom.\tSite\tSummit_Q_Score\tFold-Enrich._at_Peak\n")
         for ii in range( 0, summits.__len__() ): 
-            fout.write(summits[ii].__str__() + "\t" + fearray[ii].__str__() + "\t" + sarray[ii].__str__() + "\n")
+            sql = "select chrom, site from Summits where id=" + summits[ii].__str__()
+            cur.execute(sql)
+            res = cur.fetchone()
+            chrom = res[0]
+            site = res[1]
+            fout.write(summits[ii].__str__() + "\t" + get_chrom_name(con, chrom).__str__() + "\t" + site.__str__() + "\t" + fearray[ii].__str__() + "\t" + sarray[ii].__str__() + "\n")
         fout.close()
     
 def compute_enrichments_for_speciesunion(uid, con):
