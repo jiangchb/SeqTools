@@ -582,6 +582,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     will be updated accordingly.
     """    
     if names.__len__() != width:
+        print "\n. ERROR scatter_nxm was called with 'width' != to the number of names."
         print names
         print names.__len__()
         exit()
@@ -732,7 +733,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             
             """Write labels across left-side margin"""
             if ii == 0:
-                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1.7);\n"
+                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1);\n"
             
             
             """Write some summary statistics into the plotting area."""
@@ -773,7 +774,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
 
             """Write labels for top row"""
             if (jj+1)%height==0:
-                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1.7);\n"
+                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1);\n"
  
             """The right-side histogram"""
             cranstr += "par( fig=c(" + (ii*colwidth + 0.66*colwidth).__str__() + ","
@@ -785,7 +786,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
 
             cranstr += "barplot(hist_b$density, axes=FALSE, space=0, horiz=TRUE, col='" + col + "');\n" # barplot
 
-    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
+    cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=1.5);\n"
     
     cranstr += "dev.off();\n"
     cranpath = filekeyword + ".cran"

@@ -1661,7 +1661,6 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         
         fearray = []
         sarray = []
-        sdarray = []
         
         """Get the genes with summits."""
         #sql = "select gene from GeneSummits where summit in (select id from Summits where replicate=" + repid.__str__() + ")"
@@ -1669,55 +1668,60 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         cur.execute(sql)
         x = cur.fetchall()
         summits = []
+        count = 0
         for ii in x:
+            """Progress indicator."""
+            count += 1
+            sys.stdout.write("\r    --> " + count.__str__() + " summits." )
+            sys.stdout.flush()
+            
             summitid = ii[0]
+            
 
             """Get the max FE at this gene."""
             sql = "select max_enrichment from SummitsEnrichment where summit=" + summitid.__str__()
             cur.execute(sql)
-            fearray.append( cur.fetchone()[0] )
+            fe = cur.fetchone()[0]
             
             """Get the max summit score"""
             sql = "select score from Summits where id=" + summitid.__str__()
             cur.execute(sql)
-            sarray.append( cur.fetchone()[0] )
-                        
-            """Get the distance to the maximum summit."""
-            sql = "select min(distance) from GeneSummits where summit=" + summitid.__str__()
-            cur.execute(sql)
-            sdarray.append( cur.fetchone()[0] )
+            score = cur.fetchone()[0]
+              
+            #"""Get the distance to the maximum summit."""
+            #sql = "select min(distance) from GeneSummits where summit=" + summitid.__str__()
+            #cur.execute(sql)
+            #d = cur.fetchone()[0]
+            
+            if fe != None and score != None:# and d != None:       
+                summits.append(summitid)
+                fearray.append( fe )
+                sarray.append( score )
+                #sdarray.append( d )
+            #else:
+            #    print "\n. This summit doesn't seem to map to a gene:", summitid, fe, score, d
         
         """Plot the data."""                
-        scatter_values = [fearray,sarray,sdarray]
-        scatter_names = ["fold-enrich.", "Summit Q-value", "d(max_summit)"]
+        scatter_values = [fearray,sarray]
+        scatter_names = ["fold-enrich.", "Summit Q-value"]
         plot_as_rank = []
-        width = 3
-        height = 3
+        width = 2
+        height = 2
         filekeyword = repname + ".enrich_x_summit"
-        scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False, plot_as_rank = plot_as_rank)
+        cranpath = scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False)
     
         #
         # to=do: add file to DB here
         # continue here
         #
     
-#         """Write an excel table."""
-#         xlpath = repname + ".enrich_x_summit.xls"
-#         fout = open(xlpath, "w")
-#         fout.write("GeneID\tGeneName\tmax_summit_score\td(max_summit)\tmax_fold_enrichment\td(max_fe)\n")
-#         for ii in range(0, geneids.__len__() ):
-#             geneid = geneids[ii]
-#             fout.write(geneid.__str__() + "\t")
-#             fout.write( get_genename(geneid, con) + "\t")
-#             score = sarray[ii]
-#             fout.write(score.__str__() + "\t")
-#             dist = sdarray[ii]
-#             fout.write(dist.__str__() + "\t")
-#             fe = fearray[ii]
-#             fout.write(fe.__str__() + "\t")
-#             dist = fe_site_array[ii]
-#             fout.write(dist.__str__() + "\n")
-#         fout.close()
+        """Write an excel table."""
+        xlpath = repname + ".enrich_x_summit.xls"
+        fout = open(xlpath, "w")
+        fout.write("Summit_ID\tSummit_Q_Score\tFold-Enrich._at_Peak\n")
+        for ii in range( 0, summits.__len__() ): 
+            fout.write(summits[ii].__str__() + "\t" + fearray[ii].__str__() + "\t" + sarray[ii].__str__() + "\n")
+        fout.close()
     
 def compute_enrichments_for_speciesunion(uid, con):
     """Fills up the table SpeciesunionEnrichmentStats and also writes an excel tables."""
