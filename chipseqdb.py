@@ -41,7 +41,7 @@ def build_db(dbpath = None):
     
     # This data comes from the pillars file:
     cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
-    
+
     # This data from from the pillars file X GFF.
     cur.execute("CREATE TABLE IF NOT EXISTS GeneHomology(geneid INTEGER, aliasid INTEGER)")
     
@@ -49,23 +49,22 @@ def build_db(dbpath = None):
     cur.execute("CREATE TABLE IF NOT EXISTS RedFlagRegions(chromid INT, start INT, stop INT)")
     
     cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
-    cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER, id INTEGER)")
-
-
+    
     # These data come from MACS2 output files
     cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SummitsEnrichment(summit INTEGER, max_enrichment FLOAT)")
+    
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INTEGER, distance INT)") # a mapping of Summits to nearby Genes
-    cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummits(repgroupid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT)") # maps summits that exist in all replicates in the group.
     
     cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)") #geneid is the canonical geneID from pillars
-    cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    
     
     cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
         
+    build_repgroups(con)
     build_unions(con)
     build_idr_tables(con)
     con.commit()
@@ -75,28 +74,45 @@ def build_db(dbpath = None):
     
     return con
 
+
+def clear_repgroups(con):
+    cur = con.cursor()
+    cur.execute("drop table RepgroupSummits")
+    cur.execute("drop table GroupEnrichmentStats")
+    con.commit()
+    
+def build_repgroups(con):
+    cur = con.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER, id INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummits(repgroupid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)") # maps summits that exist in all replicates in the group.
+    cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    con.commit()
+
+def clear_unions(con):
+    cur = con.cursor()
+    cur.execute("drop table UnionSummits")
+    cur.execute("drop table UnionEnrichmentStats")
+    con.commit()    
+
 def build_unions(con):
     cur = con.cursor()
-    # These tables describe which replicates are to be unioned.
     cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER, id INTEGER)") # puts repgroups into union sets
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionSummits(unionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionSummits(unionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, rankmeanenrich FLOAT)")
     con.commit()
 
 
 def build_speciesunions(con):
+    """Note: geneid in the Speciesunion tables point to translated gene IDs from the pillars.
+        This means that to find this gene ID in a particular Union, you need to use
+        the table GeneHomology to find alias gene IDs for another species."""
+    
     cur = con.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER, id INTEGER)") # puts repgroups into union sets
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionGenes(unionid INTEGER, geneid INTEGER)") # genes that have summits in all the repgroups in this union
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(spunionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT)")
-    
-    # geneid in the Speciesunion tables point to translated gene IDs from the pillars.
-    # This means that to find this gene ID in a particular Union, you need to use
-    # the table GeneHomology to find alias gene IDs for another species.
-
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(spunionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
     con.commit() 
 
@@ -274,9 +290,8 @@ def import_summits(summitpath, repid, con):
     fin = open(summitpath, "r")
     for l in fin.xreadlines():
         count += 1
-        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-        sys.stdout.flush()
-        
+        #sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+        #sys.stdout.flush()
         if count%100==0:
             con.commit()
         
@@ -304,8 +319,9 @@ def import_summits(summitpath, repid, con):
     fin.close()
     con.commit()
     
-    cur.execute("SELECT COUNT(*) FROM Summits")
+    cur.execute("SELECT COUNT(*) FROM Summits where replicate=" + repid.__str__())
     count_genes = cur.fetchone()[0]
+    print "\n. Found", count_genes, "summits in", summitpath
     return con
 
 
@@ -337,6 +353,7 @@ def import_bdg(bdgpath, repid, con):
     cur.execute(sql)
     con.commit()
     
+    """Open the BDG file"""
     fin = open(bdgpath, "r")
     curr_chromname = None
     curr_chromid = None
@@ -344,14 +361,19 @@ def import_bdg(bdgpath, repid, con):
     geneid_sum = {} # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
     geneid_n = {} # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
     geneid_max = {}
-    geneid_maxsite = {} # key = geneid, value = the site number of the maximum FE in the gene's regulatory region
+    geneid_maxsite = {} # key = geneid, value = the distance from TSS of the maximum FE in the gene's regulatory region
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
-    gene_pairs = []
+    gene_pairs = [] # the pair of genes before and after this enrichment window
     pairi = 0 # index into gene_pairs
     count = 0
     total_count = estimate_line_count(bdgpath)
+    
+    summit_sites = None
+    count_found_summits = 0
+    
+    """For each line in the BDG"""
     for l in fin.xreadlines():
         if l.__len__() <= 5:
             """Skip to the next line."""
@@ -360,7 +382,7 @@ def import_bdg(bdgpath, repid, con):
         """Progress indicator."""
         count += 1
         if count%10 == 0:
-            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) + "     (" + count_found_summits.__str__() + " summits)" )
             sys.stdout.flush()
                     
         tokens = l.split()
@@ -395,16 +417,51 @@ def import_bdg(bdgpath, repid, con):
                     pair = (ii-1,ii)
                 gene_pairs.append( pair )
             pairi = 0
-                
+            
+            summit_sites = []
+            #next_summit_sites_ii = 0
+            sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
+            sql += " order by site ASC"
+            cur.execute(sql)
+            x = cur.fetchall()
+            for ii in x:
+                summit_sites.append( ii[0] )
+            summit_sites.sort()
+            
+            sql = "DELETE FROM SummitsEnrichment where summit in (select id from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__() + " )"
+            cur.execute(sql)
+            con.commit()
+                            
         """Get the fold-enrichment values in this window."""
         start = int(tokens[1]) # start of this enrichment window
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
     
+        """Can we map this enrichment site to a summit?"""        
+        summit_here = False
+        for ii in range(start, stop):
+            if ii in summit_sites:
+                summit_here = ii
+        if summit_here != False:
+            sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
+            sql += " and site=" + summit_here.__str__()
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
+            
+            if x != None:
+                count_found_summits += 1
+                sql = "insert into SummitsEnrichment (summit, max_enrichment) "
+                sql += " VALUES(" + x[0].__str__() + ","
+                sql += eval.__str__() + ")"
+                cur.execute(sql)
+                con.commit()
+        
+        """Next map the FE to nearby genes."""
+        
         """Ensure that pairi points to correct intergenic region."""
-        #print "404:", gene_pairs[pairi]
         while gene_pairs[pairi][1] != None and (genes[ gene_pairs[pairi][1] ][2] < start and genes[ gene_pairs[pairi][1] ][3] < start):
-            #print "405:", gene_pairs[pairi]
             pairi += 1
             
         """Can we map enrichment to both upstream and downstream genes?"""
@@ -468,6 +525,30 @@ def import_bdg(bdgpath, repid, con):
                     geneid_maxsite[geneid] = genes[up_ii][2] - ii
     fin.close()
     
+    """Did we find FE values for all the summits?"""
+    sql = "select count(*) from Summits where replicate=" + repid.__str__()
+    sql += " and id not in (select summit from SummitsEnrichment)"
+    cur.execute(sql)
+    count_missing = cur.fetchone()[0]
+    if count_missing > 0:
+        print "\n. Warning: I could not find fold-enrichment values for", count_missing, "of the summits."
+
+        sql = "select id, site, chrom from Summits where replicate=" + repid.__str__()
+        sql += " and id not in (select summit from SummitsEnrichment)"
+        cur.execute(sql)
+        x = cur.fetchall()
+        for ii in x:
+            print "missing summit", ii[0], "at site:", ii[1], get_chrom_name(con, ii[2])
+
+        sql = "select name from Chromosomes where id in ("
+        sql += "select distinct chrom from Summits where replicate=" + repid.__str__()
+        sql += " and id not in (select summit from SummitsEnrichment)"        
+        sql += " ) "
+        cur.execute(sql)
+        x = cur.fetchall()
+        print ". Missing summits on chromosomes:", x
+        
+        #exit()
     
     """Finally, write all our findings into the table EnrichmentStats."""
     count = 0

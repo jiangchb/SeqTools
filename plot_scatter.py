@@ -582,7 +582,6 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
     will be updated accordingly.
     """    
     if names.__len__() != width:
-        print "\n. ERROR plot_scatter.py 427, you called scatter_nxm without enough names."
         print names
         print names.__len__()
         exit()

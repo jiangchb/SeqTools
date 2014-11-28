@@ -36,6 +36,15 @@ def get_chrom_id(con, name):
     else:
         return x[0]
 
+def get_chrom_name(con, id):
+    cur = con.cursor()
+    cur.execute("SELECT name from Chromosomes where id=" + id.__str__())
+    x = cur.fetchone()
+    if x == None:
+        return None
+    else:
+        return x[0]
+
 def get_all_repids(con):
     cur = con.cursor()
     cur.execute("SELECT id from Replicates")
@@ -173,7 +182,7 @@ def get_geneids_from_repgroup(con, repgroupid):
 
 def get_geneids_from_union(con, unionid):
     cur = con.cursor()
-    sql = "SELECT geneid from UnionGenes where unionid=" + unionid.__str__()
+    sql = "SELECT geneid from UnionSummits where unionid=" + unionid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     genes = []
@@ -360,8 +369,6 @@ def clear_unions(con):
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionRepgroups"
     cur.execute(sql)
-    sql = "DROP TABLE IF EXISTS UnionGenes"
-    cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionSummits"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS UnionSummitStats"
@@ -375,8 +382,6 @@ def clear_speciesunions(con):
     sql = "DROP TABLE IF EXISTS Speciesunions"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS SpeciesunionUnions"
-    cur.execute(sql)
-    sql = "DROP TABLE IF EXISTS SpeciesunionGenes"
     cur.execute(sql)
     sql = "DROP TABLE IF EXISTS SpeciesunionSummits"
     cur.execute(sql)
