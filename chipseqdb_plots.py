@@ -1648,6 +1648,8 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
     cur = con.cursor()
     
     for repid in repids:
+        print "\n. Plotting summits vs. enrichments for replicate", repid
+        
         cur.execute("SELECT name from Replicates where id=" + repid.__str__())
         x = cur.fetchone()
         repname = None
@@ -1666,25 +1668,18 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         sql = "select id from Summits where replicate=" + repid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
-        #genes = []
         summits = []
         for ii in x:
-            #gene = ii[0]
-            #geneids.append( gene )
             summitid = ii[0]
 
             """Get the max FE at this gene."""
-            #sql = "select maxenrich from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + gene.__str__()
             sql = "select max_enrichment from SummitsEnrichment where summit=" + summitid.__str__()
             cur.execute(sql)
             fearray.append( cur.fetchone()[0] )
             
             """Get the max summit score"""
-            #sql = "select max(score), id from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + gene.__str__() + ")"
             sql = "select score from Summits where id=" + summitid.__str__()
             cur.execute(sql)
-            #x = cur.fetchone()
-            #max_summit = x[1]
             sarray.append( cur.fetchone()[0] )
                         
             """Get the distance to the maximum summit."""
@@ -1697,7 +1692,7 @@ def compare_summits_vs_enrichments_for_replicates(repids, con):
         scatter_names = ["fold-enrich.", "Summit Q-value", "d(max_summit)"]
         plot_as_rank = []
         width = 3
-        height = 2
+        height = 3
         filekeyword = repname + ".enrich_x_summit"
         scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False, plot_as_rank = plot_as_rank)
     
