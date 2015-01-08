@@ -26,6 +26,11 @@ def read_cli(ap):
     DBPATH = ap.getOptionalArg("--dbpath")
     if DBPATH == False:
         DBPATH = APATH + ".db"
+
+    GENOME_LIST = "genome_list.txt"
+    x = ap.getOptionalArg("--genome_list")
+    if x != False:
+        GENOME_LIST = x
         
     PROJECT_NAME = ap.getArg("--project_name")
     
@@ -39,6 +44,11 @@ def read_cli(ap):
     x = ap.getOptionalArg("--samtools")
     if x != False:
         SAMTOOLS = x
+    
+    USE_MPI = 0
+    x = ap.getOptionalArg("--use_mpi")
+    if x != False:
+        USE_MPI = 1
     
     MPIRUN = "mpirun -np 11 --machinefile hosts.txt /common/bin/mpi_dispatch"
     
@@ -98,6 +108,10 @@ def read_cli(ap):
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('seqtoolsdir','" + SEQTOOLSDIR + "')"
     cur.execute(sql)
+    sql = "insert or replace into Settings (keyword, value) VALUES('genome_list','" + GENOME_LIST + "')"
+    cur.execute(sql)
+    sql = "insert or replace into Settings (keyword, value) VALUES('use_mpi','" + USE_MPI.__str__() + "')"
+    cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('mpirun','" + MPIRUN + "')"
     cur.execute(sql)
     if restrict_to_sample != False:
@@ -127,6 +141,8 @@ def read_cli(ap):
     sql = "insert or replace into Settings (keyword, value) VALUES('practice_mode','" + x.__str__() + "')"
     cur.execute(sql)
     con.commit()
+    
+    con = import_genome_list(GENOME_LIST, con)
     
     con = import_annotations(APATH, con)
     return con

@@ -7,7 +7,8 @@ ap = ArgParser(sys.argv)
 
 inpath = ap.getArg("--in")
 outpath = ap.getArg("--out")
-n = int( ap.getArg("--n") )
+n = int( ap.getOptionalArg("--n") )
+seed  
 
 fin = open(inpath, "r")
 fout = open(outpath, "w")
@@ -17,6 +18,8 @@ lc = 0
 for l in fin.xreadlines():
     if lc == 0:
         count_reads += 1
+
+
     
     if count_reads <= n:
         fout.write( l )

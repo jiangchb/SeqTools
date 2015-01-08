@@ -38,12 +38,23 @@ def run_bowtie(con):
         c += " --no-unal "
         
         """Path to directory with genome sequences"""
-        if species == "Cdub":
-            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
-        if species == "Calb":
-            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
-        if species == "Ctro":
-            c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
+        sql = "select genomepath from SpeciesGenomepath where speciesname='" + species + "'"
+        cur.execute(sql)
+        x = cur.fetchall()
+        if x.__len__() == 0:
+            print "\n. Error: I cannot find a genome file reference for the species " + species
+            print ". Check your genome list, specified by the --genome_list argument."
+            exit()
+        else:
+            gpath = x[0][0]
+        c += " -x " + gpath
+        
+        #if species == "Cdub":
+        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
+        #if species == "Calb":
+        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
+        #if species == "Ctro":
+        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
         bowtie_commands.append(c)
         
         sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
@@ -58,7 +69,10 @@ def run_bowtie(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
+        if get_setting("use_mpi", con) == "1":
+            os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
+        else:
+            os.system("source bowtie_commands.sh")
 
 def check_bowtie_output(con):
     cur = con.cursor()
@@ -127,7 +141,10 @@ def write_sorted_bam(con):
     
     
     if get_setting("practice_mode",con) == "0":
-        os.system(get_setting("mpirun", con) + " run_sam2bam.sh")
+        if get_setting("use_mpi", con) == "1":
+            os.system(get_setting("mpirun", con) + " run_sam2bam.sh")
+        else:
+            os.system("source run_sam2bam.sh")
     
 def check_bams(con, delete_sam = True):
     """Will exit on error."""
@@ -218,7 +235,10 @@ def run_peak_calling(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        os.system( get_setting("mpirun",con) + " macs_commands.sh" )
+        if get_setting("use_mpi", con) == "1":
+            os.system( get_setting("mpirun",con) + " macs_commands.sh" )
+        else:
+            os.system("source macs_commands.sh")
 
 def check_peaks(con):
     cur = con.cursor()
@@ -286,7 +306,10 @@ def calculate_fe(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        os.system( get_setting("mpirun",con) + " fe_commands.sh" )
+        if get_setting("use_mpi", con) == "1":
+            os.system( get_setting("mpirun",con) + " fe_commands.sh" )
+        else:
+            os.system("source fe_commands.sh")
 
 def check_fe(con):
     cur = con.cursor()
@@ -348,7 +371,10 @@ def bam2bedgraph(con):
         fout.write(c + "\n")
     fout.close()
     if get_setting("practice_mode", con) == "0":
-        os.system(get_setting("mpirun",con) + " " + scriptpath)
+        if get_setting("use_mpi", con) == "1":
+            os.system(get_setting("mpirun",con) + " " + scriptpath)
+        else:
+            os.system("source " + scriptpath)
 
 def check_bedgraphs(con):
     cur = con.cursor()
@@ -438,7 +464,11 @@ def bed2wig(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        os.system( get_setting("mpirun",con) + " " + scriptpath ) 
+        if get_setting("use_mpi", con) == "1":
+            os.system( get_setting("mpirun",con) + " " + scriptpath ) 
+        else:
+            os.system("source " + scriptpath)
+    
     
 def check_wig(con):
     cur = con.cursor()

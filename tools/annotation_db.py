@@ -9,6 +9,8 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Settings(keyword, value)")
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
     
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesname TEXT unique, genomepath TEXT)")
+    
     """All annotations will have an entry in BowtieOutput, but hybrid annotations will also
     have an entry in FilteredBowtieOutput."""
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
@@ -126,6 +128,39 @@ def get_db(dbpath):
     build_anno_db(con)
     return con
 
+def import_genome_list(gpath, con):
+    cur = con.cursor()
+    
+    sql = "delete from SpeciesGenomepath"
+    cur.execute(sql)
+    con.commit()
+    
+    if False == os.path.exists(gpath):
+        print "\n. Error: I cannot find  your genome list file at " + gpath
+        exit()
+    
+    fin = open(gpath, "r")
+    lines = fin.readlines()
+    fin.close()
+    for l in lines:
+        if l.startswith("#") or l.__len__() < 2:
+            continue
+        tokens = l.split()
+        if tokens.__len__() < 2:
+            continue
+        speciesname = tokens[0]
+        gpath = tokens[1]
+        #if False == os.path.exists(gpath):
+        #    print "\n. Error: your genome list includes a reference that I cannot find:"
+        #    print l
+        #    exit()
+        sql = "insert into SpeciesGenomepath (speciesname, genomepath) VALUES("
+        sql += "'" + speciesname + "','" + gpath + "')"
+        cur.execute(sql)
+        con.commit()
+    
+    return con
+    
 
 def import_annotations(apath, con):    
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
@@ -140,6 +175,10 @@ def import_annotations(apath, con):
     for l in fin.readlines():
         ls = l.split("\r")
         for lt in ls:
+            if lt.startswith("#"):
+                continue
+            if lt.__len__() < 2:
+                continue
             lines.append( lt )
     
     """We parse all the lines, EXCEPT the header line."""
