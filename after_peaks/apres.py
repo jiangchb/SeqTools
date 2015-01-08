@@ -12,15 +12,16 @@ from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
 def splash():
-    print "============================================================"
+    print "============================================================================"
     print "."
-    print ". The ChIP-Seq Distillery"
+    print ". APRES: Analysis Pipeline for Replicate Experiments across Species."
     print "."
-    print ". An analysis pipeline for comparing ChIP-Seq experiments"
-    print ". across replicates, conditions, and species."
+    print ". [Part of the ChIP-Seq Distillery Suite]"
     print "."
-    print ". by Victor Hanson-Smith -- victorhansonsmith@gmail.com"
-    print "============================================================"
+    print ". Last Updated January 2014"
+    print "."
+    print ". Written by Victor Hanson-Smith -- victorhansonsmith@gmail.com"
+    print "============================================================================="
 #
 # Build, or add to, the database
 #
