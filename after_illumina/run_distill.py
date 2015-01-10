@@ -104,7 +104,6 @@ if jump <= 2.3 and stop > 2.3:
     find_hybrid_unique_reads(con)
 
 if jump <= 2.31 and stop > 2.32:
-    #print_read_stats(con)
     print_read_histograms(con)
 
 if jump <= 2.4 and stop > 2.4:
@@ -121,7 +120,7 @@ if jump <= 3 and stop > 3:
 
 if jump <= 3.1 and stop > 3.1:
     """Verify the SAM -> sorted BAM occurred correctly."""
-    check_bams(con)
+    check_bams(con, delete_sam=True)
 
 if jump <= 3.2 and stop > 3.2:
     """"Make WIGs from sorted BAMs"""

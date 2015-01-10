@@ -308,7 +308,6 @@ def print_read_histograms(con):
             vals.append( ii[0] )
         annoid_mismatches[annoid] = vals
 
-    """This next loop is the hard work -- get all the mismatch tallys from the DB"""
     annoid_bars = {}
     max_count = 0
     for annoid in annoids:
@@ -328,6 +327,21 @@ def print_read_histograms(con):
         for val in counts:
             if max_count < val:
                 max_count = val
+    
+    annoid_unique_bars = {} # data for uniquely-mapped reads
+    annoid_countunique = {}
+    for annoid in annoids:
+        annoid_countunique[annoid] = 0
+        counts = []
+        for ii in range(0, max_mismatch+1):
+            counts.append(ii)
+        sql = "select mismatch from Reads where annoid=" + annoid.__str__() + " and readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
+        cur.execute(sql)
+        x = cur.fetchall()        
+        for ii in x:
+            counts[ ii[0] ] += 1
+            annoid_countunique[annoid] += 1
+        annoid_unique_bars[annoid] = counts        
 
     bins = range(0, max_mismatch+1)
 
@@ -347,15 +361,21 @@ def print_read_histograms(con):
         fig = plt.figure(figsize=(8,4))
         """Histogram of vals"""
         #plt.hist(annoid_mismatches[annoid], bins, log=True, normed=1, histtype='bar', align="center")
-        plt.bar(bins, annoid_bars[annoid], log=1, align="center", color="#3399FF")
+        p1 = plt.bar(bins, annoid_bars[annoid], 0.75, log=1, align="center", color="#99CCFF")
+        p2 = plt.bar(bins, annoid_unique_bars[annoid], 0.75, align="center", log=1, color="#0066CC")
         plt.xlim( -1,max_mismatch+1 )
         plt.ylim( 1,max_count    )
-        plt.xlabel('N mismatches')
-        plt.ylabel('Proportion of Reads')
+        plt.xlabel('Mismatched Sites')
+        plt.ylabel('Reads')
         plt.title('Histogram of Read Mismatches -- ' + rowname)
+        plt.legend( (p1[0], p2[0]), ('All Reads (' + annoid_mismatches[annoid].__len__().__str__() + ')', 'Unique Reads (' + annoid_countunique[annoid].__str__() + ')') )
         
-        plt.text(0.6*max_mismatch, 0.3*max_count, "Total Reads: " + annoid_mismatches[annoid].__len__().__str__(), fontsize=10)
-        plt.text(0.6*max_mismatch, 0.09*max_count, "Perfect Matches: " + annoid_bars[annoid][0].__str__(), fontsize=10)
+        #plt.text(0.6*max_mismatch, 0.3*max_count, "Total Reads: " + annoid_mismatches[annoid].__len__().__str__(), fontsize=10)
+        #plt.text(0.6*max_mismatch, 0.09*max_count, "Perfect Matches: " + annoid_bars[annoid][0].__str__(), fontsize=10)        
+        #plt.text(0.6*max_mismatch, 0.01*max_count, "Unique Reads: " + annoid_unique_bars[annoid].__len__().__str__(), fontsize=10)
+        #plt.text(0.6*max_mismatch, 0.003*max_count, "Perfect & Unique: " + annoid_unique_bars[annoid][0].__str__(), fontsize=10)
+
+        
         
         plt.tight_layout()
         pdf_pages.savefig(fig)
