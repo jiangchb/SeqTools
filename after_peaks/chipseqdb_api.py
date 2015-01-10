@@ -208,41 +208,11 @@ def get_summit_scores_for_gene(geneid, repid, con):
     order based on their summit score."""
     cur = con.cursor()
     sql = "select score from Summits where replicate=" + repid.__str__() + " and id in (select summit from GeneSummits where gene=" + geneid.__str__() + ") order by score"
-    #print "60:", sql
     cur.execute(sql)
     scores = []
     for s in cur.fetchall():
         scores.append( s[0] )
     return scores
-
-# # depricated.
-# def get_summit_scores_for_replicate(repid, con):
-#     """Returns geneid_ssstats[geneid][summitid] = (score, Q value, distance to TSS)
-#     with one entry for every summit that exists for this replicate.
-#     """
-#     cur = con.cursor()
-#     sql = "select * from Summits where replicate=" + repid.__str__()
-#     cur.execute(sql)
-#     geneid_ssstats = {}
-#     for s in cur.fetchall():
-#         summitid = s[0]
-#         score = s[5]
-#         qvalue = s[7]
-#         sql = "select * from GeneSummits where summit=" + summitid.__str__()
-#         cur.execute(sql)
-#         x = cur.fetchone()
-#         #
-#         # continue here - should we iterate over all possible values?
-#         #
-#         if x != None:
-#             geneid = x[0]
-#             summitid = x[1]
-#             distance = x[2]
-#             if geneid not in geneid_ssstats:
-#                 geneid_ssstats[geneid] = {}
-#             geneid_ssstats[geneid][summitid] = (score, qvalue, distance)
-#     return geneid_ssstats
-
                 
 def get_max_summit_score_for_gene(geneid, repid, con):
     scores = get_summit_scores_for_gene(geneid, repid, con)

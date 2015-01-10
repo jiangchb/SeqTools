@@ -1330,7 +1330,9 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
         cur.execute(sql)
     con.commit()
 
+
 def get_summit_plot_array_for_replicate_v2(repid, species, con):
+    """Returns a tuple with three lists: (qvals, x_n, geneids) """
     cur = con.cursor()
     cur.execute("SELECT name from Replicates where id=" + repid.__str__())
     repname = cur.fetchone()[0]

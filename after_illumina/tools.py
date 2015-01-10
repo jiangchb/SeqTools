@@ -209,7 +209,6 @@ def run_peak_calling(con):
         
         sql = "select bampath from SortedBamFiles where annoid=" + exp_annoid.__str__()
         cur.execute(sql)
-        
         exp_bampath = cur.fetchone()[0]
     
         sql = "select bampath from SortedBamFiles where annoid=" + control_annoid.__str__()

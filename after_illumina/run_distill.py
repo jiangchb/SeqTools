@@ -103,13 +103,20 @@ if jump <= 2.1 and stop > 2.1:
 if jump <= 2.3 and stop > 2.3:
     find_hybrid_unique_reads(con)
 
+if jump <= 2.31 and stop > 2.32:
+    #print_read_stats(con)
+    print_read_histograms(con)
+
 if jump <= 2.4 and stop > 2.4:
     """Write SAM files for hybrid reads, containing only those reads that
-    are 100% match and unique to each parent genome."""
+    match the target genome <= the mismatch-threshold, and which are uniquely
+    mapped to that genome."""
     write_filtered_sam(con)
 
 if jump <= 3 and stop > 3:
-    """Convert SAM files to sorted BAM files."""
+    """Convert SAM files to sorted BAM files.
+        Note: this is where the hybrid/non-hyrbid execution paths reconverge.
+    """
     write_sorted_bam(con)
 
 if jump <= 3.1 and stop > 3.1:
@@ -156,9 +163,6 @@ if jump <= 7 and stop > 7:
 if jump <= 8 and stop > 8:
     """Launch the apres.py script."""
     launch_viz(con)
-
-if jump <= 100 and stop > 100:
-    print_read_stats(con)
 
 print "\n. ChIP-Seq distillation is complete.  Goodbye."
 exit()

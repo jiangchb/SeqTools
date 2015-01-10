@@ -50,7 +50,7 @@ def read_cli(ap):
     if x != False:
         USE_MPI = 1
     
-    MPIRUN = "mpirun -np 11 --machinefile hosts.txt /common/bin/mpi_dispatch"
+    MPIRUN = "mpirun -np 4 /common/bin/mpi_dispatch"
     
     MACS2 = "/common/REPOSITORY/MACS2-2.0.10.07132012/bin/macs2"
     x = ap.getOptionalArg("--macs2")
@@ -82,7 +82,12 @@ def read_cli(ap):
     restrict_to_strain = ap.getOptionalList("--restrict_to_strain")
     
     PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
-        
+    
+    MISMATCH_THRESHOLD = 0
+    x = ap.getOptionalArg("--mismatch_thresh")
+    if x != False:
+        MISMATCH_THRESHOLD = int(x)
+    
     """Build or restore the DB"""
     con = get_db(DBPATH)
     cur = con.cursor()
@@ -113,6 +118,8 @@ def read_cli(ap):
     sql = "insert or replace into Settings (keyword, value) VALUES('use_mpi','" + USE_MPI.__str__() + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('mpirun','" + MPIRUN + "')"
+    cur.execute(sql)
+    sql = "insert or replace into Settings (keyword, value) VALUES('mismatch_thresh','" + MISMATCH_THRESHOLD.__str__() + "')"
     cur.execute(sql)
     if restrict_to_sample != False:
         sql = "insert or replace into Settings (keyword, value) VALUES('restrict_to_sample','" + restrict_to_sample + "')"
