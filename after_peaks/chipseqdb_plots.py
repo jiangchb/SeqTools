@@ -1064,7 +1064,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
         rgname = get_repgroup_name(rgid, con)
         rgid_groupname[rgid] = rgname
         fout.write("max_FE(" + rgname + ")\t")
-        fout.write("max_FE(" + rgname + ")\t")
+        fout.write("mean_FE(" + rgname + ")\t")
         rgid_maxvals[rgid] = []
         rgid_meanvals[rgid] = []
     fout.write("\n")    
@@ -1590,7 +1590,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     fout.write("gene_ID\tgene_name\t")
     for repid in repids:
         fout.write("max_FE(" + repid_repname[repid] + ")\t")
-        fout.write("max_FE(" + repid_repname[repid] + ")\t")
+        fout.write("mean_FE(" + repid_repname[repid] + ")\t")
     fout.write("\n")
     
     """One row per gene"""
