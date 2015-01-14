@@ -37,7 +37,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     
     fin = open(sampath, "r")
     #fout = open(outsampath, "w")
-    total = 0
+    total = 0 # the total count of reads
     inserted = 0
     for line in fin.xreadlines():
         outline = ""
@@ -84,16 +84,18 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
                     line, and just continue to the next read."""
                     continue # skip to the next line
     con.commit()
-    sql = "select count(*) from Reads where annoid=" + annoid.__str__()
-    cur.execute(sql)
-    count = cur.fetchone()[0]
-    ratio = float(count)/total
-    print "\n\t--> I found", count, " reads out of", total, "reads. (%.3f)"%ratio
     fin.close()
-    #fout.close()
+    
+    ratio = float(inserted)/total
+    print "\n\t--> I found", inserted, " reads out of", total, "reads. (%.3f)"%ratio
+
+    """How many reads were perfect?"""
+    sql = "select count(*) from Reads where annoid=" + annoid.__str__() + " and mismatch=0"
+    cur.execute(sql)
+    count_perfect = cur.fetchone()[0]
     
     sql = "insert or replace into ReadStats(annoid, nperfect, ntotal) VALUES("
-    sql += annoid.__str__() + "," + count.__str__() + "," + total.__str__() + ")"
+    sql += annoid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
     cur.execute(sql)
     con.commit()
 
@@ -247,7 +249,7 @@ def find_hybrid_unique_reads(con):
 def print_read_stats(con):
     """This method prints basic stats about the extent to which reads mapped to genomes."""    
     cur = con.cursor()
-    sql = "select * from Hybrids"
+    sql = "select annoid from Annotations"
     cur.execute(sql)
     x = cur.fetchall()
     annoids = []
@@ -258,21 +260,27 @@ def print_read_stats(con):
     print "\nlibrary_name\tN_total\tN_perfect\tN_unique"
     fout.write("\nlibrary_name\tN_total\tN_perfect\tN_unique\n")
      
-      
     for annoid in annoids:
+                
         sql = "select nperfect, ntotal from ReadStats where annoid=" + annoid.__str__()
         cur.execute(sql)
         x = cur.fetchone()
         nperfect = x[0]
         ntotal = x[1] # total reads mapped to this genome
         
-        sql = "select nunique from UniqueReadStats where annoid=" + annoid.__str__()
+        """Is this annotation part of a hybrid genome?"""
+        sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
         cur.execute(sql)
-        x = cur.fetchone()
-        nunique = x[0]
-        
-
-        
+        x = cur.fetchone()[0]
+        if x > 0:
+            """Yes, it's part of a hybrid."""
+            sql = "select nunique from UniqueReadStats where annoid=" + annoid.__str__()
+            cur.execute(sql)
+            x = cur.fetchone()
+            nunique = x[0]
+        else:
+            """Nope, not a hybrid"""
+            nunique = ntotal
         
         sql = "select library_name, species from Annotations where annoid=" + annoid.__str__()
         cur.execute(sql)

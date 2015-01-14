@@ -80,15 +80,15 @@ if jump <= 1 and stop > 1:
 if jump <= 1.1 and stop > 1.1:
     check_bowtie_output(con)
 
-"""Hybrid only: find non-mismatch reads."""
+"""Extract the reads from Bowtie output."""
 if jump <= 2 and stop > 2:
-    sql = "select * from Hybrids"
+    """There are no hybrids in this analysis, just process annotations."""
+    sql = "SELECT annoid from Annotations"
     cur.execute(sql)
     x = cur.fetchall()
-    annoids = []
     for ii in x:
         annoids.append( ii[0] )
-    
+
     sql = "drop table Reads"
     cur.execute(sql)
     build_anno_db(con)
