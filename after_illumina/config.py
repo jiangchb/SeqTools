@@ -83,7 +83,7 @@ def read_cli(ap):
     
     PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
     
-    MISMATCH_THRESHOLD = 0
+    MISMATCH_THRESHOLD = -1
     x = ap.getOptionalArg("--mismatch_thresh")
     if x != False:
         MISMATCH_THRESHOLD = int(x)

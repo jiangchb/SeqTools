@@ -135,8 +135,10 @@ def import_genome_list(gpath, con):
     cur.execute(sql)
     con.commit()
     
-    if False == os.path.exists(gpath):
+    if False == os.path.exists(gpath.__str__()):
         print "\n. Error: I cannot find  your genome list file at " + gpath
+        print os.getcwd()  
+        print os.path.exists(gpath)      
         exit()
     
     fin = open(gpath, "r")

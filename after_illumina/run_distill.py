@@ -93,7 +93,7 @@ if jump <= 2 and stop > 2:
     cur.execute(sql)
     build_anno_db(con)
     for annoid in annoids:
-        extract_perfect_reads(annoid, con)
+        extract_matched_reads(annoid, con)
 
 """Build a map of which annotations map to which species."""
 if jump <= 2.1 and stop > 2.1:

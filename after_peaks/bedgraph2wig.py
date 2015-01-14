@@ -49,14 +49,6 @@ if False == os.path.exists(bedgraphpath):
 
 wigpath = sys.argv[2]
 
-# The output data will be built into the following hashtable:
-#site_value = {}
-
-# We'll keep a second list of the seen sites. I realize this list could
-# also be acquired from site_value.leys(), but by keeping this second
-# list we avoid the need to enumerate through a *large* number of hash
-# keys.
-#sites = []
 
 printspan = 100000 # print an update every N sites
 count = 0
@@ -68,28 +60,19 @@ fout.write("track type=WIG\n")
 for l in fin.xreadlines():
     if l.__len__() > 2:
         tokens = l.split()
-        #print tokens
         chromname = tokens[0]
 
         if last_seen_chrom != None and chromname != last_seen_chrom:
-            #fout.close()
             last_seen_chrom = None
 
 
-        if last_seen_chrom == None:
-            #outpath = bedgraphpath + "." + chromname + ".wig"
-            #fout = open( outpath, "w")
-            
+        if last_seen_chrom == None:            
             fout.write("variableStep chrom=" + chromname + "\n")
             last_seen_chrom = chromname
-            #print "\n\n.Writing a new WIG file for chromosome " + chromname + "\n -> " + outpath
-
         start = int( tokens[1] )
         stop = int( tokens[2] )
         value = tokens[3]
         for ii in range(start, stop):
-            #sites.append( ii )
-            #site_value[ii] = value
             if count%printspan == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()

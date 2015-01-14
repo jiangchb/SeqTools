@@ -2,8 +2,8 @@ from annotation_db import *
 import re, os, sys
 from sets import Set
 
-def extract_perfect_reads(annoid, con, chrom_filter = None):
-    """Extracts reads that match perfectly, without mismatches."""
+def extract_matched_reads(annoid, con, chrom_filter = None):
+    """Extracts reads that have a mismatch level <= the user-specified mismatch level."""
     """Writes a new (shorted) SAM file, and also returns a hash of read IDs."""
     cur = con.cursor()
     
@@ -24,8 +24,11 @@ def extract_perfect_reads(annoid, con, chrom_filter = None):
     
     """mismatch threshold:"""
     MTHRESH = int( get_setting("mismatch_thresh", con) )
-    
-    print "\n. Extracting reads with mismatch <= " + MTHRESH.__str__() + ", from", sampath
+    if MTHRESH < 0:
+        MTHRESH = 100000000 # effectively, gathers all reads regardless of their mismatch level.
+        print "\n. Extracting all reads from", sampath
+    else:
+        print "\n. Extracting reads with mismatch <= " + MTHRESH.__str__() + ", from", sampath
     
     # writing is depricated here. the writing of the new sam file
     # now takes place AFTER we've determine which reads are unique

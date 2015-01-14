@@ -16,14 +16,15 @@ def run_bowtie(con):
         c = get_setting("bowtie2",con)
         annoid = ii[0]
         fastq = ii[1]
+        full_fastq_path = get_setting("datadir",con) + "/" + fastq
         species = ii[2]
         
         """Sanity check:"""
-        if False == os.path.exists( get_setting("datadir",con) + "/" + fastq ):
-            print "\n. Error, I can't find your FASTQ file at", fastq
-            print ". (run_from_anno.py 43)"
+        if False == os.path.exists( full_fastq_path ):
+            print "\n. Error, I can't find your FASTQ file at", full_fastq_path
+            print ". (tools.py 43)"
             exit()
-        c += " -U " + get_setting("datadir",con) + "/" + fastq
+        c += " -U " + full_fastq_path
         
         """Is it a hybrid?"""
         sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
@@ -203,6 +204,10 @@ def run_peak_calling(con):
     macs_commands = []
     
     macs_pairs = get_macs_pairs(con)
+    
+    print "\n. I found the following MACS pairs:"
+    print macs_pairs
+    
     for pair in macs_pairs:       
         exp_annoid = pair[0]
         control_annoid = pair[1]

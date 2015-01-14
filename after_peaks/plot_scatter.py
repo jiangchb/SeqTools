@@ -459,9 +459,9 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         """Write custom axis labels."""
         if (jj+1)%height == 0 and ii==0:
-            cranstr += "mtext(\"value\", side=1, line=2, col=\"black\", cex=1.2);\n"
-            cranstr += "mtext(\"idr\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
-            cranstr += "mtext(\"idr vs. Values\", side=3, line=1, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"fold-enrichment\", side=1, line=2, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"IDR\", side=2, line=2.5, col=\"black\", cex=1.2);\n"
+            cranstr += "mtext(\"IDR vs. FE\", side=3, line=1, col=\"black\", cex=1.2);\n"
         
         if count == 0:
             cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=2.2);\n"
