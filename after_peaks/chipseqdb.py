@@ -91,7 +91,7 @@ def build_repgroups(con):
     cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER, id INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummits(repgroupid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)") # maps summits that exist in all replicates in the group.
-    cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
     con.commit()
 
 def clear_unions(con):

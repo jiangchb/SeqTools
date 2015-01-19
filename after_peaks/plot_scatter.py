@@ -561,7 +561,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[]):    
     """
     Creates a multi-panel collection of scatterplots. The dimensions are N scatterplots by M scatterplots.
     n = width, number of scatterplots
@@ -706,7 +706,14 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             cranstr += "xlimit <- max(x);\n"
             cranstr += "ylimit <- max(y);\n"
             
-            cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
+            xlab = ""
+            if unit_labels.__len__() > ii:
+                xlab = unit_labels[ii]
+            ylab = ""
+            if unit_labels.__len__() > jj:
+                ylab = unit_labels[jj]
+            
+            cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\", cex=0.5,"
             if force_square:
                 cranstr += ", xlim=range(0,max(xlimit,ylimit)), ylim=range(0,max(ylimit,xlimit))"
             else:
@@ -733,7 +740,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
             
             """Write labels across left-side margin"""
             if ii == 0:
-                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=1);\n"
+                cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2, col=\"black\", cex=0.8);\n"
             
             
             """Write some summary statistics into the plotting area."""
@@ -774,7 +781,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", xlab="", yl
 
             """Write labels for top row"""
             if (jj+1)%height==0:
-                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=1);\n"
+                cranstr += "mtext(\"" + names[ii] + "\", side=3, line=1, col=\"black\", cex=0.8);\n"
  
             """The right-side histogram"""
             cranstr += "par( fig=c(" + (ii*colwidth + 0.66*colwidth).__str__() + ","

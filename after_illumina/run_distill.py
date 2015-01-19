@@ -83,6 +83,7 @@ if jump <= 1.1 and stop > 1.1:
 """Extract the reads from Bowtie output."""
 if jump <= 2 and stop > 2:
     """There are no hybrids in this analysis, just process annotations."""
+    annoids = []
     sql = "SELECT annoid from Annotations"
     cur.execute(sql)
     x = cur.fetchall()
