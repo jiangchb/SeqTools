@@ -254,7 +254,7 @@ if True == ap.getOptionalToggle("--reset_files"):
     reset_files(con)
     exit()
 
-#
+# 
 # IMPORT
 #
 pillarspath = ap.getArg("--pillarspath")

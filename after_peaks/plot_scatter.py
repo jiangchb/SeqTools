@@ -25,7 +25,7 @@ def scatter1(values_ii, values_jj, filekeyword, xlab="", ylab="", force_square=F
     cranstr = re.sub(",$", "", cranstr)
     cranstr += ");\n"
     
-    cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
+    cranstr += "plot(x, y, cex=0.5, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
 
     maxx = max(values_ii)
     maxy = max(values_jj)
@@ -46,11 +46,11 @@ def scatter1(values_ii, values_jj, filekeyword, xlab="", ylab="", force_square=F
             corr_valsa.append( values_ii[ww] )
             corr_valsb.append( values_jj[ww] )
     (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
     
     """Spearman's non-linear non-parametric rank correlation."""
     (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+    cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
     
     cranstr += "dev.off();\n"
     
@@ -104,7 +104,7 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
         cranstr = re.sub(",$", "", cranstr)
         cranstr += ");\n"
         
-        cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
+        cranstr += "plot(x, y, cex=0.5, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\""
 
         maxx = max(values_ii)
         maxy = max(values_jj)
@@ -125,11 +125,11 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
                 corr_valsa.append( values_ii[ww] )
                 corr_valsb.append( values_jj[ww] )
         (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + lim.__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
         
         """Spearman's non-linear non-parametric rank correlation."""
         (rho, pvalue) = scipystats.spearmanr( values_ii, values_jj )
-        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\");\n"
+        cranstr += "text(" + ((lim-min(values_ii))/2).__str__() + ", " + (0.92*lim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
     
     cranstr += "mtext(\"" + title + "\", side=3, outer=TRUE, line=-0.8, cex=1.8);\n"
     cranstr += "dev.off();\n"
@@ -144,8 +144,6 @@ def scatter1xn(values, filekeyword, title="", xlab="", ylab="", force_square=Fal
     return cranpath
 
 def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab="", ylab="", force_square=True):    
-    
-    
     """
     This method generates a PDF grid of scatterplots. Each grid is height*height, and there 3 grids on each page.
     The leftmost grid is a scatterplot of the ranked values in values[0:height-1] compared to each other.
@@ -179,7 +177,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             print names
             exit()
         if values[ii].__len__() == 0:
-            print "\n. ERROR scatter_nxm can't deal with empty value arrays, i.e., you have no data to plot."
+            print "\n. ERROR scatter_idr_nxm can't deal with empty value arrays, i.e., you have no data to plot."
+            print "\n. Check your call of scatter_idr_nxm for " + filekeyword
             exit()
         
     sinkpath = filekeyword + ".out"
@@ -301,7 +300,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         cranstr += parstr
         
-        cranstr += "plot(rankx, ranky, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
+        cranstr += "plot(rankx, ranky, cex=0.5, cex.lab=0.8, xlab=\"rank\", ylab=\"rank\""
         if force_square:
             cranstr += ", xlim=range(0,lim), ylim=range(0,lim)"
         col = "black"
@@ -328,9 +327,9 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         """Leftmost grid: write custom write axis labels"""
         if (jj+1)%height==0:
-            cranstr += "mtext(\"" + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
+            cranstr += "mtext(\"rank of " + names[ii] + "\", side=1, line=2, col=\"black\", cex=1);\n"
         if ii%height == 0:
-            cranstr += "mtext(\"" + names[jj] + "\", side=2, line=2.8, col=\"black\", cex=1);\n"
+            cranstr += "mtext(\"rank of " + names[jj] + "\", side=2, line=2.8, col=\"black\", cex=1);\n"
         
         """Use the idr library in R to compute IDR estimates."""
         cranstr += "library(idr);\n"
@@ -352,7 +351,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         cranstr += ");\n"
         
-        cranstr += "plot(uv$psi.n$t, uv$psi.n$value, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=0.8"
+        cranstr += "plot(uv$psi.n$t, uv$psi.n$value, cex=0.5, xlab=\"t\", ylab=\"psi\", xlim=c(0, max(uv$psi.n$t)),ylim=c(0, max(uv$psi.n$value)), cex.lab=0.8"
         col = "black"
         pch = "1"
         if ii < height:
@@ -391,7 +390,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         cranstr += ");\n"
          
-        cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=1.0"
+        cranstr += "plot(uv$dpsi.n$t, uv$dpsi.n$value, cex=0.5, xlab=\"t\", ylab=\"psi'\", xlim=c(0, max(uv$dpsi.n$t)),ylim=c(0, max(uv$dpsi.n$value)), cex.lab=1.0"
         col = "black"
         pch = "1"
         if ii < height:
@@ -433,7 +432,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         cranstr += ");\n" 
 
-        cranstr += "plot(x, idr.out$idr, xlab=\"" + names[ii] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
+        cranstr += "plot(x, idr.out$idr, cex=0.5, xlab=\"" + names[ii] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
         #cranstr += "ylim=c(0, max(idr.out$idr)),"
         cranstr += "cex.lab=1.0"
         col = "black"
@@ -475,7 +474,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             cranstr += ", new=TRUE" # don't call new=TRUE for the first plot.
         cranstr += ");\n" 
 
-        cranstr += "plot(y, idr.out$idr, xlab=\"" + names[jj] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
+        cranstr += "plot(y, idr.out$idr, cex=0.5, xlab=\"" + names[jj] + "\", ylab=\"idr\", xlim=c(0, max(x)),"
         #cranstr += "ylim=c(0, max(idr.out$idr)),"
         cranstr += "cex.lab=1.0"
         col = "black"
@@ -594,6 +593,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
             exit()
         if values[ii].__len__() == 0:
             print "\n. ERROR scatter_nxm can't deal with empty value arrays, i.e., you have no data to plot."
+            print "\n. Check your call of scatter_nxm for " + filekeyword
             return None
     
     sinkpath = filekeyword + ".out"
@@ -754,11 +754,11 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
                     corr_valsb.append( values[jj][ww] )
             if corr_valsa.__len__() > 0 and corr_valsb.__len__() > 0:
                 (rho, pvalue) = scipystats.pearsonr( corr_valsa, corr_valsb )
-                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.97*ylim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.97*ylim).__str__() + ", \"Prs R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
                 
                 """Spearman's non-linear non-parametric rank correlation."""
                 (rho, pvalue) = scipystats.spearmanr( corr_valsa, corr_valsb )
-                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.87*ylim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.9);\n"
+                cranstr += "text(" + ((xlim-min(corr_valsa))/2).__str__() + ", " + (0.87*ylim).__str__() + ", \"Spr R=%.2f"%rho + ", P=%.2f"%pvalue + "\", cex=0.7);\n"
                 
             if force_square:
                 cranstr += "abline(0,1)\n"

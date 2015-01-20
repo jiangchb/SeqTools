@@ -1567,39 +1567,38 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
         add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
     
-        
-#     """Also plot the IDR stats"""
-#     filekeyword = repgroupname + ".enrich.idr"
-#     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", xlab="", ylab="")
-#     if cranpath != None:
-#         add_repgroupfile(cranpath,rgroupid,"R script to make IDR scatterplots for replicate group " + repgroupname, con)
-#         add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
-#     
-#     """Update the IDR stats into the database"""
-# 
-#     """First, clear any previous entries for the pair of this replicate group."""
-#     for (ii,jj) in value_pairs: 
-#         sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
-#         cur.execute(sql)
-#         con.commit()
-#     
-#     for gg in range(0, geneids.__len__() ):
-#         geneid = geneids[gg]
-#         if gg in idr_stats:
-#             for ii in range(0, repids.__len__() ):
-#                 if ii in idr_stats[gg]:
-#                     for jj in range(0, repids.__len__() ):
-#                         if jj in idr_stats[gg][ii]:
-#                             this_idr = idr_stats[gg][ii][jj]
-#                             ii_repid = repids[ii]
-#                             jj_repid = repids[jj]
-#                             sql = "INSERT into GeneRepgroupEnrichIdr(geneid, repid1, repid2, lidr)"
-#                             sql += " VALUES(" + geneid.__str__() + ","
-#                             sql += ii_repid.__str__() + ","
-#                             sql += jj_repid.__str__() + ","
-#                             sql += this_idr.__str__() + ")"
-#                             #print sql
-#                             cur.execute(sql)
+    """Also plot the IDR stats"""
+    filekeyword = repgroupname + ".enrich.idr"
+    (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", xlab="", ylab="")
+    if cranpath != None:
+        add_repgroupfile(cranpath,rgroupid,"R script to make IDR scatterplots for replicate group " + repgroupname, con)
+        add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
+    
+    """Update the IDR stats into the database"""
+    
+    """First, clear any previous entries for the pair of this replicate group."""
+    for (ii,jj) in value_pairs: 
+        sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
+        cur.execute(sql)
+        con.commit()
+    
+    for gg in range(0, geneids.__len__() ):
+        geneid = geneids[gg]
+        if gg in idr_stats:
+            for ii in range(0, repids.__len__() ):
+                if ii in idr_stats[gg]:
+                    for jj in range(0, repids.__len__() ):
+                        if jj in idr_stats[gg][ii]:
+                            this_idr = idr_stats[gg][ii][jj]
+                            ii_repid = repids[ii]
+                            jj_repid = repids[jj]
+                            sql = "INSERT into GeneRepgroupEnrichIdr(geneid, repid1, repid2, lidr)"
+                            sql += " VALUES(" + geneid.__str__() + ","
+                            sql += ii_repid.__str__() + ","
+                            sql += jj_repid.__str__() + ","
+                            sql += this_idr.__str__() + ")"
+                            #print sql
+                            cur.execute(sql)
     con.commit()
 
     """Write an Excel Table"""

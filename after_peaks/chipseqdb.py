@@ -12,9 +12,10 @@ from chipseqdb_api import *
 
 def print_db_stats(con):
     species = get_species(con)
-    print "\n. The database contains", species.__len__(), "species:"
-    for sp in species:
-        print "    --> " + sp[1].__str__() + " (" + get_genes_for_species(con, sp[0]).__len__().__str__() + " genes)"
+    if species.__len__() > 0:
+        print "\n. The database contains", species.__len__(), "species."
+        for sp in species:
+            print "    --> " + sp[1].__str__() + " (" + get_genes_for_species(con, sp[0]).__len__().__str__() + " genes)"
     return
 
 def build_db(dbpath = None):
