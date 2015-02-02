@@ -1526,13 +1526,19 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     for ii in x:
         geneids.append( ii[0] )
         
-    """Get the max ane mean enrichment data"""
-    repid_maxfe = {}
+    """This is the stuff we want to know for each gene. . . """
+    repid_maxfe = {} # key = repid, value = list of max FEs, one for each gene
     repid_meanfe = {}
+    repid_npeaks = {}
+    repid_maxqval = {}
+    repid_dist_maxsummit = {}
     for repid in repids:
         repid_maxfe[repid] = []
         repid_meanfe[repid] = []
-    
+        repid_maxqval[repid] = []
+        repid_dist_maxsummit[repid] = []
+        
+    """Now get that stuff. . . """
     count = 0
     total_count = geneids.__len__() * repids.__len__()
     for geneid in geneids:
@@ -1548,8 +1554,55 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             x = cur.fetchone()
             repid_maxfe[repid].append( x[0] )
             repid_meanfe[repid].append( x[1] )
+        
+            count += 1
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
             
-    """Build the scatterplot"""
+            """N Peaks"""
+            sql = "select count(id) from Summits where replicate=" + repid.__str__()
+            sql += " and id in (select summit from GeneSummits where gene=" + geneid.__str__()
+            sql += ")"
+            cur.execute(sql)
+            peakcount = cur.fetchone()[0]
+            repid_npeaks[repid].append( peakcount )
+            
+            if peakcount == 0:
+                repid_maxqval[repid].append(None)
+                repid_dist_maxsummit[repid].append(None)
+            elif peakcount > 0:
+                """Max summit score"""
+                sql = "select max(score), id from Summits where replicate=" + repid.__str__()
+                sql += " and id in (select summit from GeneSummits where gene=" + geneid.__str__()
+                sql += ")"
+                cur.execute(sql)
+                x = cur.fetchone()
+                s = x[0]
+                maxsummitid = x[1]
+                repid_maxqval[repid].append( s )
+                
+                """TSS distance for max summit"""            
+                sql = "select min(distance), summit from GeneSummits where gene=" + geneid.__str__()
+                sql += " and summit in (select id from Summits where replicate=" + repid.__str__() + ")"
+                cur.execute(sql)
+                x = cur.fetchone()
+                mindistance = x[0]
+                repid_dist_maxsummit[repid].append(  mindistance )
+                #nearestsummtid = x[1]
+            
+    """Plot FE versus summits"""   
+    for repid in repids:            
+        repname = repid_repname[repid]
+        filekeyword = rep
+        scatter_data = [ repid_maxfe[repid], repid_maxqval[repid] ]
+        scatter_names = [ "max FE (" + repname + ")", "max Qval (" + repname + ")" ]
+        plot_as_rank = []
+        width = 2
+        height = 2
+        filekeyword = repname + ".fe_x_qval"
+        cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", force_square=False)            
+
+    """Plot FE stuff"""
     scatter_data = []
     scatter_names = []
     for repid in repids:
@@ -1561,7 +1614,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     width = scatter_data.__len__()
     height = repids.__len__()
     filekeyword = repgroupname + ".enrich"
-    
     cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword)
     if cranpath != None:
         add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
@@ -1575,8 +1627,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
     
     """Update the IDR stats into the database"""
-    
-    """First, clear any previous entries for the pair of this replicate group."""
     for (ii,jj) in value_pairs: 
         sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
         cur.execute(sql)
@@ -1597,11 +1647,10 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                             sql += ii_repid.__str__() + ","
                             sql += jj_repid.__str__() + ","
                             sql += this_idr.__str__() + ")"
-                            #print sql
                             cur.execute(sql)
     con.commit()
 
-    """Write an Excel Table"""
+    """Write the Excel Table"""
     xlpath = repgroupname + ".enrich.xls"
     print "\n. Writing a table with fold-enrichment to", xlpath
     fout = open(xlpath, "w")
@@ -1611,6 +1660,13 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     for repid in repids:
         fout.write("max_FE(" + repid_repname[repid] + ")\t")
         fout.write("mean_FE(" + repid_repname[repid] + ")\t")
+
+        """ Not all genes will have summit information... """
+        fout.write("NPeaks(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("max_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("max_summit_dist(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("nearest_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("nearest_summit_dist(" + repid_repname[repid].__str__() + ")\t")
     fout.write("\n")
     
     """One row per gene"""
@@ -1624,101 +1680,106 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             repid = repids[ii]
             fout.write(repid_maxfe[repid][gg].__str__() + "\t")
             fout.write(repid_meanfe[repid][gg].__str__() + "\t")
+            fout.write(repid_npeaks[repid][gg].__str__() + "\t")
+            fout.write(repid_maxqval[repid][gg].__str__() + "\t")
+            fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
+            
         fout.write("\n")
     fout.close()
 
     """Add an entry to the SQL database, listing the Excel file."""
     add_repgroupfile(xlpath,rgroupid,"Excel table with enrichment stats for replicate group " + repgroupname, con)
 
-            
-def plot_summits_vs_enrichments_for_replicates(repids, con):
-    cur = con.cursor()
-    
-    for repid in repids:
-        print "\n. Plotting summits vs. enrichments for replicate", repid
-        
-        cur.execute("SELECT name from Replicates where id=" + repid.__str__())
-        x = cur.fetchone()
-        repname = None
-        if x != None:
-            repname = x[0].__str__()
-        else:
-            print "\n. chipseqdb_plot.py 1477: Error, I can't find a name for the replicate", repid
-            exit()
-        
-        fearray = []
-        sarray = []
-        
-        """Get the genes with summits."""
-        #sql = "select gene from GeneSummits where summit in (select id from Summits where replicate=" + repid.__str__() + ")"
-        sql = "select id from Summits where replicate=" + repid.__str__()
-        cur.execute(sql)
-        x = cur.fetchall()
-        
-        sql = "select count(id) from Summits where replicate=" + repid.__str__()
-        cur.execute(sql)
-        count_total = cur.fetchone()[0]
-        
-        summits = []
-        count = 0
-        for ii in x:
-            """Progress indicator."""
-            count += 1
-            sys.stdout.write("\r    --> " + count.__str__() + " of " + count_total.__str__() + " summits." )
-            sys.stdout.flush()
-            
-            summitid = ii[0]
-            
-
-            """Get the max FE at this gene."""
-            sql = "select max_enrichment from SummitsEnrichment where summit=" + summitid.__str__()
-            cur.execute(sql)
-            fe = cur.fetchone()[0]
-            
-            """Get the max summit score"""
-            sql = "select score from Summits where id=" + summitid.__str__()
-            cur.execute(sql)
-            score = cur.fetchone()[0]
-              
-            #"""Get the distance to the maximum summit."""
-            #sql = "select min(distance) from GeneSummits where summit=" + summitid.__str__()
-            #cur.execute(sql)
-            #d = cur.fetchone()[0]
-            
-            if fe != None and score != None:# and d != None:       
-                summits.append(summitid)
-                fearray.append( fe )
-                sarray.append( score )
-                #sdarray.append( d )
-            #else:
-            #    print "\n. This summit doesn't seem to map to a gene:", summitid, fe, score, d
-        
-        """Plot the data."""                
-        scatter_values = [fearray,sarray]
-        scatter_names = [ "max FE (" + repname + ")", "max Qval (" + repname + ")" ]
-        plot_as_rank = []
-        width = 2
-        height = 2
-        filekeyword = repname + ".enrich_x_summit"
-        cranpath = scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False)
-    
-        #
-        # to=do: add file to DB here
-        # continue here
-        #
-    
-        """Write an excel table."""
-        xlpath = repname + ".enrich_x_summit.xls"
-        fout = open(xlpath, "w")
-        fout.write("Summit_ID\tChrom.\tSite\tSummit_Q_Score\tFold-Enrich._at_Peak\n")
-        for ii in range( 0, summits.__len__() ): 
-            sql = "select chrom, site from Summits where id=" + summits[ii].__str__()
-            cur.execute(sql)
-            res = cur.fetchone()
-            chrom = res[0]
-            site = res[1]
-            fout.write(summits[ii].__str__() + "\t" + get_chrom_name(con, chrom).__str__() + "\t" + site.__str__() + "\t" + fearray[ii].__str__() + "\t" + sarray[ii].__str__() + "\n")
-        fout.close()
+# depricated
+# this is now folded into the plot enrichments method
+# def plot_summits_vs_enrichments_for_replicates(repids, con):
+#     cur = con.cursor()
+#     
+#     for repid in repids:
+#         print "\n. Plotting summits vs. enrichments for replicate", repid
+#         
+#         cur.execute("SELECT name from Replicates where id=" + repid.__str__())
+#         x = cur.fetchone()
+#         repname = None
+#         if x != None:
+#             repname = x[0].__str__()
+#         else:
+#             print "\n. chipseqdb_plot.py 1477: Error, I can't find a name for the replicate", repid
+#             exit()
+#         
+#         fearray = []
+#         sarray = []
+#         
+#         """Get the genes with summits."""
+#         #sql = "select gene from GeneSummits where summit in (select id from Summits where replicate=" + repid.__str__() + ")"
+#         sql = "select id from Summits where replicate=" + repid.__str__()
+#         cur.execute(sql)
+#         x = cur.fetchall()
+#         
+#         sql = "select count(id) from Summits where replicate=" + repid.__str__()
+#         cur.execute(sql)
+#         count_total = cur.fetchone()[0]
+#         
+#         summits = []
+#         count = 0
+#         for ii in x:
+#             """Progress indicator."""
+#             count += 1
+#             sys.stdout.write("\r    --> " + count.__str__() + " of " + count_total.__str__() + " summits." )
+#             sys.stdout.flush()
+#             
+#             summitid = ii[0]
+#             
+# 
+#             """Get the max FE at this gene."""
+#             sql = "select max_enrichment from SummitsEnrichment where summit=" + summitid.__str__()
+#             cur.execute(sql)
+#             fe = cur.fetchone()[0]
+#             
+#             """Get the max summit score"""
+#             sql = "select score from Summits where id=" + summitid.__str__()
+#             cur.execute(sql)
+#             score = cur.fetchone()[0]
+#               
+#             #"""Get the distance to the maximum summit."""
+#             #sql = "select min(distance) from GeneSummits where summit=" + summitid.__str__()
+#             #cur.execute(sql)
+#             #d = cur.fetchone()[0]
+#             
+#             if fe != None and score != None:# and d != None:       
+#                 summits.append(summitid)
+#                 fearray.append( fe )
+#                 sarray.append( score )
+#                 #sdarray.append( d )
+#             #else:
+#             #    print "\n. This summit doesn't seem to map to a gene:", summitid, fe, score, d
+#         
+#         """Plot the data."""                
+#         scatter_values = [fearray,sarray]
+#         scatter_names = [ "max FE (" + repname + ")", "max Qval (" + repname + ")" ]
+#         plot_as_rank = []
+#         width = 2
+#         height = 2
+#         filekeyword = repname + ".enrich_x_summit"
+#         cranpath = scatter_nxm(width, height, scatter_values, scatter_names, filekeyword, title="", force_square=False)
+#     
+#         #
+#         # to=do: add file to DB here
+#         # continue here
+#         #
+#     
+#         """Write an excel table."""
+#         xlpath = repname + ".enrich_x_summit.xls"
+#         fout = open(xlpath, "w")
+#         fout.write("Summit_ID\tChrom.\tSite\tSummit_Q_Score\tFold-Enrich._at_Peak\n")
+#         for ii in range( 0, summits.__len__() ): 
+#             sql = "select chrom, site from Summits where id=" + summits[ii].__str__()
+#             cur.execute(sql)
+#             res = cur.fetchone()
+#             chrom = res[0]
+#             site = res[1]
+#             fout.write(summits[ii].__str__() + "\t" + get_chrom_name(con, chrom).__str__() + "\t" + site.__str__() + "\t" + fearray[ii].__str__() + "\t" + sarray[ii].__str__() + "\n")
+#         fout.close()
 
 def compute_enrichments_for_speciesunion(uid, con):
     """Fills up the table SpeciesunionEnrichmentStats and also writes an excel tables."""

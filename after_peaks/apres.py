@@ -123,8 +123,8 @@ def correlate_replicates(con):
 def plot_replicates(con):
     cur = con.cursor()
     
-    repids = get_all_repids(con)
-    plot_summits_vs_enrichments_for_replicates(repids, con)
+    #repids = get_all_repids(con)
+    #plot_summits_vs_enrichments_for_replicates(repids, con)
     
     rgroups = get_repgroup_ids(con)
     for rg in rgroups:
@@ -134,7 +134,7 @@ def plot_replicates(con):
         sql = "DELETE FROM ReplicategroupFiles where repgroupid=" + rgroupid.__str__()
         cur.execute(sql)
         con.commit()
-        plot_summits_for_reps_in_group(rgroupid, con)
+        #plot_summits_for_reps_in_group(rgroupid, con)
         plot_enrichments_for_reps_in_group(rgroupid, con)
     return con
 
