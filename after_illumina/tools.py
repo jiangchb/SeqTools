@@ -508,6 +508,9 @@ def check_wig(con):
     return
 
 def write_viz_config(con):
+    """This method writes the configuration file for the 'after_peaks' pipeline, which is primarily
+        concerned with comparing replicates, comparing groups of replicates, and creating visulizations."""
+    
     cur = con.cursor()
     
     configpath = get_setting("outdir", con) + "/" + get_setting("project_name", con) + ".config"
@@ -528,6 +531,7 @@ def write_viz_config(con):
         fout.write("SPECIES " + s + "\n")
         fout.write("NAME = " + s + "\n")
         
+        """Here are some genome feature files that are known."""
         if s == "Cdub":
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_dubliniensis_CD36_version_s01-m02-r08_features.gff\n")
         if s == "Calb":
@@ -536,7 +540,7 @@ def write_viz_config(con):
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
         
         repgroups = []
-        sql = "select distinct strain  from Annotations where species='" + s + "'"
+        sql = "select distinct strain from Annotations where species='" + s + "'"
         sql += " and Annotations.annoid in (select exp_annoid from MacsRun)"
         
         #sql = "select distinct strain from Annotations where species='" + s + "'"

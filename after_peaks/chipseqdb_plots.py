@@ -42,7 +42,12 @@ def compute_summits_for_union(unionid, con):
     
     print "\n. Building a dictionary of summits & genes for union '" + unionname + "'"
     
-    """What Genes Apply?"""
+    """What Genes Apply?
+    
+    
+    
+    
+    """
     sql = "select distinct gene from GeneSummits where "
     sql_pieces = []
     for repgroupid in rgroupids:
@@ -141,33 +146,9 @@ def plot_summits_for_union(unionid, con):
         venn_data[ rgroupname ] = genes
     vennpath = plot_venn_diagram( venn_data, unionname.__str__() + ".summits" )
     add_unionfile(vennpath, unionid, "Venn diagram comparing genes with summits for union " + unionname, con)
-
-
-    """ Write the Excel table listing the genes and their scores in the repgroups."""
-    xlpath = unionname + ".summits.xls"
-    print "\n. Writing a table to", xlpath
-    fout = open(xlpath, "w")
-    fout.write("gene_ID\tgene_name\t")
-    for rgroupid in rgroupids:
-        rgroupname = get_repgroup_name( rgroupid, con )        
-        fout.write("max_summit_Qval("       + rgroupname.__str__() + ")\t")
-        fout.write("max_summit_dist("       + rgroupname.__str__() + ")\t")
-        fout.write("nearest_summit_Qval("   + rgroupname.__str__() + ")\t")
-        fout.write("nearest_summit_dist("   + rgroupname.__str__() + ")\t")
-
-    fout.write("\n")
-
-    seen_genes = [] # a list of genes that have data for this union
-    sql = "select geneid from UnionSummits where unionid=" + unionid.__str__()
-    cur.execute(sql)
-    x = cur.fetchall()
-    for ii in x:
-        seen_genes.append( ii[0] )
-    
-    count = 1
-    total_count = seen_genes.__len__() * rgroupids.__len__()
-    
-    """These hashes are a shortcut to avoid excessive SQL queries."""
+        
+    """Next we build some hashes that store data which will be used to write a big Excel table.
+        These hashes prevent excessive SQL queries."""
     repgroup_summitid_score = {} # scores for all summits that may be relevant
     for rgroupid in rgroupids:
         repgroup_summitid_score[rgroupid] = {}
@@ -210,8 +191,31 @@ def plot_summits_for_union(unionid, con):
                 summit_gene_mindistance[ ii[2] ] = {}
             summit_gene_mindistance[ ii[2] ][ ii[1] ] = ii[0]
     
+    """ seen_genes is a list of gene IDs that have summits in all the replicates in this union."""
+    seen_genes = []
+    sql = "select geneid from UnionSummits where unionid=" + unionid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        seen_genes.append( ii[0] )
     
-    """For each gene that exists in all replicate groups"""
+    """ Write the Excel table listing the genes and their scores in the repgroups."""
+    xlpath = unionname + ".summits.xls"
+    print "\n. Writing a table to", xlpath
+    fout = open(xlpath, "w")
+    fout.write("gene_ID\tgene_name\t")
+    for rgroupid in rgroupids:
+        rgroupname = get_repgroup_name( rgroupid, con )        
+        fout.write("max_summit_Qval("       + rgroupname.__str__() + ")\t")
+        fout.write("max_summit_dist("       + rgroupname.__str__() + ")\t")
+        fout.write("nearest_summit_Qval("   + rgroupname.__str__() + ")\t")
+        fout.write("nearest_summit_dist("   + rgroupname.__str__() + ")\t")
+    fout.write("\n")
+    
+    count = 1
+    total_count = seen_genes.__len__() * rgroupids.__len__()
+
+    """For each gene that exists in all replicate groups in the union."""    
     for geneid in seen_genes:        
         fout.write(geneid.__str__() + "\t" + get_genename(geneid, con) + "\t" )
     
@@ -225,36 +229,18 @@ def plot_summits_for_union(unionid, con):
             
             maxsummitid = repgroup_gene_maxsummitid[rgroupid][geneid]
             nearestsummtid = repgroup_gene_nearestsummitid[rgroupid][geneid]
-            #sql = "SELECT repgroupid, geneid, maxsummitid, nearestsummitid from RepgroupSummits where repgroupid=" + rgroupid.__str__()
-            #sql += " and geneid=" + geneid.__str__()
-            #cur.execute(sql)
-            #x = cur.fetchone()
-            #if x != None:
-                #sql = "SELECT score from Summits where id=" + x[2].__str__()
-                #cur.execute(sql)
-                #this_score = cur.fetchone()[0]
             this_score = repgroup_summitid_score[rgroupid][ maxsummitid ]
             fout.write(this_score.__str__() + "\t")
             
-            #sql = "SELECT min(distance) from GeneSummits where summit=" + maxsummitid.__str__() + " and gene=" + geneid.__str__()
-            #cur.execute(sql)
-            #d = cur.fetchone()[0]
             d = summit_gene_mindistance[maxsummitid][geneid]
             fout.write(d.__str__() + "\t")
             
-            #sql = "SELECT score from Summits where id=" + x[3].__str__()
-            #cur.execute(sql)
-            #this_score = cur.fetchone()[0]
             this_score = repgroup_summitid_score[rgroupid][ nearestsummtid ]
             fout.write(this_score.__str__() + "\t")
             
-            #sql = "SELECT min(distance) from GeneSummits where summit=" + nearestsummtid.__str__() + " and gene=" + geneid.__str__()
-            #cur.execute(sql)
-            #d = cur.fetchone()[0]
             d = summit_gene_mindistance[nearestsummtid][geneid]
             fout.write(d.__str__() + "\t")
-            #else:
-            #    fout.write("0\t0\t0\t0\t")
+
         fout.write("\n")
     fout.close()
     
@@ -263,8 +249,8 @@ def plot_summits_for_union(unionid, con):
 
 def compute_summits_for_speciesunion(uid, con):
     """A species-union is a meta union of unions.
-    Each union contains multiple replicates from the same species.
-    The Species-union compares these unions, across species boundaries."""
+        Each union contains multiple replicates from the same species.
+        The Species-union compares these unions, across species boundaries."""
     
     cur = con.cursor()
     sql = "DELETE from SpeciesunionSummits where spunionid=" + uid.__str__()
@@ -326,8 +312,7 @@ def compute_summits_for_speciesunion(uid, con):
                     max_max_summit_score = this_score
                     max_max_summit_id = summitid
             if max_max_summit_id == None:
-                print "\n. Error, there is no max summitid for gene", geneid, "in repgroup", repgroupname
-                print "\n. chipseqdb_plot.py 86"
+                print "\n. Error. Checkpoint 86. there is no max summitid for gene", geneid, "in repgroup", repgroupname
                 exit()
             geneid_max[geneid] = max_max_summit_id
         if geneid_nearestsummits[geneid].__len__() == unionids.__len__():
@@ -379,9 +364,9 @@ def plot_summits_for_speciesunion(uid, con):
     nunionids = unionids.__len__()
     print "\n. Plotting summits for genes across species", spunionname, unionids
 
-    """seen_genes will be a list of un-aliased gene IDs for all genes that have
+    """seen_genes will be a list of translated gene IDs for all genes that have
     a summit in their nearby regulatory regions, in all the repgroups represented by
-    each union. Note that the gene IDs here are un-aliased; in other words,
+    each union. Note that the gene IDs here are translated; in other words,
     they represent the gene ID found from the pillars file. You may need to look up
     alias IDs for this gene's homolog to locate relevant summit scores in different species."""
     seen_genes = []
@@ -1505,9 +1490,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     """If there's only one replicate in this group, then we're done."""
     if repids.__len__() < 2:
         return
-    
-    #print "\n. Plotting enrichments for replicate group '" + repgroupname + "'"
-    
+        
     """Get the names of the reps in the group."""
     repid_repname = {}
     for repid in repids:
@@ -1538,7 +1521,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         repid_maxqval[repid] = []
         repid_dist_maxsummit[repid] = []
         
-    """Now get that stuff. . . """
+    """Now iterate through all genes for all replicates (in repids), and get the data to
+        fill the lists that were created above."""
     count = 0
     total_count = geneids.__len__() * repids.__len__()
     for geneid in geneids:
@@ -1568,9 +1552,12 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             repid_npeaks[repid].append( peakcount )
             
             if peakcount == 0:
+                """This gene in this replicate has no peaks."""
                 repid_maxqval[repid].append(None)
                 repid_dist_maxsummit[repid].append(None)
             elif peakcount > 0:
+                """This gene in this replicate has at least one peak."""
+                
                 """Max summit score"""
                 sql = "select max(score), id from Summits where replicate=" + repid.__str__()
                 sql += " and id in (select summit from GeneSummits where gene=" + geneid.__str__()
@@ -1631,7 +1618,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
         cur.execute(sql)
         con.commit()
-    
     for gg in range(0, geneids.__len__() ):
         geneid = geneids[gg]
         if gg in idr_stats:

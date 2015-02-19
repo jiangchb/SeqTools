@@ -55,20 +55,27 @@ def build_db(dbpath = None):
     cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SummitsEnrichment(summit INTEGER, max_enrichment FLOAT)")
     
+    """GeneSummits maps summits to the their putative target gene."""
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INTEGER, distance INT)") # a mapping of Summits to nearby Genes    
     
     # The table Summits2Summits stores relationships about summits that are nearby, perhaps identical, because conditions and species.
     # Not all summits will have an entry in this table.
     cur.execute("CREATE TABLE IF NOT EXISTS Summits2Summits(summitid1 INTEGER, summitid2 INTEGER, distance FLOAT)")
     
+    """EnrichmentStats stores data about fold-enrichment (max, mean, etc.) for each gene."""
     cur.execute("CREATE TABLE IF NOT EXISTS EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)")
     
     # The table Files contains paths to file generated during the analysis. These files will later be tar'd into
     # a package for results.
     cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
+    
+#     cur.execute("CREATE TABLE IF NOT EXISTS Compgroups(groupid INTEGER primary key autoincrement, name TEXT, note TEXT)")
+#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupMembership(groupid INTEGER, repgroupid INTEGER, series INTEGER)") #series is 0 or 1. 
+#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupSummits(groupid INTEGER)")
+#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupFiles(groupid INTEGER, fileid INTEGER)")
+    
+    
+    
         
     build_repgroups(con)
     build_unions(con)
@@ -79,7 +86,6 @@ def build_db(dbpath = None):
         print_db_stats(con)
     
     return con
-
 
 def clear_repgroups(con):
     cur = con.cursor()
@@ -93,6 +99,7 @@ def build_repgroups(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER, id INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummits(repgroupid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)") # maps summits that exist in all replicates in the group.
     cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReplicategroupFiles(repgroupid INTEGER, fileid INTEGER)")
     con.commit()
 
 def clear_unions(con):
@@ -107,6 +114,7 @@ def build_unions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS UnionSummits(unionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
     con.commit()
 
 
@@ -120,6 +128,7 @@ def build_speciesunions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(spunionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
     con.commit() 
 
 def build_idr_tables(con):

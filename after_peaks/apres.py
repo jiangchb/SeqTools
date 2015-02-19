@@ -302,7 +302,7 @@ if False == ap.getOptionalToggle("--skip_analysis"):
 #
 if False == ap.getOptionalToggle("--skip_plots"):
     if False == ap.getOptionalToggle("--skip_repsplot"):
-        plot_replicates(con)
+        plot_replicates(con)        
     if False == ap.getOptionalToggle("--skip_unionsplot"):
         plot_unions(con)
     if False == ap.getOptionalToggle("--skip_speciesplot"):
