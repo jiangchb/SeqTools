@@ -231,7 +231,7 @@ def import_annotations(apath, con):
 
                 
                 """Does this Annotation's settings conflict with any previously-known Annotations?"""
-                sql = "SELECT count(*) from Annotations where library_name='" + tokens[1] + "' and species='" + species + "'"
+                sql = "SELECT count(*) from Annotations where library_name='" + id + "' and species='" + species + "'"
                 cur.execute(sql)
                 count = cur.fetchone()[0]
                 if count == 0:
@@ -281,6 +281,9 @@ def get_hybrid_pairs(con):
     for ii in x:
         hannoids.append( ii[0] )
     seen_annoids = []
+    
+    print "285:", hannoids
+    
     for annoid in hannoids:
         
         if annoid in seen_annoids:
@@ -290,26 +293,31 @@ def get_hybrid_pairs(con):
         sql = "select species1, species2 from Hybrids where annoid=" + annoid.__str__()
         cur.execute(sql)
         x = cur.fetchone()
-        if x.__len__() == 0:
+        if x == None:
             print "\n. An error occurred - 157 - ", annoid
             exit()
         species1 = x[0]
         species2 = x[1]
         
+        print "302:", species1, species2
+        
         """Get the library_name (i.e. ID)"""
-        sql = "select library_name from Annotations where annoid=" + annoid.__str__()
+        sql = "select library_name, strain from Annotations where annoid=" + annoid.__str__()
         cur.execute(sql)
         x = cur.fetchone()
-        if x.__len__() == None:
+        if x == None:
             print "\n. An error occurred - 164 - ", annoid
             exit()
         library_name = x[0]
-        
+        strain = x[1]
+                
         """Get the annotation ID for the paired annotation."""
-        sql = "select annoid from Annotations where library_name='" + library_name + "' and species='" + species2 + "'"
+        sql = "select annoid from Annotations where species='" + species2.__str__() + "' and strain='" + strain.__str__() + "'"
+        print sql
         cur.execute(sql)
         x = cur.fetchone()
-        if x.__len__() == 0:
+        print "318:", x
+        if x == None:
             print "\n. An error occurred - 171 -", annoid
             exit()
         the_other_annoiid = x[0]

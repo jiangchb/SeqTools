@@ -402,6 +402,37 @@ def check_bedgraphs(con):
             exit()
     return
 
+def bed2wig_helper(bedgraphpath, wigpath):
+    printspan = 100000 # print an update every N sites
+    count = 0
+    last_seen_chrom = None
+    fin = open(bedgraphpath, "r")
+    print "\n. Converting BDG->WIG:", bedgraphpath, "-->", wigpath
+    fout = open(wigpath, "w")
+    fout.write("track type=WIG\n")
+    for l in fin.xreadlines():
+        if l.__len__() > 2:
+            tokens = l.split()
+            chromname = tokens[0]
+    
+            if last_seen_chrom != None and chromname != last_seen_chrom:
+                last_seen_chrom = None
+    
+            if last_seen_chrom == None:            
+                fout.write("variableStep chrom=" + chromname + "\n")
+                last_seen_chrom = chromname
+            start = int( tokens[1] )
+            stop = int( tokens[2] )
+            value = tokens[3]
+            for ii in range(start, stop):
+                if count%printspan == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
+                count += 1
+                fout.write(ii.__str__() + "\t" + value + "\n")
+    fin.close()
+    fout.close()
+
 def bed2wig(con):
     """Converts Bedgraph files to WIG files, for viewing in MochiView.
     Bedgraph filepaths are drawn from the tables ReadsWigFiles and FEWigFiles."""
@@ -413,7 +444,7 @@ def bed2wig(con):
     cur.execute(sql)
     con.commit()
 
-    commands = []
+    #commands = []
 
     """First convert the reads wig files."""
     sql = "select annoid, bedpath from BedgraphFiles"
@@ -428,8 +459,12 @@ def bed2wig(con):
         if wigpath == bedpath: # wtf.
             wigpath = bedpath + ".wig"
         
-        c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bedpath + "  " + wigpath
-        commands.append(c)
+        #
+        # continue here
+        #
+        #c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bedpath + "  " + wigpath
+        #commands.append(c)
+        bed2wig_helper(bedpath, wigpath)
         
         sql = "insert or replace into ReadsWigFiles(annoid, wigpath) VALUES("
         sql += annoid.__str__()
@@ -450,8 +485,9 @@ def bed2wig(con):
         if wigpath == bdgpath: # wtf.
             wigpath = bdgpath + ".wig"
         
-        c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bdgpath + "  " + wigpath
-        commands.append(c)
+        #c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bdgpath + "  " + wigpath
+        #commands.append(c)
+        bed2wig_helper(bdgpath, wigpath)
         
         sql = "insert or replace into FEWigFiles(exp_annoid, org_bdgpath, wigpath) VALUES("
         sql += annoid.__str__()
@@ -460,18 +496,18 @@ def bed2wig(con):
         cur.execute(sql)
         con.commit()
 
-    scriptpath = "run_bed2wig.sh"
-    fout = open(scriptpath, "w")
-    for c in commands:
-        print c
-        fout.write(c + "\n")
-    fout.close()
+    #scriptpath = "run_bed2wig.sh"
+    #fout = open(scriptpath, "w")
+    #for c in commands:
+    #    print c
+    #    fout.write(c + "\n")
+    #fout.close()
     
-    if get_setting("practice_mode", con) == "0":
-        if get_setting("use_mpi", con) == "1":
-            os.system( get_setting("mpirun",con) + " " + scriptpath ) 
-        else:
-            os.system("source " + scriptpath)
+    #if get_setting("practice_mode", con) == "0":
+    #    if get_setting("use_mpi", con) == "1":
+    #        os.system( get_setting("mpirun",con) + " " + scriptpath ) 
+    #    else:
+    #        os.system("source " + scriptpath)
     
     
 def check_wig(con):

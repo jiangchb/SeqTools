@@ -87,7 +87,9 @@ def import_data(con):
                     con = import_summits(summitpath, repid, con)
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
-                    con = import_bdg(bdgpath, repid, con)
+                    con = import_foldenrichment(bdgpath, repid, con)
+                
+                print "92: calling map_summits2genes", repid, speciesid
                 
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
@@ -122,10 +124,7 @@ def correlate_replicates(con):
 
 def plot_replicates(con):
     cur = con.cursor()
-    
-    #repids = get_all_repids(con)
-    #plot_summits_vs_enrichments_for_replicates(repids, con)
-    
+        
     rgroups = get_repgroup_ids(con)
     for rg in rgroups:
         rgroupid = rg[0]
@@ -243,13 +242,12 @@ if configpath == False and dbpath == False:
 built, or rebuilt, depending on its status."""
 con = build_db(dbpath=dbpath)
 
-#
-# Here are some shortcut methods:
-#
+"""--make_testdb is a dev-only option"""
 if True == ap.getOptionalToggle("--make_testdb"):
     reduce_db_for_test(con)
     exit()
 
+"""--reset_files is a dev-only option"""
 if True == ap.getOptionalToggle("--reset_files"):
     reset_files(con)
     exit()

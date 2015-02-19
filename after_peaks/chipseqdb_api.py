@@ -195,7 +195,6 @@ def get_summits(con, repid, chromid):
      is a tuple, containing all the parts of each Summit row."""
      cur = con.cursor()
      sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
-     #print "53:", sql
      cur.execute(sql)
      x = cur.fetchall()
      if x == None:

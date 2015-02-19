@@ -352,7 +352,7 @@ def estimate_line_count(filepath):
     with open(filepath, "r") as f:
         return sum(bl.count("\n") for bl in blocks(f))
 
-def import_bdg(bdgpath, repid, con):
+def import_foldenrichment(bdgpath, repid, con):
     """Imports a BDG file with enrichment scores tracked across genome sequence sites.
     The BDG must be sorted by site for each chromosome, ascending.""" 
     print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
@@ -839,92 +839,105 @@ def resolve_aliasids(con):
     """Save the commit for the end."""
     con.commit()
 
-def map_summits2genes(con, repid, speciesid=None, chromid=None):
-    """This methods puts values into the table GeneSummits."""
+def map_summits2genes(con, repid, speciesid=None, chroms=None):
+    """This methods puts values into the table GeneSummits.
+        speciesid can be the integer ID of a species whose genome will be used to map summits.
+        chroms can be a list of chromosome IDs to restrict the mapping (i.e. map summits only to
+            genes on these chromosomes)."""
 
-    cur = con.cursor()
-    speciesids = []
-    if speciesid:
-        spids = [speciesid]
-    else:
-        spids = get_species_ids(con)
+    cur = con.cursor()    
     
-    count = 0
-    for spid in spids:
-        chroms = get_chrom_ids(con, spid)
-        for chrid in chroms:
-            genes = get_genes_for_chrom(con, chrid)
-            summits = get_summits(con, repid, chrid)
-            for s in summits:
-                sid = s[0]
-                sumsite = s[3]
-                score = s[5]
+    if speciesid == None:
+        sql = "select species from Replicates where id=" + repid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x == None:
+            print "\n. Error 857: there is no species defined for replicate ID", repid
+            exit()
+        speciesid = int( x[0] )
+    
+    if chroms == None:
+        chroms = get_chrom_ids(con, speciesid)
+    
+    count = 0    
+    for chrid in chroms:
+        genes = get_genes_for_chrom(con, chrid)
+        summits = get_summits(con, repid, chrid)
+        
+        print "859:", speciesid, chrid, summits.__len__(), summits
+        
+        for s in summits:
+            sid = s[0] # summit ID
+            sumsite = s[3] # summit site in the genome
+            score = s[5] # summit score
+            
+            min_up = None
+            closest_up = ""
+            min_down = None
+            closest_down = ""
+            for g in genes:
+                if count%100==0:
+                    #sys.stdout.write(".")
+                    #sys.stdout.flush()
+                    con.commit()
                 
-                min_up = None
-                closest_up = ""
-                min_down = None
-                closest_down = ""
-                for g in genes:
-                    if count%100==0:
-                        #sys.stdout.write(".")
-                        #sys.stdout.flush()
-                        con.commit()
-                    
-                    gid = g[0]
-                    start = g[2]
-                    stop = g[3]
-                    d = start - sumsite
-                    
-                    """Sense direction, and upstream"""
-                    if start < stop and start >= sumsite:
-                        if min_up == None:
-                            min_up = d
-                            closest_up = gid
-                        if min_up > d:
-                            min_up = d
-                            closest_up = gid
-                            
-                    elif start < stop and stop < sumsite:
-                        """Sense direction and downstream"""
-                        if min_down == None:
-                            min_down = d
-                            closest_down = None
-                        if min_down < d:
-                            min_down = d
-                            closest_down = None
+                gid = g[0]
+                start = g[2]
+                stop = g[3]
+                d = start - sumsite
+                
+                """Sense direction, and upstream"""
+                if start < stop and start >= sumsite:
+                    if min_up == None:
+                        min_up = d
+                        closest_up = gid
+                    if min_up > d:
+                        min_up = d
+                        closest_up = gid
                         
-                    elif start > stop and start <= sumsite:
-                        """Antisense and downstream"""
-                        if min_down == None:
-                            min_down = d
-                            closest_down = gid
-                        if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
-                            min_down = d
-                            closest_down = gid
-                            
-                    elif start > stop and stop > sumsite:
-                        """Antisense and upstream"""
-                        if min_up == None:
-                            min_up = d
-                            closest_up = None
-                        if min_up > d:
-                            min_up = d
-                            closest_up = None
+                elif start < stop and stop < sumsite:
+                    """Sense direction and downstream"""
+                    if min_down == None:
+                        min_down = d
+                        closest_down = None
+                    if min_down < d:
+                        min_down = d
+                        closest_down = None
+                    
+                elif start > stop and start <= sumsite:
+                    """Antisense and downstream"""
+                    if min_down == None:
+                        min_down = d
+                        closest_down = gid
+                    if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
+                        min_down = d
+                        closest_down = gid
+                        
+                elif start > stop and stop > sumsite:
+                    """Antisense and upstream"""
+                    if min_up == None:
+                        min_up = d
+                        closest_up = None
+                    if min_up > d:
+                        min_up = d
+                        closest_up = None
 
-                if closest_up != None and min_up != None:
-                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                    sql += " VALUES(" + closest_up.__str__() + "," 
-                    sql += sid.__str__() + ","
-                    sql += min_up.__str__() + ") "
-                    #print sql         
-                    cur.execute(sql) 
-                if closest_down != None and min_down != None:
-                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                    sql += " VALUES(" + closest_down.__str__() + "," 
-                    sql += sid.__str__() + ","
-                    sql += min_down.__str__() + ") "  
-                    #print sql           
-                    cur.execute(sql) 
+            print "863:", sid, sumsite, score, closest_up, closest_down
+
+            if closest_up != None and min_up != None:
+                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                sql += " VALUES(" + closest_up.__str__() + "," 
+                sql += sid.__str__() + ","
+                sql += min_up.__str__() + ") "
+                #print sql         
+                cur.execute(sql) 
+            if closest_down != None and min_down != None:
+                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                sql += " VALUES(" + closest_down.__str__() + "," 
+                sql += sid.__str__() + ","
+                sql += min_down.__str__() + ") "  
+                #print sql           
+                cur.execute(sql) 
     con.commit()
     return con
                 

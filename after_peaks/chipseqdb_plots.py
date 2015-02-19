@@ -22,6 +22,9 @@ def compute_summits_for_union(unionid, con):
     
     unionname = get_unionname(unionid, con)
     rgroupids = get_repgroupids_in_union( unionid, con )
+    
+    print "26:", unionid, unionname, rgroupids
+    
     nrepgroups = rgroupids.__len__()
 
     print "\n. Comparing summits for union", unionname
@@ -857,7 +860,7 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
     #
     # A better way?
     #
-    sql = "SELECT rgroupid, geneid, maxenrich, meanenric, meanmaxenrich from GroupEnrichmentStats where"
+    sql = "SELECT rgroupid, geneid, maxenrich, meanenrich, meanmaxenrich from GroupEnrichmentStats where"
     sqlbits = []
     for rgid in rgroupids:
         sqlbits.append( " rgroupid=" + rgid.__str__() )
@@ -1019,7 +1022,7 @@ def plot_enrichments_for_union(unionid, con, keyword=None):
     
     """Build geneid_results,
     where geneid_results[geneid] = SQL results which is a list of GroupEnrichmentStats objects"""
-    sql = "SELECT rgroupid, geneid, maxenrich, meanenric, meanmaxenrich from GroupEnrichmentStats where"
+    sql = "SELECT rgroupid, geneid, maxenrich, meanenrich, meanmaxenrich from GroupEnrichmentStats where"
     sqlbits = []
     for rgid in rgroupids:
         sqlbits.append( " rgroupid=" + rgid.__str__() )

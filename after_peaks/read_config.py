@@ -96,6 +96,9 @@ def read_config(path):
             unionname = re.sub(" ", "", unionname)                
             if "unions" not in params["species"][curr_species]:
                 params["species"][curr_species]["unions"] = {}
+            if unionname in params["species"][curr_species]["unions"]:
+                print "\n. Error: your configuration file includes two unions with the same name:", unionname
+                exit()
             params["species"][curr_species]["unions"][unionname] = []
             x = tokens[1].split()
             for repgroup in x:
@@ -108,6 +111,9 @@ def read_config(path):
             spunionname = re.sub(" ", "", spunionname)                
             if "unionssp" not in params:
                 params["unionssp"] = {}
+            if spunionname in params["unionssp"]:
+                print "\n. Error: your configuration file includes two species-unions with the same name:", spunionname
+                exit()
             params["unionssp"][spunionname] = []
             x = tokens[1].split()
             for unionname in x:
