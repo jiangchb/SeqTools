@@ -167,7 +167,9 @@ def import_genome_list(gpath, con):
         sql += "'" + speciesname + "','" + gpath + "')"
         cur.execute(sql)
         con.commit()
-    
+        
+        print ". I found a genome for species", speciesname, "at", gpath
+        
     return con
     
 

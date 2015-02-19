@@ -996,7 +996,7 @@ def plot_summits_union_helper(unionid, con, keyword=None):
     width = scatter_names.__len__()
     height = repid_name.__len__()
     filekeyword = unionname + ".summits"
-    cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Summit scores for " + speciesname, xlab="", ylab="", unit_labels=unit_labels)
+    cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="Summit scores for " + speciesname, unit_labels=unit_labels)
     if cranpath != None:
         add_unionfile( cranpath, unionid, "R script for a scatterplot with summit scores for union " + unionname, con)
         add_unionfile( re.sub("cran", "pdf", cranpath), unionid, "PDF scatterplot with summit scores for union " + unionname, con)

@@ -318,17 +318,25 @@ def import_summits(summitpath, repid, con):
             score = float( tokens[4] )
             
             cur = con.cursor()
-            sql = "SELECT * FROM Chromosomes WHERE name='" + chr + "'"                
+            sql = "SELECT id FROM Chromosomes WHERE name='" + chr + "'"                
             cur.execute(sql)
             x = cur.fetchone()
             if x == None:
                 pass
-                #print "\n. Warning: Your summit file includes summits on chromosome", chr, "but your GFF file lacks this chromosome."
-                #print ". This is most likely because there are no annoted genes located on", chr
-                #print ". You should verify if this is true."
-                #print ". In the meantime, I am not importing the summits on", chr
             else:
                 chrid = x[0]
+                """Sanity Check"""
+                sql = "select species from Chromosomes where id=" + chrid.__str__()
+                cur.execute(sql)
+                chrom_species = int( cur.fetchone()[0] )
+                sql = "select species from Replicates where id=" + repid.__str__()
+                cur.execute(sql)
+                rep_species = int(cur.fetchone()[0])
+                #if chrom_species != rep_species:
+                    #print "\n. Error 336:", rep_species, chrom_species, chrid, chr, site, name, score
+                    #print l
+                    #exit()
+                
                 sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                 cur.execute(sql)
     fin.close()
@@ -785,7 +793,7 @@ def import_foldenrichment(bdgpath, repid, con):
 
 def resolve_aliasids(con):
     """This method inserts data into the table GeneHomology."""
-    print "\n. Resolving homologous gene IDs between species."
+    print "\n. Indexing homologous gene IDs between species."
     
     """Remove any prior GeneHomology entires. We're going to rebuild the entire table."""
     cur = con.cursor()
