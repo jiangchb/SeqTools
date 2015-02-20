@@ -101,8 +101,8 @@ def setup_unions(con):
         if "unions" in ap.params["species"][sp]:
             for unionname in ap.params["species"][sp]["unions"]:
                 repgroupnames = ap.params["species"][sp]["unions"][unionname]
-                #print "\n. Adding a repgroup union:", unionname, repgroupnames
-                con = add_union(unionname, repgroupnames, con)
+                union_type = ap.params["union_type"][unionname]
+                con = add_union(unionname, union_type, repgroupnames, con)
 
 def setup_speciesunions(con):
     clear_speciesunions(con)
@@ -133,7 +133,7 @@ def plot_replicates(con):
         sql = "DELETE FROM ReplicategroupFiles where repgroupid=" + rgroupid.__str__()
         cur.execute(sql)
         con.commit()
-        #plot_summits_for_reps_in_group(rgroupid, con)
+        plot_summits_for_reps_in_group(rgroupid, con)
         plot_enrichments_for_reps_in_group(rgroupid, con)
     return con
 

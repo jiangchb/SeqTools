@@ -202,6 +202,8 @@ def get_summits(con, repid, chromid):
      else:
          return x
 
+
+     #26
 def get_summit_scores_for_gene(geneid, repid, con):
     """Returns an array of tuples, one tuple for each summit at gene ID, with the tuples sorted in descending
     order based on their summit score."""
@@ -362,12 +364,12 @@ def clear_speciesunions(con):
     con.commit()
     
 
-def add_union(unionname, repgroupnames, con):
+def add_union(unionname, union_type, repgroupnames, con):
     cur = con.cursor()
     sql = "SELECT count(*) from Unions where name='" + unionname + "'"
     cur.execute(sql)
     if cur.fetchone()[0] == 0:
-        sql = "INSERT into Unions (name) VALUES('" + unionname + "')"
+        sql = "INSERT into Unions (name, type) VALUES('" + unionname + "','" + union_type.__str__() + "')"
         cur.execute(sql)
         con.commit()
         

@@ -75,8 +75,6 @@ def build_db(dbpath = None):
 #     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupFiles(groupid INTEGER, fileid INTEGER)")
     
     
-    
-        
     build_repgroups(con)
     build_unions(con)
     build_idr_tables(con)
@@ -110,10 +108,10 @@ def clear_unions(con):
 
 def build_unions(con):
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT, type TEXT)") # defines a union set, type can be 'intersection' or 'union'
     cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS UnionSummits(unionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UnionFiles(unionid INTEGER, fileid INTEGER)")
     con.commit()
 
@@ -127,7 +125,7 @@ def build_speciesunions(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(spunionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionFiles(spunionid INTEGER, fileid INTEGER)")
     con.commit() 
 
@@ -871,9 +869,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
     for chrid in chroms:
         genes = get_genes_for_chrom(con, chrid)
         summits = get_summits(con, repid, chrid)
-        
-        print "859:", speciesid, chrid, summits.__len__(), summits
-        
+                
         for s in summits:
             sid = s[0] # summit ID
             sumsite = s[3] # summit site in the genome
@@ -929,8 +925,6 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                     if min_up > d:
                         min_up = d
                         closest_up = None
-
-            print "863:", sid, sumsite, score, closest_up, closest_down
 
             if closest_up != None and min_up != None:
                 sql = "INSERT INTO GeneSummits (gene,summit,distance)" 

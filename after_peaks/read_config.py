@@ -20,6 +20,7 @@ def read_config(path):
     params["repgroup_memberorder"] = {}
     params["union_memberorder"] = {}
     params["spunion_memberorder"] = {}
+    params["union_type"] = {}
     for l in lines:
         l = l.strip()
         
@@ -88,7 +89,7 @@ def read_config(path):
                 exit()
             params["species"][curr_species]["rgroups"][curr_rgroup]["reps"][curr_rep]["bdgpath"] = bdgpath
         
-        elif l.startswith("UNION"):
+        elif l.startswith("UNION") or l.startswith("INTERSECTION"):
             tokens = l.split("=")
             if tokens.__len__() < 2:
                 continue
@@ -103,8 +104,14 @@ def read_config(path):
             x = tokens[1].split()
             for repgroup in x:
                 params["species"][curr_species]["unions"][unionname].append( re.sub(" ", "", repgroup) )
-            #print "\n. Adding union", unionname
-    
+            
+            if l.startswith("UNION"):
+                params["union_type"][unionname] = "union"
+            elif l.startswith("INTERSECTION"):
+                params["union_type"][unionname] = "intersection"
+            else:
+                params["union_type"][unionname] = "intersection"
+                
         elif l.startswith("SPECIES_UNION"):
             tokens = l.split("=")
             spunionname = tokens[0].split()[1]

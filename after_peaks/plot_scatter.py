@@ -560,7 +560,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
         os.system("rm " + tablepath)
     return idr_stats 
 
-def scatter_nxm(width, height, values, names, filekeyword, title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[]):    
+def scatter_nxm(width, height, values, names, filekeyword, title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None):    
     """
     Creates a multi-panel collection of scatterplots. The dimensions are N scatterplots by M scatterplots.
     n = width, number of scatterplots
@@ -706,12 +706,15 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
             cranstr += "xlimit <- max(x);\n"
             cranstr += "ylimit <- max(y);\n"
             
-            xlab = ""
-            if unit_labels.__len__() > ii:
+            if xlab == None and unit_labels.__len__() > ii:
                 xlab = unit_labels[ii]
-            ylab = ""
-            if unit_labels.__len__() > jj:
+            else:
+                xlab = ""
+            
+            if ylab == None and unit_labels.__len__() > jj:
                 ylab = unit_labels[jj]
+            else:
+                ylab = ""
             
             cranstr += "plot(x, y, xlab=\"" + xlab + "\", ylab=\"" + ylab + "\", cex=0.5,"
             if force_square:
