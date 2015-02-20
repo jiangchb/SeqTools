@@ -546,12 +546,6 @@ def plot_summits_for_speciesunion(uid, con):
                 
                 sql = "select name, id from Genes where chrom in (select id from Chromosomes where species=" + speciesid.__str__()  + ")"
                 sql += " and id in (select aliasid from GeneHomology where geneid=" + gid.__str__() + ")"
-                #sql_pieces = []
-                #for geneid in gene_aliases[gid]:
-                #    sql_pieces.append( "id=" + geneid.__str__() )
-                #sql += " and ("
-                #sql = sql + " or ".join(sql_pieces) + ")"
-                print "553:", gene_aliases[gid], sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 if x == None:
@@ -1708,7 +1702,7 @@ def compute_enrichments_for_speciesunion(uid, con):
         if geneid_results[gid].__len__() == nuids:    
             all_maxes = []
             all_means = []
-                   
+            
             for ii in geneid_results[gid]:
                 unionid = ii[0]
                
@@ -1720,6 +1714,8 @@ def compute_enrichments_for_speciesunion(uid, con):
                 all_maxes.append( ii[2] )
                 all_means.append( ii[3] )
 
+            """Each row in SpeciesunionEnrichmentStats corresponds to a gene that as FE data
+                in all the member unions of this species-union."""
             sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich)"
             sql += "VALUES (" + uid.__str__() + ","
             sql += gid.__str__() + ","
@@ -1759,8 +1755,8 @@ def plot_enrichments_for_speciesunion(uid, con):
     geneid_results = {} # geneid_results[translated_geneid] = array of rows from UnionEnrichmentStats
 
 
-    """Build a dictionary of aliased genes. This will be useful when we assign homology between
-    enrichment values."""
+    """Build a dictionary of translated gene IDs to all their possible gene IDs in other species.
+        Then, for each translated gene ID, store the corresponding data from SpeciesunionEnrichmentStats."""
     count = 1
     total_count = results.__len__()
     gene_aliases = {}
@@ -1770,7 +1766,6 @@ def plot_enrichments_for_speciesunion(uid, con):
         if translated_id not in gene_aliases:
             gene_aliases[translated_id] = []
         gene_aliases[translated_id] = get_aliasids_for_geneid(translated_id, con)
-        #print "1820:", translated_id, gene_aliases[translated_id]
         
         """Remember this gene."""
         if translated_id not in geneid_results:
@@ -1783,9 +1778,6 @@ def plot_enrichments_for_speciesunion(uid, con):
         if count %100:
             sys.stdout.write("\r    --> (translation) %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
-        
-    
-    #print "\n. 1797:", geneid_results.__len__()
     
     """Write an excel table"""
     xlpath = spunionname + ".enrich.xls"
@@ -1809,6 +1801,7 @@ def plot_enrichments_for_speciesunion(uid, con):
     
     fout.write("\n")
     
+    """For each union in this species union, get all the relevant enrichment data."""
     union_geneid_results = {}
     for unionid in unionids:
         union_geneid_results[unionid] = {}
@@ -1818,7 +1811,11 @@ def plot_enrichments_for_speciesunion(uid, con):
             union_geneid_results[unionid][ ii[1] ] = ii
     
     
-    """One row for each translated gene_ID"""
+    """Now we'll iterate through gene_results (the genes in the SpeciesUnion),
+        and get the relevant data from union_geneid_results (the data about each Union).
+    
+    One row for each translated gene_ID:
+    """
     for tgid in geneid_results.keys():  
         for unionid in unionids: # find the unionid that mathches result x
             count += 1
@@ -1826,8 +1823,9 @@ def plot_enrichments_for_speciesunion(uid, con):
                 sys.stdout.write("\r    --> (Excel table) %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
             
-            foundit = False
+            foundit = False # did we find the alias gene ID for this union?
             for alias in gene_aliases[tgid]:   
+                """For each possible gene ID alias, try to find enrichment data from the union"""
                 if foundit == False:
                     if alias in union_geneid_results[unionid]:
                         """We found the SQL query that corresponds to this unionid."""
@@ -1844,6 +1842,7 @@ def plot_enrichments_for_speciesunion(uid, con):
                         fout.write("%.3f"%this_maxfe + "\t")
                         fout.write("%.3f"%this_maxmeanfe + "\t")
                         fout.write("%.3f"%this_meanfe + "\t")
+            
             if foundit == False:
                 """We didn't find FE data for this gene in this union."""
                 fout.write("---\t---\tna\tna\tna\t")
@@ -1852,13 +1851,91 @@ def plot_enrichments_for_speciesunion(uid, con):
 
     add_speciesunionfile(xlpath, uid, "Excel table with enrichment stats for species union " + spunionname, con )
 
+
+    """
+    
+        Make the Matplotlib-based scatterplot
+    
+    """
+    maxfe_xvalues = [] # data from the union corresponding to unionids[0]
+    maxfe_yvalues = []
+    meanmaxfe_xvalues = []
+    meanmaxfe_yvalues = []
+    
+    maxfe_summit_xvalues = []
+    maxfe_summit_yvalues = []
+    meanmaxfe_summit_xvalues = []
+    meanmaxfe_summit_yvalues = []
+    
+    unionid_order = {}
+    for ii in range(0, unionids.__len__()):
+        unionid = unionids[ii]
+        unionid_order[unionid] = ii
+    
+    for tgid in geneid_results.keys():  
+        for unionid in unionids: # find the unionid that mathches result x
+            count += 1
+            if count %10:
+                sys.stdout.write("\r    --> (Scatterplot) %.1f%%" % (100*count/float(total_count)) )
+                sys.stdout.flush()
+            foundit = False # did we find the alias gene ID for this union?
+            for alias in gene_aliases[tgid]:   
+                """For each possible gene ID alias, try to find enrichment data from the union"""
+                if foundit == False:
+                    if alias in union_geneid_results[unionid]:
+                        """We found the SQL query that corresponds to this unionid."""
+                        foundit = True
+                        this_fe_data = union_geneid_results[unionid][alias]
+                        this_geneid = this_fe_data[1]
+                        if this_geneid != alias:
+                            print "\n. Error 1891:", this_geneid, alias
+                            exit()
+                        this_maxfe = float( this_fe_data[2] )
+                        this_maxmeanfe = float( this_fe_data[3] )
+                        this_meanfe = float( this_fe_data[4] )
+                        
+                        """Does this gene have a summit in the union?"""
+                        sql = "select count(*) from UnionSummits where unionid=" + unionid.__str__()
+                        sql += " and geneid=" + alias.__str__()
+                        cur.execute(sql)
+                        has_summit = cur.fetchone()[0]
+                        if has_summit > 0:
+                            """Yes, this gene has a summit in the data represented by this union."""
+                            if unionid_order[unionid] == 0:
+                                maxfe_summit_xvalues.append( this_maxfe )
+                                meanmaxfe_summit_xvalues.append( this_maxmeanfe )
+                            elif unionid_order[unionid] == 1:
+                                maxfe_summit_yvalues.append( this_maxfe )                            
+                                meanmaxfe_summit_yvalues.append( this_maxmeanfe )
+                        else:
+                            if unionid_order[unionid] == 0:
+                                maxfe_xvalues.append( this_maxfe )
+                                meanmaxfe_xvalues.append( this_maxmeanfe )
+                            elif unionid_order[unionid] == 1:
+                                maxfe_yvalues.append( this_maxfe )                            
+                                meanmaxfe_yvalues.append( this_maxmeanfe )
+
+            if foundit == False:
+                """We didn't find FE data for this gene in this union."""
+                print "\n. Error 1895 - The union", unionid, "does not have fold-enrichment data for the aliased gene", tgid
+                print ". Although, the species union", uid, "does have data for this gene."
+                print ". You may be using an outdated version of this software."
+                exit()
+
+    xvalues = [meanmaxfe_xvalues, meanmaxfe_summit_xvalues]
+    yvalues = [meanmaxfe_yvalues, meanmaxfe_yvalues]
+    filekeyword = spunionname + ".meanmaxfe"
+    matplot_scatter1(filekeyword, xvalues, yvalues)
+
+
+    #
+    # The R-based scatterplots. . . 
+    #
     scatterdata_part1 = []
     scatterdata_part2 = []
-
     for unionid in unionids:
         maxvals = []
         meanvals = []
-        
         """For each gene that has FE data in all unions"""
         for translated_id in geneid_results:
             foundit = False
@@ -1875,7 +1952,6 @@ def plot_enrichments_for_speciesunion(uid, con):
         scatterdata_part1.append( maxvals )
         scatterdata_part2.append( meanvals )
     scatterdata = scatterdata_part1 + scatterdata_part2
-
     """Names for each union"""
     scatter_names = []
     for unionid in unionids:    
@@ -1888,8 +1964,7 @@ def plot_enrichments_for_speciesunion(uid, con):
     cranpath = scatter_nxm(width, height, scatterdata, scatter_names, filekeyword, title="Fold Enrichment " + spunionname, xlab="fold-enrichment", ylab="fold-enrichment", skip_zeros=False) 
     if cranpath != None:
         add_speciesunionfile(cranpath, uid, "Multipanel scatterplot showing fold enrichment data for the species-union " + spunionname, con )
-        add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "Multipanel scatterplot showing fold enrichment data for the species-union " + spunionname, con )    
-                            
+        add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "Multipanel scatterplot showing fold enrichment data for the species-union " + spunionname, con )                   
     con.commit()
 
     
