@@ -405,12 +405,12 @@ def plot_summits_for_speciesunion(uid, con):
     for unionid in unionids:
         unionname = get_unionname( unionid, con )
         
-        """genes is a list of all genes that have summits in nearby regulatory regions in all
+        """union_genes is a list of all genes that have summits in nearby regulatory regions in all
         the replicates represented by the union."""
-        genes = get_geneids_from_union(con, unionid)
-        unionid_genes[unionid] = genes
+        union_genes = get_geneids_from_union(con, unionid)
+        unionid_genes[unionid] = union_genes
         translated_genes = []
-        for geneid in genes:
+        for geneid in union_genes:
             
             """Print a period every 200 iterations, to indicate that this program is still alive."""
             count += 1
@@ -491,14 +491,14 @@ def plot_summits_for_speciesunion(uid, con):
             """Does this translated gene have a summit in the union?"""           
             foundgid = False # did we find this gene for this replicate group?
             foundit = False # did we find a summit for this gene?
-            for geneid in gene_aliases[gid]:
+            for translated_geneid in gene_aliases[gid]:
                 """The idea is to go through every alias ID of the gene whose ID is 'gid', and try to find
                     an entry in UnionSummits with data for this gene and this union."""
                 
                 if foundgid == False:                                      
                     
                     sql = "SELECT unionid, geneid, maxsummitid, nearestsummitid, mean_maxsummitscore from UnionSummits where unionid=" + unionid.__str__()
-                    sql += " and geneid=" + geneid.__str__()
+                    sql += " and geneid=" + translated_geneid.__str__()
                     cur.execute(sql)
                     res = cur.fetchall()
                     if res == None or res.__len__() == 0:
@@ -509,14 +509,14 @@ def plot_summits_for_speciesunion(uid, con):
                     
                     x = res[0]
                     
-                    fout.write(geneid.__str__() + "\t")
-                    fout.write(get_genename(geneid, con) + "\t")
+                    fout.write(translated_geneid.__str__() + "\t")
+                    fout.write(get_genename(translated_geneid, con) + "\t")
                     
                     this_score = unionid_summitid_score[unionid][ x[2] ]
                     fout.write("%.3f"%this_score + "\t")
                     union_gene_qval[unionid][gid] = this_score
                     
-                    sql = "SELECT min(distance) from GeneSummits where summit=" + x[2].__str__() + " and gene=" + geneid.__str__()
+                    sql = "SELECT min(distance) from GeneSummits where summit=" + x[2].__str__() + " and gene=" + translated_geneid.__str__()
                     cur.execute(sql)
                     d = cur.fetchone()[0]
                     fout.write(d.__str__() + "\t")
@@ -525,7 +525,7 @@ def plot_summits_for_speciesunion(uid, con):
                     fout.write("%.3f"%this_score + "\t")
                     union_gene_nearestqval[unionid][gid] = this_score
 
-                    sql = "SELECT min(distance) from GeneSummits where summit=" + x[3].__str__() + " and gene=" + geneid.__str__()
+                    sql = "SELECT min(distance) from GeneSummits where summit=" + x[3].__str__() + " and gene=" + translated_geneid.__str__()
                     cur.execute(sql)
                     d = cur.fetchone()[0]
                     fout.write(d.__str__() + "\t") 
@@ -545,11 +545,13 @@ def plot_summits_for_speciesunion(uid, con):
                 speciesid = cur.fetchone()[0]
                 
                 sql = "select name, id from Genes where chrom in (select id from Chromosomes where species=" + speciesid.__str__()  + ")"
-                sql_pieces = []
-                for geneid in gene_aliases[gid]:
-                    sql_pieces += "id=" + geneid.__str__()
-                sql += " or "
-                sql = sql + "and".join(sql_pieces)
+                sql += " and id in (select aliasid from GeneHomology where geneid=" + gid.__str__() + ")"
+                #sql_pieces = []
+                #for geneid in gene_aliases[gid]:
+                #    sql_pieces.append( "id=" + geneid.__str__() )
+                #sql += " and ("
+                #sql = sql + " or ".join(sql_pieces) + ")"
+                print "553:", gene_aliases[gid], sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 if x == None:
@@ -560,7 +562,7 @@ def plot_summits_for_speciesunion(uid, con):
                     genename = x[0]
                     fout.write(geneid.__str__() + "\t")
                     fout.write(genename + "\t")
-                    fout.write("nd\tnd\tnd\tnd\t")      
+                    fout.write("na\tna\tna\tna\t")      
         fout.write("\n")
     fout.close()
     
@@ -1844,7 +1846,7 @@ def plot_enrichments_for_speciesunion(uid, con):
                         fout.write("%.3f"%this_meanfe + "\t")
             if foundit == False:
                 """We didn't find FE data for this gene in this union."""
-                fout.write("---\t---\tnd\tnd\tnd\t")
+                fout.write("---\t---\tna\tna\tna\t")
         fout.write("\n")
     fout.close()
 
