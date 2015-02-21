@@ -1862,17 +1862,33 @@ def plot_enrichments_for_speciesunion(uid, con):
     meanmaxfe_xvalues = []
     meanmaxfe_yvalues = []
     
-    maxfe_summit_xvalues = []
-    maxfe_summit_yvalues = []
-    meanmaxfe_summit_xvalues = []
-    meanmaxfe_summit_yvalues = []
+    maxfe_summitX_xvalues = []
+    maxfe_summitX_yvalues = []
+    meanmaxfe_summitX_xvalues = []
+    meanmaxfe_summitX_yvalues = []
+
+    maxfe_summitY_xvalues = []
+    maxfe_summitY_yvalues = []
+    meanmaxfe_summitY_xvalues = []
+    meanmaxfe_summitY_yvalues = []
+
+    maxfe_summitXY_xvalues = []
+    maxfe_summitXY_yvalues = []
+    meanmaxfe_summitXY_xvalues = []
+    meanmaxfe_summitXY_yvalues = []
     
     unionid_order = {}
+    unionnames = []
     for ii in range(0, unionids.__len__()):
         unionid = unionids[ii]
         unionid_order[unionid] = ii
+        unionnames.append( get_unionname(unionid, con) )
     
-    for tgid in geneid_results.keys():  
+    for tgid in geneid_results.keys():
+        """
+            First Pass: determine which genes have summits in none, some, or all the unions
+        """
+        unions_with_summits = []
         for unionid in unionids: # find the unionid that mathches result x
             count += 1
             if count %10:
@@ -1885,14 +1901,6 @@ def plot_enrichments_for_speciesunion(uid, con):
                     if alias in union_geneid_results[unionid]:
                         """We found the SQL query that corresponds to this unionid."""
                         foundit = True
-                        this_fe_data = union_geneid_results[unionid][alias]
-                        this_geneid = this_fe_data[1]
-                        if this_geneid != alias:
-                            print "\n. Error 1891:", this_geneid, alias
-                            exit()
-                        this_maxfe = float( this_fe_data[2] )
-                        this_maxmeanfe = float( this_fe_data[3] )
-                        this_meanfe = float( this_fe_data[4] )
                         
                         """Does this gene have a summit in the union?"""
                         sql = "select count(*) from UnionSummits where unionid=" + unionid.__str__()
@@ -1900,20 +1908,70 @@ def plot_enrichments_for_speciesunion(uid, con):
                         cur.execute(sql)
                         has_summit = cur.fetchone()[0]
                         if has_summit > 0:
+                            unions_with_summits.append(unionid)
+            
+            """
+                Second Pass, extract data
+            """
+            for unionid in unionids: # find the unionid that mathches result x
+                count += 1
+                if count %10:
+                    sys.stdout.write("\r    --> (Scatterplot) %.1f%%" % (100*count/float(total_count)) )
+                    sys.stdout.flush()
+                foundit = False # did we find the alias gene ID for this union?
+                for alias in gene_aliases[tgid]:   
+                    """For each possible gene ID alias, try to find enrichment data from the union"""
+                    if foundit == False:
+                        if alias in union_geneid_results[unionid]:
+                            """We found the SQL query that corresponds to this unionid."""
+                            foundit = True
+                            this_fe_data = union_geneid_results[unionid][alias]
+                            this_geneid = this_fe_data[1]
+                            if this_geneid != alias:
+                                print "\n. Error 1891:", this_geneid, alias
+                                exit()
+                            this_maxfe = float( this_fe_data[2] )
+                            this_maxmeanfe = float( this_fe_data[3] )
+                            this_meanfe = float( this_fe_data[4] )
+                            
+                            
                             """Yes, this gene has a summit in the data represented by this union."""
-                            if unionid_order[unionid] == 0:
-                                maxfe_summit_xvalues.append( this_maxfe )
-                                meanmaxfe_summit_xvalues.append( this_maxmeanfe )
-                            elif unionid_order[unionid] == 1:
-                                maxfe_summit_yvalues.append( this_maxfe )                            
-                                meanmaxfe_summit_yvalues.append( this_maxmeanfe )
-                        else:
-                            if unionid_order[unionid] == 0:
-                                maxfe_xvalues.append( this_maxfe )
-                                meanmaxfe_xvalues.append( this_maxmeanfe )
-                            elif unionid_order[unionid] == 1:
-                                maxfe_yvalues.append( this_maxfe )                            
-                                meanmaxfe_yvalues.append( this_maxmeanfe )
+                            
+                            if unions_with_summits.__len__() == 0:
+                                """This gene has summits in none of the member unions"""
+                                if unionid_order[unionid] == 0:
+                                    maxfe_xvalues.append( this_maxfe )
+                                    meanmaxfe_xvalues.append( this_maxmeanfe )
+                                elif unionid_order[unionid] == 1:
+                                    maxfe_yvalues.append( this_maxfe )                            
+                                    meanmaxfe_yvalues.append( this_maxmeanfe )
+                            
+                            if unions_with_summits.__len__() == 1:
+                                if unionid in unions_with_summits:
+                                    """This gene has a summit only in my union"""
+                                    if unionid_order[unionid] == 0:
+                                        maxfe_summitX_xvalues.append( this_maxfe )
+                                        meanmaxfe_summitX_xvalues.append( this_maxmeanfe )
+                                    elif unionid_order[unionid] == 1:
+                                        maxfe_summitY_yvalues.append( this_maxfe )                            
+                                        meanmaxfe_summitY_yvalues.append( this_maxmeanfe ) 
+                                else:
+                                    """There's a summit, but not in this union"""
+                                    if unionid_order[unionid] == 0:
+                                        maxfe_summitY_xvalues.append( this_maxfe )
+                                        meanmaxfe_summitY_xvalues.append( this_maxmeanfe )
+                                    elif unionid_order[unionid] == 1:
+                                        maxfe_summitX_yvalues.append( this_maxfe )                            
+                                        meanmaxfe_summitX_yvalues.append( this_maxmeanfe )
+                                
+                            if unions_with_summits.__len__() == 2:
+                                """This gene has a summit in all unions"""
+                                if unionid_order[unionid] == 0:
+                                    maxfe_summitXY_xvalues.append( this_maxfe )
+                                    meanmaxfe_summitXY_xvalues.append( this_maxmeanfe )
+                                elif unionid_order[unionid] == 1:
+                                    maxfe_summitXY_yvalues.append( this_maxfe )                            
+                                    meanmaxfe_summitXY_yvalues.append( this_maxmeanfe ) 
 
             if foundit == False:
                 """We didn't find FE data for this gene in this union."""
@@ -1922,10 +1980,17 @@ def plot_enrichments_for_speciesunion(uid, con):
                 print ". You may be using an outdated version of this software."
                 exit()
 
-    xvalues = [meanmaxfe_xvalues, meanmaxfe_summit_xvalues]
-    yvalues = [meanmaxfe_yvalues, meanmaxfe_yvalues]
+    xvalues = [meanmaxfe_xvalues,meanmaxfe_summitXY_xvalues, meanmaxfe_summitX_xvalues, meanmaxfe_summitY_xvalues]
+    yvalues = [meanmaxfe_yvalues,meanmaxfe_summitXY_yvalues, meanmaxfe_summitX_yvalues, meanmaxfe_summitY_yvalues]
     filekeyword = spunionname + ".meanmaxfe"
-    matplot_scatter1(filekeyword, xvalues, yvalues)
+    colors = ["#999999", "#FFFF00", "#3399FF", "#FF6666"]
+    names = ["no summit", "summit in both", "summit in " + unionnames[0] + " only", "summit in " + unionnames[1] + " only"]
+    markers=["o", "D", "v", "<"]
+    sizes=[10,20,20,20]
+    alphas=[0.25,0.8,0.5,0.5]
+    xlab = "mean of max fold-enrichment"
+    ylab = "mean of max fold-enrichment"
+    matplot_scatter1(filekeyword, xvalues, yvalues, colors=colors,sizes=sizes, markers=markers, alphas=alphas,names=names, xlab=xlab, ylab=ylab)
 
 
     #
