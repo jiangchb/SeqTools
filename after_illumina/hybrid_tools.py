@@ -87,7 +87,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     fin.close()
     
     ratio = float(inserted)/total
-    print "\n\t--> I found", inserted, " reads out of", total, "reads. (%.3f)"%ratio
+    print "\n\t--> I found", inserted, " reads (out of", total, "reads) with a match <= the mismatch threshold. (%.3f)"%ratio
 
     """How many reads were perfect?"""
     sql = "select count(*) from Reads where annoid=" + annoid.__str__() + " and mismatch=0"

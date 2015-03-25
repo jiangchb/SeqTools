@@ -81,6 +81,8 @@ def read_cli(ap):
     """restrics the analysis to only those annotations whose 'strain' column has a value matching something in this list."""
     restrict_to_strain = ap.getOptionalList("--restrict_to_strain")
     
+    """Practice mode will not launch long-running analysis (such as mapping to the genome).
+        However, it will put data in the database and check the validity of your files."""
     PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
     
     MISMATCH_THRESHOLD = -1

@@ -1484,6 +1484,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     for repid in repids:
         repid_maxfe[repid] = []
         repid_meanfe[repid] = []
+        repid_npeaks[repid] = []
         repid_maxqval[repid] = []
         repid_dist_maxsummit[repid] = []
         
@@ -1493,7 +1494,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     total_count = geneids.__len__() * repids.__len__()
     for geneid in geneids:
         for repid in repids:
-            
+                        
             count += 1
             if count%10 == 0:
                 sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
@@ -1983,11 +1984,24 @@ def plot_enrichments_for_speciesunion(uid, con):
     xvalues = [meanmaxfe_xvalues,meanmaxfe_summitXY_xvalues, meanmaxfe_summitX_xvalues, meanmaxfe_summitY_xvalues]
     yvalues = [meanmaxfe_yvalues,meanmaxfe_summitXY_yvalues, meanmaxfe_summitX_yvalues, meanmaxfe_summitY_yvalues]
     filekeyword = spunionname + ".meanmaxfe"
-    colors = ["#999999", "#FFFF00", "#3399FF", "#FF6666"]
+    colors = ["#CBCBCB", "#FFFF00", "#3399FF", "#FF6666"]
     names = ["no summit", "summit in both", "summit in " + unionnames[0] + " only", "summit in " + unionnames[1] + " only"]
     markers=["o", "D", "v", "<"]
     sizes=[10,20,20,20]
-    alphas=[0.25,0.8,0.5,0.5]
+    alphas=[0.2,0.8,0.5,0.5]
+    xlab = "mean of max fold-enrichment"
+    ylab = "mean of max fold-enrichment"
+    matplot_scatter1(filekeyword, xvalues, yvalues, colors=colors,sizes=sizes, markers=markers, alphas=alphas,names=names, xlab=xlab, ylab=ylab)
+
+
+    xvalues = [meanmaxfe_summitXY_xvalues, meanmaxfe_summitX_xvalues, meanmaxfe_summitY_xvalues]
+    yvalues = [meanmaxfe_summitXY_yvalues, meanmaxfe_summitX_yvalues, meanmaxfe_summitY_yvalues]
+    filekeyword = spunionname + ".meanmaxfe-summits"
+    colors = ["#FFFF00", "#3399FF", "#FF6666"]
+    names = ["summit in both", "summit in " + unionnames[0] + " only", "summit in " + unionnames[1] + " only"]
+    markers=["D", "v", "<"]
+    sizes=[24,22,22]
+    alphas=[0.8,0.5,0.5]
     xlab = "mean of max fold-enrichment"
     ylab = "mean of max fold-enrichment"
     matplot_scatter1(filekeyword, xvalues, yvalues, colors=colors,sizes=sizes, markers=markers, alphas=alphas,names=names, xlab=xlab, ylab=ylab)

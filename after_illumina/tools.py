@@ -140,7 +140,6 @@ def write_sorted_bam(con):
         fout.write(c + "\n")
     fout.close()
     
-    
     if get_setting("practice_mode",con) == "0":
         if get_setting("use_mpi", con) == "1":
             os.system(get_setting("mpirun", con) + " run_sam2bam.sh")

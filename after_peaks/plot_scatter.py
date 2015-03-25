@@ -77,25 +77,25 @@ def matplot_scatter1(filekeyword, xvalues, yvalues, names=None, xmin=None, ymin=
                names,
                loc='upper left',
                ncol=1,
-               fontsize=8)
+               fontsize=9, fancybox=True, shadow=True)
 
     """Top histogram"""
     ax2 = fig1.add_subplot(gs[0:14,0:85])
     ax2.set_xlim(xmin,xmax)
     if logx:
-        n, bins, patches = ax2.hist(xvalues[0], bins = 10 ** np.linspace(np.log10(xmin), np.log10(xmax), 50), color="grey")
+        n, bins, patches = ax2.hist(xvalues[0], bins = 10 ** np.linspace(np.log10(xmin), np.log10(xmax), 50), color="#DDDDDD", edgecolor = "none")
         ax2.set_xscale("log")
     else:
-        n, bins, patches = ax2.hist(xvalues[0], bins = np.linspace(xmin, xmax, 50), color="grey")
+        n, bins, patches = ax2.hist(xvalues[0], bins = np.linspace(xmin, xmax, 50), color="#DDDDDD", edgecolor = "none")
     
     """Right-side histogram"""    
     ax3 = fig1.add_subplot(gs[15:100,86:100])
     ax3.set_ylim(ymin,ymax)
     if logy:
-        n, bins, patches = ax3.hist(yvalues[0], orientation="horizontal", bins = 10 ** np.linspace(np.log10(ymin), np.log10(ymax), 50), color="grey")
+        n, bins, patches = ax3.hist(yvalues[0], orientation="horizontal", bins = 10 ** np.linspace(np.log10(ymin), np.log10(ymax), 50), color="#DDDDDD", edgecolor = "none")
         ax3.set_yscale("log")
     else:
-        n, bins, patches = ax3.hist(yvalues[0], orientation="horizontal", bins = np.linspace(ymin, ymax, 50), color="grey")
+        n, bins, patches = ax3.hist(yvalues[0], orientation="horizontal", bins = np.linspace(ymin, ymax, 50), color="#DDDDDD", edgecolor = "none")
 
     """Labels for the histograms"""
     ax2.set_frame_on(False)

@@ -82,6 +82,8 @@ def get_name_for_macs(exp_annoid, control_annoid, con):
     return name
 
 def get_macs_pairs(con):
+    print "85:"
+    
     """Returns a list of tuples, each being (experiment,control) Annotation object ids for MACS2 peak-calling.
     Each pair shares the same unique value in the fields 'sample', 'species', and 'replicate' in the table Annotations.
     The control member of the pair is found by finding the Annotation with 'tag' = 0, 
@@ -112,15 +114,16 @@ def get_macs_pairs(con):
                     treatments = cur.fetchall()
                     sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
                     cur.execute(sql)
-                    #print sql
-                    controls = cur.fetchall()                
+                    print "115:", sql
+                    controls = cur.fetchall() 
+                    print "117:", controls               
                     if controls.__len__() > 1:
                         print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid
                         exit()
                     control = controls[0][0]
                     for t in treatments:
                         pairs.append( (t[0],control)  ) 
-                    #print "113:", "annoid", t[0], "annoid", control, "sample:", sample, "repid:",  repid, "species:", species
+                    print "113:", "annoid", t[0], "annoid", control, "sample:", sample, "repid:",  repid, "species:", species
     return pairs
 
 def get_db(dbpath):    
@@ -136,6 +139,11 @@ def get_db(dbpath):
     return con
 
 def import_genome_list(gpath, con):
+    """Reads the user-specificed genome list. Each line should contain two things:
+    1. the species identified (a short string), and
+    2. the path to the genome
+    """
+    
     cur = con.cursor()
     
     sql = "delete from SpeciesGenomepath"
@@ -172,7 +180,6 @@ def import_genome_list(gpath, con):
         
     return con
     
-
 def import_annotations(apath, con):    
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
     
@@ -196,7 +203,7 @@ def import_annotations(apath, con):
     """We parse all the lines, skipping the first header line.
         Warning: if a header line is missing in the annotations file, then the first
         annotation will be skipped. To-do: add code to check if a header line exists."""
-    for l in lines[1:]:
+    for l in lines:
         tokens = l.split()
         if tokens.__len__() > 2:
             sample = tokens[0]
