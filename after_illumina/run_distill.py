@@ -105,7 +105,7 @@ if jump <= 2.3 and stop > 2.3:
     find_hybrid_unique_reads(con)
 
 if jump <= 2.31 and stop > 2.32:
-    print_read_histograms(con)
+    print_read_histograms_for_hybrids(con)
 
 if jump <= 2.4 and stop > 2.4:
     """Write SAM files for hybrid reads, containing only those reads that

@@ -179,6 +179,7 @@ def check_bams(con, delete_sam = True):
 #         for ii in x:
 #             sampath = ii[0]
 #             os.system("rm " + sampath)
+    print "\n. The sorted BAMs appear OK."
     return
 
 def run_peak_calling(con):
@@ -552,14 +553,14 @@ def write_viz_config(con):
     sql = "insert or replace into Settings (keyword, value) VALUES('viz_configpath','" + configpath + "')"
     cur.execute(sql)
     con.commit()
-    
+        
     species = []
     sql = "select distinct species from Annotations"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
         species.append( ii[0] )
-    
+        
     fout = open(configpath, "w")
     
     for s in species:
@@ -609,7 +610,7 @@ def write_viz_config(con):
                     cur.execute(sql)
                     x = cur.fetchall()
                     if x.__len__() < 1:
-                        print "\n. An error occurred. Checkpoing 413"
+                        print "\n. An error occurred. Checkpoint 413"
                         exit()
                     summitpath = x[0][0]
                     fout.write("\t\tSUMMITS = " + summitpath + "\n")
@@ -618,7 +619,7 @@ def write_viz_config(con):
                     cur.execute(sql)
                     x = cur.fetchall()
                     if x.__len__() < 1:
-                        print "\n. An error occurred. Checkpoing 413"
+                        print "\n. An error occurred. Checkpoint 413"
                         exit()
                     bdgpath = x[0][0]
                     fout.write("\t\tENRICHMENTS = " + bdgpath + "\n")

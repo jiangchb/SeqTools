@@ -5,6 +5,8 @@ from scipy import stats as scipystats
 
 def matplot_scatter1(filekeyword, xvalues, yvalues, names=None, xmin=None, ymin=None, xmax=None, ymax=None, logy=False, logx=False, xlab="", ylab="", format="pdf", colors=["blue", "red", "purple", "black"], sizes=[10,18,18,18], markers=["o", "D", "v", "<"], alphas=[0.4,0.4,0.4,0.4] ):
     """xvalues and yvalues are lists of lists. Each list is series of points.
+        xvalues[i] will be plotted against yvalies[i], for all entries i.
+        if xvalues.__len__() != yvalues.__len__(), then an error will occur.
         colors is a list of colors, used to color series 0, series 1, series 2, etc."""
     
     """Sanity Check"""
@@ -33,13 +35,40 @@ def matplot_scatter1(filekeyword, xvalues, yvalues, names=None, xmin=None, ymin=
     """If the user didn't specify xmin and ymin, then let's
         auto-determine these values from the first data series."""
     if xmin == None:
-        xmin = min( map(min, xvalues) )
-    if ymin == None:
-        ymin = min (map (min, yvalues) )
-    if xmax == None:
-        xmax = max (map (max, xvalues) )
-    if ymax == None:
-        ymax = max (map( max, yvalues) )
+        for ii in range(0, xvalues.__len__()):
+            if xvalues[ii].__len__() > 0 and yvalues[ii].__len__() > 0:
+                thisxmin = min(xvalues[ii])
+                if xmin == None:
+                    xmin = thisxmin
+                elif xmin > thisxmin:
+                    xmin = thisxmin 
+                
+                thisymin = min(yvalues[ii])
+                if ymin == None:
+                    ymin = thisymin
+                elif ymin > thisymin:
+                    ymin = thisymin 
+
+                thisxmax = max(xvalues[ii])
+                if xmax == None:
+                    xmax = thisxmax
+                elif xmax < thisxmax:
+                    xmax = thisxmax 
+
+                thisymax = max(yvalues[ii])
+                if ymax == None:
+                    ymax = thisymax
+                elif ymax < thisymax:
+                    ymax = thisymax 
+    
+#     if xmin == None:
+#         xmin = min( map(min, xvalues) )
+#     if ymin == None:
+#         ymin = min (map (min, yvalues) )
+#     if xmax == None:
+#         xmax = max (map (max, xvalues) )
+#     if ymax == None:
+#         ymax = max (map( max, yvalues) )
     
     import numpy as np
     import scipy as sp
@@ -746,7 +775,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
         for jj in range(mod+(ii%height), mod+height):
             total_count += 1 
 
-    """Now we do the real work"""
+    """This second loop is actually make the plot"""
     count = 0
     for ii in range(0, width):
         mod = 0
@@ -778,6 +807,11 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
             else:                
                 xlim = max( values[ii] )
                 ylim = max( values[jj] )
+            
+            if ylim == None:
+                ylim = 1.0
+            if xlim == None:
+                xlim = 1.0
             
             # X values
             found_one = False # did we find at least one valid (x,y) point in the graph that's worth plotting?
@@ -859,7 +893,7 @@ def scatter_nxm(width, height, values, names, filekeyword, title="", force_squar
             corr_valsa = []
             corr_valsb = []
             for ww in range(0, values[ii].__len__()):
-                if values[ii][ww] != 0 and values[jj][ww] != 0:
+                if values[ii][ww] != 0 and values[ii][ww] != None and values[jj][ww] != 0 and values[jj][ww] != None:
                     corr_valsa.append( values[ii][ww] )
                     corr_valsb.append( values[jj][ww] )
             if corr_valsa.__len__() > 0 and corr_valsb.__len__() > 0:

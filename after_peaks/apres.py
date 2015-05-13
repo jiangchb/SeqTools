@@ -133,7 +133,8 @@ def plot_replicates(con):
         sql = "DELETE FROM ReplicategroupFiles where repgroupid=" + rgroupid.__str__()
         cur.execute(sql)
         con.commit()
-        plot_summits_for_reps_in_group(rgroupid, con)
+        #plot_summits_for_reps_in_group(rgroupid, con)
+        plot_fexfe_replicates(rgroupid, con)
         plot_enrichments_for_reps_in_group(rgroupid, con)
     return con
 

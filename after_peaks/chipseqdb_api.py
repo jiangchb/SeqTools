@@ -111,10 +111,15 @@ def get_rgroupids_for_species(speciesid, con):
     return ids
 
 def get_geneids_with_summits(con, repid):
+    """Returns a list of gene IDs with summits in the replicate repid"""
     cur = con.cursor()
     sql = "SELECT gene FROM GeneSummits where summit in (SELECT id from Summits where replicate=" + repid.__str__() + ")"
     cur.execute(sql)
-    return cur.fetchall()
+    x = cur.fetchall()
+    ret = []
+    for ii in x:
+        ret.append( ii[0] )
+    return ret
 
 def get_genes_for_species(con, speciesid):
     cur = con.cursor()
@@ -240,6 +245,19 @@ def get_enrichment_stats_for_replicate(repid, con):
         geneid = ii[1]
         stats = ii[2:]
         gene_stats[ geneid ] = stats
+    return gene_stats
+
+def get_maxfe_for_replicate(repid, con):
+    """Returns gene_stats[geneid] = [stats]"""
+    cur = con.cursor()
+    sql = "SELECT geneid, maxenrich from EnrichmentStats where repid=" + repid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x == None:
+        return None
+    gene_stats = {}
+    for ii in x:
+        gene_stats[ ii[0] ] = ii[1]
     return gene_stats
 
 def get_enrichment_stats_for_union( unionid, con ):

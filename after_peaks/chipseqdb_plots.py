@@ -759,6 +759,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     repid_qvals = {} # key = repid, value = list of Q values for summits
     for repid in repids:
         repid_qvals[repid] = []
+        
     
     """Open the file and write the header row."""
     xlpath = repgroupname + ".summits.xls"
@@ -769,6 +770,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
         fout.write("NPeaks(" + repid_repname[repid].__str__() + ")\t")
         fout.write("max_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
         fout.write("max_summit_distance(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("max_FE(" + repid_repname[repid] + ")\t")
         fout.write("nearest_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
         fout.write("nearest_summit_distance(" + repid_repname[repid].__str__() + ")\t")
     fout.write("\n")
@@ -808,6 +810,16 @@ def plot_summits_for_reps_in_group(rgroupid, con):
             
             repid_qvals[repid].append( s )
             
+            maxfe = None
+            sql = "select max_enrichment from SummitsEnrichment where summit=" + maxsummitid.__str__()
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                maxfe = None
+            else:
+                maxfe = x[0]
+            fout.write(maxfe.__str__() + "\t")
+            
             """TSS distance for max summit"""
             sql = "select min(distance) from GeneSummits where summit=" + maxsummitid.__str__() + " and gene=" + geneid.__str__()
             cur.execute(sql)
@@ -844,10 +856,7 @@ def plot_summits_for_reps_in_group(rgroupid, con):
     """Venn diagram of genes with/without summits in both replicates."""
     venn_data = {}
     for repid in repids:
-        venn_data[ repid_repname[repid] ] = []
-        x = get_geneids_with_summits(con, repid)
-        for ii in x:
-            venn_data[ repid_repname[repid] ].append(ii[0]) # NOTE: ii[0] is a gene ID
+        venn_data[ repid_repname[repid] ] = get_geneids_with_summits(con, repid)
     vennpath = plot_venn_diagram( venn_data, repgroupname + ".summits")
     add_repgroupfile(vennpath, rgroupid, "Venn diagram comparing genes with summits for replicategroup " + repgroupname, con)
     
@@ -1444,7 +1453,7 @@ def get_enrichment_plot_array_for_union(unionid, gene_aliases, con):
 def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=None):
     """Plots a comparison of FE between replicates 1 and 2 of the replicates in the repgroup.
     If there are more than 2 replicates, then their data won't be plotted."""
-    
+        
     cur = con.cursor()
         
     if repgroupname == None:
@@ -1505,10 +1514,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             x = cur.fetchone()
             repid_maxfe[repid].append( x[0] )
             repid_meanfe[repid].append( x[1] )
-        
-            count += 1
-            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-            sys.stdout.flush()
+
             
             """N Peaks"""
             sql = "select count(id) from Summits where replicate=" + repid.__str__()
@@ -1546,8 +1552,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             
     """Plot FE versus summits"""   
     for repid in repids:            
-        repname = repid_repname[repid]
-        filekeyword = rep
+        repname = repid_repname[repid]        
         scatter_data = [ repid_maxfe[repid], repid_maxqval[repid] ]
         scatter_names = [ "max FE (" + repname + ")", "max Qval (" + repname + ")" ]
         plot_as_rank = []
@@ -1556,7 +1561,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         filekeyword = repname + ".fe_x_qval"
         cranpath = scatter_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", force_square=False)            
 
-    """Plot FE stuff"""
+    """Plot FE vs. FE using R"""
     scatter_data = []
     scatter_names = []
     for repid in repids:
@@ -1573,13 +1578,14 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         add_repgroupfile(cranpath, rgroupid, "R script for multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
         add_repgroupfile(re.sub("cran", "pdf", cranpath), rgroupid, "PDF multi-panel scatterplot with enrichment values for replicate group " + repgroupname, con)
     
-    """Also plot the IDR stats"""
+    """Compute and Plot IDR"""
     filekeyword = repgroupname + ".enrich.idr"
     (cranpath, sinkpath, idr_stats, value_pairs) = scatter_idr_nxm(width, height, scatter_data, scatter_names, filekeyword, title="", xlab="", ylab="")
     if cranpath != None:
         add_repgroupfile(cranpath,rgroupid,"R script to make IDR scatterplots for replicate group " + repgroupname, con)
         add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
-    
+        
+        
     """Update the IDR stats into the database"""
     for (ii,jj) in value_pairs: 
         sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
@@ -1634,15 +1640,141 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             fout.write("%.3f"%repid_maxfe[repid][gg] + "\t")
             fout.write("%.3f"%repid_meanfe[repid][gg] + "\t")
             fout.write(repid_npeaks[repid][gg].__str__() + "\t")
-            fout.write("%.3f"%repid_maxqval[repid][gg] + "\t")
-            fout.write(repid_dist_maxsummit[repid][gg] + "\t")
+            if repid_maxqval[repid][gg] == None:
+                fout.write("---\t")
+            else:
+                fout.write("%.3f"%repid_maxqval[repid][gg] + "\t")
             
+            if repid_dist_maxsummit[repid][gg] == None:
+                fout.write("---\t")
+            else:
+                fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
+                        
         fout.write("\n")
     fout.close()
 
     """Add an entry to the SQL database, listing the Excel file."""
     add_repgroupfile(xlpath,rgroupid,"Excel table with enrichment stats for replicate group " + repgroupname, con)
 
+
+def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
+    print "\n. plot_fexfe_replicates. . . "
+    cur = con.cursor()
+        
+    if repgroupname == None:
+        repgroupname = get_repgroup_name(rgroupid, con)
+    
+    if repids == None:
+        repids = get_repids_in_group(rgroupid, con)
+    
+    """If there's only one replicate in this group, then we're done."""
+    if repids.__len__() < 2:
+        return
+        
+    """Get the names of the reps in the group."""
+    repid_repname = {}
+    for repid in repids:
+        cur.execute("SELECT name from Replicates where id=" + repid.__str__())
+        x = cur.fetchone()
+        if x != None:
+            repid_repname[repid] = x[0]
+        else:
+            repid_repname[repid] = repid.__str__()
+    
+    """Get the names of genes in the replicate group"""
+    sql = "select geneid from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
+    cur.execute(sql)
+    x = cur.fetchall()
+    geneids = []
+    for ii in x:
+        geneids.append( ii[0] )
+            
+    """This is stuff we want to know:"""
+    geneids_nosummits = [] # a list of geneids
+    geneids_rep1summits = get_geneids_with_summits(con, repids[0])
+    geneids_rep2summits = get_geneids_with_summits(con, repids[1])
+    geneids_bothsummits = [] # with peaks in both reps.
+        
+    for geneid in geneids:        
+        """Does the gene have a summit in both replicates?"""
+        if geneid in geneids_rep1summits and geneid in geneids_rep2summits:
+            geneids_bothsummits.append(geneid)
+            geneids_rep1summits.remove(geneid)
+            geneids_rep2summits.remove(geneid)
+        elif geneid not in geneids_rep1summits and geneid not in geneids_rep2summits:
+            geneids_nosummits.append(geneid)
+    
+    fe_nosummits_xvalues = []
+    fe_nosummits_yvalues = []
+    fe_rep1summits_xvalues = []
+    fe_rep1summits_yvalues = []
+    fe_rep2summits_xvalues = []
+    fe_rep2summits_yvalues = []
+    fe_bothsummits_xvalues = []
+    fe_bothsummits_yvalues = []
+    
+    rep1_genfe = get_maxfe_for_replicate(repids[0], con)
+    rep2_genfe = get_maxfe_for_replicate(repids[1], con)
+    
+    """Sanity Check:"""
+    if rep1_genfe.__len__() != rep2_genfe.__len__():
+        print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
+    
+    total_count = geneids.__len__()
+    count = 0
+    for geneid in geneids_nosummits:
+        """Print progress"""
+        count += 1
+        if count%10 == 0:
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
+
+        fe_nosummits_xvalues.append( rep1_genfe[geneid] )
+        fe_nosummits_yvalues.append( rep2_genfe[geneid] )
+
+    
+    for geneid in geneids_rep1summits:
+        """Print progress"""
+        count += 1
+        if count%10 == 0:
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
+
+        fe_rep1summits_xvalues.append( rep1_genfe[geneid] )
+        fe_rep1summits_yvalues.append( rep2_genfe[geneid] )        
+
+    for geneid in geneids_rep2summits:
+        """Print progress"""
+        count += 1
+        if count%10 == 0:
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
+            
+        fe_rep2summits_xvalues.append( rep1_genfe[geneid] )
+        fe_rep2summits_yvalues.append( rep2_genfe[geneid] )  
+    
+    for geneid in geneids_bothsummits:
+        """Print progress"""
+        count += 1
+        if count%10 == 0:
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
+        fe_bothsummits_xvalues.append( rep1_genfe[geneid] )
+        fe_bothsummits_yvalues.append( rep2_genfe[geneid] ) 
+    
+    """Plot FE vs. FE with summits colored, using the matplotlib functions."""
+    xvalues = [fe_nosummits_xvalues, fe_bothsummits_xvalues, fe_rep1summits_xvalues, fe_rep2summits_xvalues]
+    yvalues = [fe_nosummits_yvalues, fe_bothsummits_yvalues, fe_rep1summits_yvalues, fe_rep2summits_yvalues]
+    filekeyword = repgroupname + ".maxfe"
+    colors = ["#CBCBCB",  "#FFFF00", "#3399FF", "#FF6666",]
+    names = ["no summit", "summit in both", "summit in rep 1", "summit in rep 2"]
+    markers=["o", "D", "v", "<"]
+    sizes=[12,20,20,20]
+    alphas=[0.3,0.5,0.5,0.8]
+    xlab = "max fold-enrichment"
+    ylab = "max fold-enrichment"
+    matplot_scatter1(filekeyword, xvalues, yvalues, format="png", colors=colors,sizes=sizes, markers=markers, alphas=alphas, names=names, xlab=xlab, ylab=ylab)
+    
 
 def compute_enrichments_for_speciesunion(uid, con):
     """Fills up the table SpeciesunionEnrichmentStats and also writes an excel tables."""

@@ -85,7 +85,7 @@ def read_cli(ap):
         However, it will put data in the database and check the validity of your files."""
     PRACTICE_MODE = ap.getOptionalToggle("--practice_mode")
     
-    MISMATCH_THRESHOLD = -1
+    MISMATCH_THRESHOLD = -1 # by default, the MISMATCH_THRESHOLD is incredibly large (-1 will result in the threshold being set to 1 million).
     x = ap.getOptionalArg("--mismatch_thresh")
     if x != False:
         MISMATCH_THRESHOLD = int(x)
