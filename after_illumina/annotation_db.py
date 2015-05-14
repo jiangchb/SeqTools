@@ -14,15 +14,18 @@ def build_anno_db(con):
     
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesname TEXT unique, genomepath TEXT)")
     
-    """All annotations will have an entry in BowtieOutput, but hybrid annotations will also
-    have an entry in FilteredBowtieOutput."""
+    """All annotations will have an entry in BowtieOutput, 
+    but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
     cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(readid INTEGER primary key autoincrement, readname TEXT, annoid INT, mismatch INT, order_seen INT)") # reads without mismatches
-    cur.execute("CREATE TABLE IF NOT EXISTS UniqueReads(readid INTEGER primary key, annoid INT)") # reads that are unique to an annotation
-    cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
+    
+    # A legacy hack to eliminate depricated tables (i.e. from the old schema).
+    cur.execute("drop table if exists Reads")
+    cur.execute("drop table if exists UniqueReads")
+    
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(exp_annoid INTEGER primary key, control_annoid INTEGER, name TEXT)")

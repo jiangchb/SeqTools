@@ -68,11 +68,6 @@ if stop == False:
 else:
     stop = float(stop)
 
-# macs_pairs = get_macs_pairs(con)
-# for p in macs_pairs:
-#     print p
-# exit()
-
 """Run Bowtie2 for each FASTQ path"""
 if jump <= 1 and stop > 1:
     run_bowtie(con)
@@ -90,7 +85,6 @@ if jump <= 2 and stop > 2:
     for ii in x:
         annoids.append( ii[0] )
 
-    sql = "drop table Reads"
     cur.execute(sql)
     build_anno_db(con)
     for annoid in annoids:
@@ -105,7 +99,7 @@ if jump <= 2.3 and stop > 2.3:
     find_hybrid_unique_reads(con)
 
 if jump <= 2.31 and stop > 2.32:
-    print_read_histograms_for_hybrids(con)
+    print_read_histograms(con)
 
 if jump <= 2.4 and stop > 2.4:
     """Write SAM files for hybrid reads, containing only those reads that

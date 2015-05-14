@@ -2,115 +2,16 @@ from annotation_db import *
 import re, os, sys
 from sets import Set
 
-def extract_matched_reads(annoid, con, chrom_filter = None):
-    """Extracts reads that have a mismatch level <= the user-specified mismatch level."""
-    """Writes a new (shorted) SAM file, and also returns a hash of read IDs."""
-    cur = con.cursor()
-    
-    sql = "delete from Reads where annoid=" + annoid.__str__()
-    cur.execute(sql)
-    con.commit()
-    
-    sampath = None
-    sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
-    cur.execute(sql)
-    x = cur.fetchone()
-    if x.__len__() > 0:
-        sampath = x[0]
-    else:
-        print "\n. An error occurred; I can't find a sampath for annotation", annoid
-        exit()
-    outsampath = re.sub(".sam", ".perfect.sam", sampath)
-    
-    """mismatch threshold:"""
-    MTHRESH = int( get_setting("mismatch_thresh", con) )
-    if MTHRESH < 0:
-        MTHRESH = 100000000 # effectively, gathers all reads regardless of their mismatch level.
-        print "\n. Extracting all reads from", sampath
-    else:
-        print "\n. Extracting reads with mismatch <= " + MTHRESH.__str__() + ", from", sampath
-    
-    # writing is depricated here. the writing of the new sam file
-    # now takes place AFTER we've determine which reads are unique
-    # to each species.
-    #print ". and writing new SAM output to", outsampath
-    
-    fin = open(sampath, "r")
-    #fout = open(outsampath, "w")
-    total = 0 # the total count of reads
-    inserted = 0
-    for line in fin.xreadlines():
-        outline = ""
-        if line.startswith("@"):
-            continue
-            #fout.write(line)
-        elif line.__len__() > 5:
-            total += 1
-            if total%10000 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
-                con.commit()
-            tokens = line.split()
-            for t in tokens[10:]:
-                if False == t.startswith("X"):
-                    continue
-                #elif t == "XM:i:0":
-                elif t.startswith("XM:i:"): #0":
-                    readname = tokens[0]
-                    
-                    """Skip reads with a mismatch score higher than the
-                        mismatch threshold."""
-                    tparts = t.split(":")
-                    mismatchlevel = int(tparts[2])
-                    if mismatchlevel > MTHRESH:
-                        continue
-                    
-                    """The chrom_filter allows for reads to be considered
-                    only if they match the filter, such "Chr1".
-                    This is useful for generating toy-sized test databases
-                    on a restricted number of reads."""
-                    cflist = get_setting_list("chrom_filter",con)
-                    if cflist.__len__() > 0:
-                        chrom = tokens[2]
-                        if chrom not in cflist:
-                            continue
-                    inserted += 1
-                    sql = "insert into Reads(readname,annoid,mismatch,order_seen) VALUES("
-                    sql += "'" + readname + "',"
-                    sql += annoid.__str__() + "," + mismatchlevel.__str__() + "," + inserted.__str__() + ")"
-                    cur.execute(sql)
-                    
-                    """We found all the stuff for this reads; let's skip remaining tokens for this
-                    line, and just continue to the next read."""
-                    continue # skip to the next line
-    con.commit()
-    fin.close()
-    
-    ratio = float(inserted)/total
-    print "\n\t--> I found", inserted, " reads (out of", total, "reads) with a match <= the mismatch threshold. (%.3f)"%ratio
-
-    """How many reads were perfect?"""
-    sql = "select count(*) from Reads where annoid=" + annoid.__str__() + " and mismatch=0"
-    cur.execute(sql)
-    count_perfect = cur.fetchone()[0]
-    
-    sql = "insert or replace into ReadStats(annoid, nperfect, ntotal) VALUES("
-    sql += annoid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
-    cur.execute(sql)
-    con.commit()
-
-
 def find_hybrid_unique_reads(con):
     """For hybrids X and Y, find the reads that uniquely
         mapped to X or Y, but not both. Before this method was called,
-        reads were mapped to X and Y if their mismatch to the genome
-        was <= the mismatch threshold (user defined). 
-        For reads that are unique to a genome, this method writes a 
-        new SAM file with only those reads."""
+        reads were mapped to X and Y using Bowtie and the method
+        'extract_matched_reads'.
+        
+        Output: fills the table UniqueReads, UniqueReadsStats,
+        and writes a new SAM file containing only those reads that
+        were uniquely mapped."""
     cur = con.cursor()
-    
-    cur.execute("DELETE from UniqueReads")
-    con.commit()
     
     """pairs is a list of hybrid pairs."""
     pairs = []
@@ -124,16 +25,29 @@ def find_hybrid_unique_reads(con):
         annoid1 = pair[0]
         annoid2 = pair[1]
 
+        sql = "drop table if exists UniqueReads" + annoid1.__str__()
+        cur.execute(sql)
+        sql = "drop table if exists UniqueReads" + annoid2.__str__()
+        cur.execute(sql)
+        con.commit()
+
+        sql = "CREATE TABLE IF NOT EXISTS UniqueReads" + annoid1.__str__() + "(readid INTEGER primary key)" # reads that are unique to an annotation
+        cur.execute(sql)
+        con.commit()
+        sql = "CREATE TABLE IF NOT EXISTS UniqueReads" + annoid2.__str__() + "(readid INTEGER primary key)" # reads that are unique to an annotation
+        cur.execute(sql)
+        con.commit()
+
         print "\n. Finding unique reads between", annoid1, annoid2
            
-        sql = "select readname, readid from Reads where annoid=" + annoid1.__str__()
+        sql = "select readname, readid from Reads" + annoid1.__str__()
         cur.execute(sql)
         x = cur.fetchall()
         set1 = {}
         for ii in x:
             set1[ ii[0] ] = ii[1]
         
-        sql = "select readname, readid from Reads where annoid=" + annoid2.__str__()
+        sql = "select readname, readid from Reads" + annoid2.__str__()
         cur.execute(sql)
         x = cur.fetchall()
         set2 = {}
@@ -148,29 +62,14 @@ def find_hybrid_unique_reads(con):
         unique_read_names = names1.difference(names2)
         print "\n. N unique reads in", annoid1,"=", unique_read_names.__len__(), "of", names1.__len__(), "total reads."
 
-        #
-        # continue here
-        # NOTE: the difference method could be eliminated, and sped-up, by taking advantage
-        # of the new 'order' field in the Read table.
-        # Basically, just walk two pointers through sorted order lists.
-        #
 
-        """Sanity Check"""
+#         """Sanity Check"""
         if len(unique_read_names) == 0:
             print "\n. Warning: There are no reads that map uniquely to annotation ", annoid1
+            write_error(con, "There are no reads that map uniquely to annotation " + annoid1)       
         else:
-            rqqq = next(iter(unique_read_names))
-            sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
-            cur.execute(sql)
-            count = cur.fetchone()[0]
-            if count > 1:
-                write_error("Error 167 - hybrid_tools.py - There are two reads with the same name " + rqqq.__str__() + " in the pair " + pair.__str__())
-                print "\n. We have a problem - python 153"
-                print ".", rqqq, annoid1, annoid2
-                exit()        
-    
             """Write the Unique reads to the UniqueReads table."""
-            print "\n. Updating the table UniqueReads"
+            print "\n. Updating the unique reads table"
             count = 0
             total_count = names1.__len__()
             for name in unique_read_names:
@@ -181,9 +80,8 @@ def find_hybrid_unique_reads(con):
                     con.commit()
                 
                 readid = set1[name]
-                sql = "insert into UniqueReads(readid, annoid) VALUES("
-                sql += readid.__str__() + ","
-                sql += annoid1.__str__() + ")"
+                sql = "insert into UniqueReads" + annoid1.__str__() + "(readid) VALUES("
+                sql += readid.__str__() + ")"
                 cur.execute(sql)  
         
         sys.stdout.write("\r    --> %100.0f\n")
@@ -194,23 +92,9 @@ def find_hybrid_unique_reads(con):
         print "\n. N unique reads in", annoid2,"=", unique_read_names.__len__(), "of", names2.__len__(), "total reads."
         
         if len(unique_read_names) == 0:
-            write_error("There are no reads that map uniquely to the genome for annotation " + annoid2)
+            write_error(con, "There are no reads that map uniquely to the genome for annotation " + annoid2)
             print "\nWarning: There are no reads that map uniquely to annotation ", annoid2
         else:
-         
-            # see not above: this difference call could be eliminated.
-            # continue here
-            # to-do
-        
-            rqqq = next(iter(unique_read_names))
-            sql = "select count(*) from Reads where readname=\"" + rqqq + "\""
-            cur.execute(sql)
-            count = cur.fetchone()[0]
-            if count > 1:
-                print "\n. We have a problem - python 153"
-                print ".", rqqq, annoid1, annoid2
-                exit()
-        
             unique_readids = []
             count = 0
             total_count = names2.__len__()
@@ -222,9 +106,8 @@ def find_hybrid_unique_reads(con):
                     con.commit()
                     
                 readid = set2[name]
-                sql = "insert into UniqueReads(readid, annoid) VALUES("
-                sql += readid.__str__() + ","
-                sql += annoid2.__str__() + ")"
+                sql = "insert into UniqueReads" + annoid2.__str__() + "(readid) VALUES("
+                sql += readid.__str__() + ")"
                 cur.execute(sql)            
             con.commit()
         
@@ -232,11 +115,11 @@ def find_hybrid_unique_reads(con):
         sys.stdout.flush()   
         
         """Now check what we inserted."""
-        sql = "select count(*) from UniqueReads where annoid=" + annoid1.__str__()
+        sql = "select count(*) from UniqueReads" + annoid1.__str__()
         cur.execute(sql)
         count1 = cur.fetchone()[0]
         
-        sql = "select count(*) from UniqueReads where annoid=" + annoid2.__str__()
+        sql = "select count(*) from UniqueReads" + annoid2.__str__()
         cur.execute(sql)
         count2 = cur.fetchone()[0]
         
@@ -293,7 +176,7 @@ def print_read_stats(con):
         fout.write(l + "\n")
     fout.close()
 
-def print_read_histograms_for_hybrids(con):
+def print_read_histograms(con):
     print "\n. Plotting read matchcount histograms...."
     
     cur = con.cursor()
@@ -305,64 +188,72 @@ def print_read_histograms_for_hybrids(con):
     annoids = []
     for ii in x:
         annoids.append( ii[0] )
+    
+    #print "\n. Finding the maximum read mismatch..."
+    #sql = "select max(mismatch) from Reads"
+    #cur.execute(sql)
+    #max_mismatch = cur.fetchone()[0] # the maximum X value
+    max_mismatch = 18
+
+#     """This next loop is the hard work -- get all the mismatch counts from the DB"""
+#     annoid_mismatches = {}
+#     for annoid in annoids:
+#         sql = "select mismatch from Reads where annoid=" + annoid.__str__()
+#         cur.execute(sql)
+#         x = cur.fetchall()
+#         """vals is a list of all mismatchd scores."""
+#         vals = []
+#         for ii in x:
+#             vals.append( ii[0] )
+#         annoid_mismatches[annoid] = vals
+#         print "\n. Annotation", annoid
+
+#     annoid_totalreads = {}
+#     for annoid in annoids:
+#         sql = "select count(*) from Reads where annoid=" + annoid.__str__()
+#         cur.execute(sql)
+#         totalreads = cur.fetchone()[0]
+#         annoid_totalreads[annoid] = totalreads
+#         print "\n. Annotation", annoid, "has", totalreads, "total reads."
+
+    annoid_totalreads = {}
+    annoid_bars = {} # key = annoid, value = list of bargraph Y values
+    max_count = 0 # the maximum Y value
+    for annoid in annoids:
+        print "\n. Counting mismatches for annotation", annoid
         
-    sql = "select max(mismatch) from Reads"
-    cur.execute(sql)
-    max_mismatch = cur.fetchone()[0]
+        annoid_totalreads[annoid] = 0
+        annoid_bars[annoid] = []
 
-    """This next loop is the hard work -- get all the mismatch tallys from the DB"""
-    annoid_mismatches = {}
-    for annoid in annoids:
-        sql = "select mismatch from Reads where annoid=" + annoid.__str__()
-        cur.execute(sql)
-        x = cur.fetchall()
-        """vals is a list of all mismatch scores."""
-        vals = []
-        for ii in x:
-            vals.append( ii[0] )
-        annoid_mismatches[annoid] = vals
-        print "\n. Annotation", annoid, " mismatches:", vals
-
-    annoid_bars = {}
-    max_count = 0
-    for annoid in annoids:
-
-        """vals is a list of all mismatch scores."""
-        counts = []
         for ii in range(0, max_mismatch+1):
-            counts.append(ii)
-
-        sql = "select mismatch from Reads where annoid=" + annoid.__str__()
-        cur.execute(sql)
-        x = cur.fetchall()        
-        for ii in x:
-            counts[ ii[0] ] += 1
-        annoid_bars[annoid] = counts
-        
-        for val in counts:
-            if max_count < val:
-                max_count = val
+            sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=" + ii.__str__()
+            cur.execute(sql)
+            this_count = cur.fetchone()[0]
+            annoid_totalreads[annoid] += this_count
+            annoid_bars[annoid].append( this_count )
+            
+            if max_count < this_count:
+                max_count = this_count
+    
+        print "\n. Annotation", annoid, "has", annoid_totalreads[annoid], "total reads."
     
 
+    """This next loop is for hybrids only."""
+    annoid_countunique = {} # key = annoid, value count of unique reads
     annoid_unique_bars = {} # data for uniquely-mapped reads
-    annoid_countunique = {}
     for annoid in annoids:
-        """Is this annotation a hybrid? If so, then we'll also get information about
-            the uniqueness of the read."""
+        print "\n. Counting unique reads for hybrid annotation", annoid
         sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
         cur.execute(sql)
-        if cur.fetchone()[0] > 0:
+        if cur.fetchone()[0] > 0: # i.e., is this annotation a hybrid?
             annoid_countunique[annoid] = 0
-            counts = []
+            annoid_unique_bars[annoid] = []
             for ii in range(0, max_mismatch+1):
-                counts.append(ii)
-            sql = "select mismatch from Reads where annoid=" + annoid.__str__() + " and readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ")"
-            cur.execute(sql)
-            x = cur.fetchall()        
-            for ii in x:
-                counts[ ii[0] ] += 1
-                annoid_countunique[annoid] += 1
-            annoid_unique_bars[annoid] = counts        
+                sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=" + ii.__str__() + " and readid in (select readid from UniqueReads" + annoid.__str__() + ")"
+                cur.execute(sql)
+                this_count = cur.fetchone()[0]
+                annoid_countunique[annoid] += this_count
+                annoid_unique_bars[annoid].append( this_count )        
 
     bins = range(0, max_mismatch+1)
 
@@ -381,26 +272,16 @@ def print_read_histograms_for_hybrids(con):
         this_species = x[1]
         
         fig = plt.figure(figsize=(8,4))
-        """Histogram of vals"""
-        #plt.hist(annoid_mismatches[annoid], bins, log=True, normed=1, histtype='bar', align="center")
         p1 = plt.bar(bins, annoid_bars[annoid], 0.75, log=1, align="center", color="#99CCFF")
-        if annoid in annoid_countunique:
+        if annoid in annoid_countunique: # i.e., is this annotation a hybrid?
             p2 = plt.bar(bins, annoid_unique_bars[annoid], 0.75, align="center", log=1, color="#0066CC")
         plt.xlim( -1,max_mismatch+1 )
         plt.ylim( 1,max_count    )
         plt.xlabel('Mismatched Sites')
         plt.ylabel('Reads')
         plt.title('Histogram of Read Mismatches -- ' + this_library_name)
-        if annoid in annoid_countunique:
-            plt.legend( (p1[0], p2[0]), ('Reads Mapped to ' + this_species + ' (' + annoid_mismatches[annoid].__len__().__str__() + ')', 'Reads Unique to ' + this_species + ' (' + annoid_countunique[annoid].__str__() + ')') )
-        
-        #plt.text(0.6*max_mismatch, 0.3*max_count, "Total Reads: " + annoid_mismatches[annoid].__len__().__str__(), fontsize=10)
-        #plt.text(0.6*max_mismatch, 0.09*max_count, "Perfect Matches: " + annoid_bars[annoid][0].__str__(), fontsize=10)        
-        #plt.text(0.6*max_mismatch, 0.01*max_count, "Unique Reads: " + annoid_unique_bars[annoid].__len__().__str__(), fontsize=10)
-        #plt.text(0.6*max_mismatch, 0.003*max_count, "Perfect & Unique: " + annoid_unique_bars[annoid][0].__str__(), fontsize=10)
-
-        
-        
+        if annoid in annoid_countunique: # i.e., is this annotation a hybrid?
+            plt.legend( (p1[0], p2[0]), ('Reads Mapped to ' + this_species + ' (' + annoid_totalreads[annoid].__str__() + ')', 'Reads Unique to ' + this_species + ' (' + annoid_countunique[annoid].__str__() + ')') )
         plt.tight_layout()
         pdf_pages.savefig(fig)
     pdf_pages.close()
@@ -409,7 +290,7 @@ def print_read_histograms_for_hybrids(con):
 def write_filtered_sam(con):
     """Writes a new SAM file containing only those reads whose mismatch level is
     equal or below the mismatch threshold,
-    and which are uniquely mapped to only one of the hybrid parent species."""
+    and (for hybrids) which are uniquely mapped to only one of the hybrid parent species."""
     cur = con.cursor()
     sql = "select * from Hybrids"
     cur.execute(sql)
@@ -452,7 +333,7 @@ def write_filtered_sam(con):
         """Finally, write the new SAM file."""
         sys.stdout.write(".")
         sys.stdout.flush()
-        sql = "select readname from Reads where Reads.readid in (select readid from UniqueReads where annoid=" + annoid.__str__() + ") order by Reads.order_seen"
+        sql = "select readname from Reads" + annoid.__str__() + " where Reads" + annoid.__str__() + ".readid in (select readid from UniqueReads" + annoid.__str__() + ") order by Reads" + annoid.__str__() + ".order_seen"
         cur.execute(sql)
         x = cur.fetchall()
         

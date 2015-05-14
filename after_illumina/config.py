@@ -35,11 +35,11 @@ def read_cli(ap):
     PROJECT_NAME = ap.getArg("--project_name")
     
     """Software Paths:"""
-    BOWTIE2 = "bowtie2"
+    BOWTIE2 = "bowtie2 -p 4"
     x = ap.getOptionalArg("--bowtie2")
     if x != False:
         BOWTIE2 = x
-    
+
     SAMTOOLS = "samtools"
     x = ap.getOptionalArg("--samtools")
     if x != False:
@@ -50,7 +50,12 @@ def read_cli(ap):
     if x != False:
         USE_MPI = 1
     
-    MPIRUN = "mpirun -np 4 /common/bin/mpi_dispatch"
+    MPINP = 4
+    x = ap.geOptionalArg("--mpinp")
+    if x != False:
+        MPINP = x
+    
+    MPIRUN = "mpirun -np " + MPINP.__str__() + " /common/bin/mpi_dispatch"
     
     MACS2 = "/common/REPOSITORY/MACS2-2.0.10.07132012/bin/macs2"
     x = ap.getOptionalArg("--macs2")
@@ -66,6 +71,11 @@ def read_cli(ap):
     x = ap.getOptionalArg("--seqtoolsdir")
     if x != False:
         SEQTOOLSDIR = x
+        
+    ELIMINATE_MULTIALIGN = False
+    x = ap.getOptionalArg("--eliminate_multialign")
+    if x != False:
+        ELIMINATE_MULTIALIGN = True
     
     """The pillars file provides alias names for orthologous genes in different species.
     For example, a pillars file for several model yeast species can be downloaded from the Candida Genome Database.
@@ -128,6 +138,9 @@ def read_cli(ap):
         cur.execute(sql)
     for strain in restrict_to_strain:
         sql = "insert into Settings (keyword, value) VALUES('restrict_to_strain','" + strain + "')"
+        cur.execute(sql)
+    if ELIMINATE_MULTIALIGN:
+        sql = "insert into Settings (keyword, value) VALUES('eliminate_multialign','1')"
         cur.execute(sql)        
     sql = "insert or replace into Settings (keyword, value) VALUES('project_name','" + PROJECT_NAME + "')"
     cur.execute(sql)

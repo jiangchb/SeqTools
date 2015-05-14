@@ -50,12 +50,6 @@ def run_bowtie(con):
             gpath = x[0][0]
         c += " -x " + gpath
         
-        #if species == "Cdub":
-        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Nov-2013C_dubliniensis_CD36"
-        #if species == "Calb":
-        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/06-Apr-2014C_albicans_SC5314"
-        #if species == "Ctro":
-        #    c += " -x /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/indexes/11-Dec-2013C_tropicalis_MYA-3404_corrected"
         bowtie_commands.append(c)
         
         sql = "insert or replace into BowtieOutput (annoid, sampath) VALUES(" + annoid.__str__() + ",'" + samoutpath + "')"
@@ -70,10 +64,11 @@ def run_bowtie(con):
     fout.close()
     
     if get_setting("practice_mode", con) == "0":
-        if get_setting("use_mpi", con) == "1":
-            os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
-        else:
-            os.system("source bowtie_commands.sh")
+        """MPI for Bowtie is temporarily disabled because Bowtie is using the -p option."""
+        #if get_setting("use_mpi", con) == "1":
+         #   os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
+        #else:
+        os.system("source bowtie_commands.sh")
 
 def check_bowtie_output(con):
     cur = con.cursor()
@@ -90,12 +85,131 @@ def check_bowtie_output(con):
     return
 
 
+def extract_matched_reads(annoid, con, chrom_filter = None):
+    """This method extracts reads that have a mismatch level <= the user-specified mismatch level.
+        Output: Writes a new (shorted) SAM file, and also returns a hash of read IDs.
+    
+        If the user specified the parameter --eliminate_multilocs, then
+        this method will also cull reads mapped to multiple locations within the same genome.
+    
+    """
+    cur = con.cursor()
+        
+    sql = "drop table if exists Reads" + annoid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
+    sql = "create table if not exists Reads" + annoid.__str__() + "(readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)" # reads without mismatches
+    #sql = "delete from Reads where annoid=" + annoid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
+    sampath = None
+    sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
+    cur.execute(sql)
+    x = cur.fetchone()
+    if x.__len__() > 0:
+        sampath = x[0]
+    else:
+        print "\n. An error occurred; I can't find a sampath for annotation", annoid
+        exit()
+    outsampath = re.sub(".sam", ".perfect.sam", sampath)
+    
+    """mismatch threshold:"""
+    MTHRESH = int( get_setting("mismatch_thresh", con) )
+    if MTHRESH < 0:
+        MTHRESH = 100000000 # effectively, gathers all reads regardless of their mismatch level.
+        print "\n. Extracting all reads from", sampath
+    else:
+        print "\n. Extracting reads with mismatch <= " + MTHRESH.__str__() + ", from", sampath
+    
+    
+    """Parse each line of the SAM"""
+    fin = open(sampath, "r")
+    total = 0 # the total count of all reads seen
+    inserted = 0
+    for line in fin.xreadlines():
+        outline = ""
+        if line.startswith("@"):
+            continue
+        if line.__len__() < 5:
+            continue
+        
+        """Display a progress indicator."""
+        total += 1
+        if total%10000 == 0:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            con.commit()
+        
+        """Parse this line."""
+        tokens = line.split()
+        readname = tokens[0]
+        mismatchlevel = None
+        multilocscore = None
+        
+        for t in tokens[10:]:
+            """The tokens from index 10+ contains useful information about this read."""
+            if False == t.startswith("X"):
+                """Informative tokens begin with an X, e.g. XM:..., XS:...."""
+                continue
+            elif t.startswith("XM:i:"): #0":
+
+                """Skip reads with a mismatch score higher than the
+                    mismatch threshold."""
+                tparts = t.split(":")
+                mismatchlevel = int(tparts[2])
+            elif t.startswith("XS:i:"):
+                tparts = t.split(":")
+                multilocscore = int(tparts[2])
+        
+        
+        if mismatchlevel > MTHRESH:
+            """Too many mismatches."""
+            continue
+        if get_setting("eliminate_multialign") != None and multilocscore != None:
+            """Reads with multiple aligned locations should be skipped."""
+            continue
+             
+        """The chrom_filter allows for reads to be considered
+        only if they match the filter, such "Chr1".
+        This is useful for generating toy-sized test databases
+        on a restricted number of reads."""
+        cflist = get_setting_list("chrom_filter",con)
+        if cflist.__len__() > 0:
+            chrom = tokens[2]
+            if chrom not in cflist:
+                continue
+        
+        """The read passed all the validation checks. Let's import it."""
+        inserted += 1
+        sql = "insert into Reads" + annoid.__str__() + "(readname,mismatch,order_seen) VALUES("
+        sql += "'" + readname + "'," + mismatchlevel.__str__() + "," + inserted.__str__() + ")"
+        cur.execute(sql)
+        
+    con.commit()
+    fin.close()
+    
+    ratio = float(inserted)/total
+    print "\n\t--> I found", inserted, " reads (out of", total, "reads) with a match <= the mismatch threshold. (%.3f)"%ratio
+
+    """How many reads were perfect?"""
+    sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=0"
+    cur.execute(sql)
+    count_perfect = cur.fetchone()[0]
+    
+    sql = "insert or replace into ReadStats(annoid, nperfect, ntotal) VALUES("
+    sql += annoid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+
+
 def write_sorted_bam(con):
     print "\n. Writing sorted BAM files."
     
     """Writes sorted BAM files for all SAM files.
     if delete_sam == True, then the original SAM file will be deleted."""
-    pairs = [] # list of (annoid, sampath) pairs.
+    pairs = [] # pairs is a list of (annoid, sampath) pairs.
     
     cur = con.cursor()
     sql = "delete from SortedBamFiles"

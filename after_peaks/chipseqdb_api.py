@@ -247,6 +247,8 @@ def get_enrichment_stats_for_replicate(repid, con):
         gene_stats[ geneid ] = stats
     return gene_stats
 
+
+#replicates 1 and 2 have different max FE vector lengths.
 def get_maxfe_for_replicate(repid, con):
     """Returns gene_stats[geneid] = [stats]"""
     cur = con.cursor()

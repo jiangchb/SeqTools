@@ -1713,12 +1713,20 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     fe_bothsummits_xvalues = []
     fe_bothsummits_yvalues = []
     
+    """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
     rep1_genfe = get_maxfe_for_replicate(repids[0], con)
     rep2_genfe = get_maxfe_for_replicate(repids[1], con)
     
     """Sanity Check:"""
     if rep1_genfe.__len__() != rep2_genfe.__len__():
         print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
+        print "\n.", rep1_genfe.__len__(), rep2_genfe.__len__()
+        for geneid in rep1_genfe:
+            if geneid not in rep2_genfe:
+                print "\n.", geneid
+        for geneif in rep2_genfe:
+            if geneid not in rep1_genfe:
+                print "\n.", geneid
     
     total_count = geneids.__len__()
     count = 0

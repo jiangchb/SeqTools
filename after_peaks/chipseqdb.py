@@ -544,6 +544,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 if eval > geneid_max[geneid]:
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[up_ii][2] - ii
+            
     fin.close()
     
     """Did we find FE values for all the summits?"""
