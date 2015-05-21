@@ -51,7 +51,7 @@ def read_cli(ap):
         USE_MPI = 1
     
     MPINP = 4
-    x = ap.geOptionalArg("--mpinp")
+    x = ap.getOptionalArg("--mpinp")
     if x != False:
         MPINP = x
     
@@ -72,7 +72,7 @@ def read_cli(ap):
     if x != False:
         SEQTOOLSDIR = x
         
-    ELIMINATE_MULTIALIGN = False
+    ELIMINATE_MULTIALIGN = True
     x = ap.getOptionalArg("--eliminate_multialign")
     if x != False:
         ELIMINATE_MULTIALIGN = True
@@ -163,6 +163,7 @@ def read_cli(ap):
     sql = "insert or replace into Settings (keyword, value) VALUES('practice_mode','" + x.__str__() + "')"
     cur.execute(sql)
     con.commit()
+    
     
     con = import_genome_list(GENOME_LIST, con)
     

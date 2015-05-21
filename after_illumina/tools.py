@@ -1,4 +1,4 @@
-import re, os, sys
+import re, os, sys, time
 from annotation_db import *
 
 def run_bowtie(con):
@@ -56,7 +56,7 @@ def run_bowtie(con):
         cur.execute(sql)
         con.commit()
         
-    print "\n. Launching Bowtie2 with the following commands:"
+    print "\n. Launching the following Bowtie2 commands:"
     fout = open("bowtie_commands.sh", "w")
     for c in bowtie_commands:
         print c
@@ -68,7 +68,10 @@ def run_bowtie(con):
         #if get_setting("use_mpi", con) == "1":
          #   os.system( get_setting("mpirun",con) + " bowtie_commands.sh")
         #else:
+        time_start_bowtie = time.time()
         os.system("source bowtie_commands.sh")
+        bowtie_runtime = time.time() - time_start_bowtie
+        write_log(con, "The script bowtie_commands.sh completed in " + bowtie_runtime.__str__() + " seconds.")
 
 def check_bowtie_output(con):
     cur = con.cursor()
@@ -94,16 +97,16 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     
     """
     cur = con.cursor()
-        
+
     sql = "drop table if exists Reads" + annoid.__str__()
     cur.execute(sql)
     con.commit()
     
-    sql = "create table if not exists Reads" + annoid.__str__() + "(readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)" # reads without mismatches
+    sql = "create table if not exists Reads" + annoid.__str__() + " (readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)" # reads without mismatches
     #sql = "delete from Reads where annoid=" + annoid.__str__()
     cur.execute(sql)
     con.commit()
-    
+        
     sampath = None
     sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
     cur.execute(sql)
@@ -129,69 +132,72 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     total = 0 # the total count of all reads seen
     inserted = 0
     for line in fin.xreadlines():
-        outline = ""
-        if line.startswith("@"):
-            continue
-        if line.__len__() < 5:
-            continue
-        
-        """Display a progress indicator."""
-        total += 1
-        if total%10000 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            con.commit()
-        
-        """Parse this line."""
-        tokens = line.split()
-        readname = tokens[0]
-        mismatchlevel = None
-        multilocscore = None
-        
-        for t in tokens[10:]:
-            """The tokens from index 10+ contains useful information about this read."""
-            if False == t.startswith("X"):
-                """Informative tokens begin with an X, e.g. XM:..., XS:...."""
+        try:
+            outline = ""
+            if line.startswith("@"):
                 continue
-            elif t.startswith("XM:i:"): #0":
-
-                """Skip reads with a mismatch score higher than the
-                    mismatch threshold."""
-                tparts = t.split(":")
-                mismatchlevel = int(tparts[2])
-            elif t.startswith("XS:i:"):
-                tparts = t.split(":")
-                multilocscore = int(tparts[2])
-        
-        
-        if mismatchlevel > MTHRESH:
-            """Too many mismatches."""
-            continue
-        if get_setting("eliminate_multialign") != None and multilocscore != None:
-            """Reads with multiple aligned locations should be skipped."""
-            continue
-             
-        """The chrom_filter allows for reads to be considered
-        only if they match the filter, such "Chr1".
-        This is useful for generating toy-sized test databases
-        on a restricted number of reads."""
-        cflist = get_setting_list("chrom_filter",con)
-        if cflist.__len__() > 0:
-            chrom = tokens[2]
-            if chrom not in cflist:
+            if line.__len__() < 5:
                 continue
-        
-        """The read passed all the validation checks. Let's import it."""
-        inserted += 1
-        sql = "insert into Reads" + annoid.__str__() + "(readname,mismatch,order_seen) VALUES("
-        sql += "'" + readname + "'," + mismatchlevel.__str__() + "," + inserted.__str__() + ")"
-        cur.execute(sql)
+            
+            """Display a progress indicator."""
+            total += 1
+            if total%10000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                con.commit()
+            
+            """Parse this line."""
+            tokens = line.split()
+            readname = tokens[0]
+            mismatchlevel = None
+            multilocscore = None
+            
+            for t in tokens[10:]:
+                """The tokens from index 10+ contains useful information about this read."""
+                if False == t.startswith("X"):
+                    """Informative tokens begin with an X, e.g. XM:..., XS:...."""
+                    continue
+                elif t.startswith("XM:i:"): #0":
+    
+                    """Skip reads with a mismatch score higher than the
+                        mismatch threshold."""
+                    tparts = t.split(":")
+                    mismatchlevel = int(tparts[2])
+                elif t.startswith("XS:i:"):
+                    tparts = t.split(":")
+                    multilocscore = int(tparts[2])
+            
+            if mismatchlevel > MTHRESH:
+                """Too many mismatches."""
+                continue
+            if get_setting("eliminate_multialign", con) != None and multilocscore != None:
+                """Reads with multiple aligned locations should be skipped."""
+                continue
+                 
+            """The chrom_filter allows for reads to be considered
+            only if they match the filter, such "Chr1".
+            This is useful for generating toy-sized test databases
+            on a restricted number of reads."""
+            cflist = get_setting_list("chrom_filter",con)
+            if cflist.__len__() > 0:
+                chrom = tokens[2]
+                if chrom not in cflist:
+                    continue
+            
+            """The read passed all the validation checks. Let's import it."""
+            inserted += 1
+            sql = "insert into Reads" + annoid.__str__() + "(readname,mismatch,order_seen) VALUES("
+            sql += "'" + readname + "'," + mismatchlevel.__str__() + "," + inserted.__str__() + ")"
+            cur.execute(sql)
+        except:
+            con.rollback() # Roll back the stuff we didn't commit.
         
     con.commit()
     fin.close()
     
     ratio = float(inserted)/total
     print "\n\t--> I found", inserted, " reads (out of", total, "reads) with a match <= the mismatch threshold. (%.3f)"%ratio
+    print "\t\t and which satisfied other validation checks."
 
     """How many reads were perfect?"""
     sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=0"
@@ -516,6 +522,7 @@ def check_bedgraphs(con):
             exit()
     return
 
+
 def bed2wig_helper(bedgraphpath, wigpath):
     printspan = 100000 # print an update every N sites
     count = 0
@@ -546,6 +553,7 @@ def bed2wig_helper(bedgraphpath, wigpath):
                 fout.write(ii.__str__() + "\t" + value + "\n")
     fin.close()
     fout.close()
+
 
 def bed2wig(con):
     """Converts Bedgraph files to WIG files, for viewing in MochiView.
@@ -656,6 +664,8 @@ def check_wig(con):
     
     print "\n. WIG files OK."
     return
+
+
 
 def write_viz_config(con):
     """This method writes the configuration file for the 'after_peaks' pipeline, which is primarily

@@ -137,7 +137,7 @@ def get_db(dbpath):
         print "\n. Creating a new database at", dbpath
     else:
         print "\n. Restoring the existing database at", dbpath
-    con = lite.connect(dbpath)
+    con = lite.connect(dbpath, timeout=1)
     build_anno_db(con)
     return con
 
