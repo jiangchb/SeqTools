@@ -302,6 +302,7 @@ def check_bams(con, delete_sam = True):
     print "\n. The sorted BAMs appear OK."
     return
 
+
 def run_peak_calling(con):
     """Runs MACS2 to call peaks."""
     cur = con.cursor()
@@ -363,6 +364,7 @@ def run_peak_calling(con):
             os.system( get_setting("mpirun",con) + " macs_commands.sh" )
         else:
             os.system("source macs_commands.sh")
+
 
 def check_peaks(con):
     cur = con.cursor()
@@ -698,6 +700,8 @@ def write_viz_config(con):
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_albicans_SC5314_A21_current_features.gff\n")
         if s == "Ctro":
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
+        if s == "Scer":
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/saccharomyces_cerevisiae.gff\n")
         
         repgroups = []
         sql = "select distinct strain from Annotations where species='" + s + "'"

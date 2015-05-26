@@ -23,6 +23,12 @@ def read_cli(ap):
     x = ap.getOptionalArg("--annopath")
     if x != False:
         APATH = x
+        
+    CPATH = "config.txt"
+    x = ap.getOptionalArg("--configpath")
+    if x != False:
+        APATH = x
+        
     DBPATH = ap.getOptionalArg("--dbpath")
     if DBPATH == False:
         DBPATH = APATH + ".db"

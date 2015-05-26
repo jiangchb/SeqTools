@@ -88,9 +88,8 @@ def get_name_for_macs(exp_annoid, control_annoid, con):
     return name
 
 def get_macs_pairs(con):
-    
     """Returns a list of tuples, each being (experiment,control) Annotation object ids for MACS2 peak-calling.
-    Each pair shares the same unique value in the fields 'sample', 'species', and 'replicate' in the table Annotations.
+    Each pair shares the same unique value in the fields 'tf', 'sample', 'species', and 'replicate' in the table Annotations.
     The control member of the pair is found by finding the Annotation with 'tag' = 0, 
     while the treatment member of the pair has 'tag'=1."""
     pairs = [] #(treatment Id, control ID)
@@ -191,7 +190,7 @@ def import_annotations(apath, con):
         exit()
     
     cur = con.cursor()
-    
+        
     fin = open(apath, "r")
     lines = []
     for l in fin.readlines():
@@ -210,7 +209,7 @@ def import_annotations(apath, con):
         tokens = l.split()
         if tokens.__len__() > 2:
             sample = tokens[0]
-            """Restrict our import to a subset of rows, if the user specificied it."""
+            """Restrict our import to a subset of rows, if the user specified it."""
             if get_setting("restrict_to_sample",con) != None:
                 if sample != get_setting("restrict_to_sample",con):
                     continue
@@ -225,13 +224,14 @@ def import_annotations(apath, con):
                 tag = 1
             else:
                 tag = 0
+            
             media = tokens[8]
             condition = tokens[9]
             replicate = int(tokens[10])
             comment = tokens[11]
             
             """Split the species token into (potentially) multiple tokens, each separated by underscores.
-            This allows for hybrid species to be separated into two annocations, one for each parent species."""
+            This allows for hybrid species to be separated into two annotations, one for each parent species."""
             st = species.split("_") # st stands for species tokens
             for species in st:
                 """If the species name is not a hybrid, then this loop will run just once."""
@@ -280,6 +280,141 @@ def import_annotations(apath, con):
                     #print sql
                     con.commit()           
     return con
+
+
+def import_configuration(cpath, con):
+    """Each line in the configuration file contains the following columns:
+        * READS
+        * library name (unique)
+        * fastq path -- a filepath in the directory specified by the option "--datadir"
+        * species
+        * tf
+        * condition/media
+        * tagged? YES/NO
+        * replicate number
+        * note (optional)
+        
+        Or, a line can begin with PAIR <experimental sample name> <untagged control sample name>
+    """
+    if False == os.path.exists(cpath):
+        print "\n. Error, I can't find your configuration file at", cpath
+        exit()
+    
+    cur = con.cursor()
+        
+    fin = open(cpath, "r")
+    """Get the useful lines:"""
+    lines = []
+    for l in fin.readlines():
+        ls = l.split("\r")
+        for lt in ls:
+            if lt.startswith("#"):
+                continue
+            if lt.__len__() < 2:
+                continue
+            tokens = lt.split()
+            if tokens.__len__() < 2:
+                continue
+            lines.append( lt )
+    
+    for l in lines:
+        tokens = l.split()
+        if tokens[0] == "READS":
+            if tokens.__len__() < 8:
+                emsg = "There is something wrong with your configuration file. I think you're missing a column on the following line:\n"
+                emsg += l
+                print emsg
+                write_error(con, l)
+                exit()
+            library_name = tokens[1]
+            fastqpath = tokens[2]
+            species = tokens[3]
+            tf = tokens[4]
+            condition = tokens[5]
+            tag = tokens[6]
+            if tag == "YES":
+                tag = 1
+            else:
+                tag = 0
+            replicate = tokens[7]
+            comment = ""
+            if tokens.__len__() > 8:
+                comment = " ".join( tokens[8:] )
+            
+            """Split the species token into (potentially) multiple tokens, each separated by underscores.
+            This allows for hybrid species to be separated into two annotations, one for each parent species."""
+            st = species.split("_") # st stands for species tokens
+            for species in st:
+                """If the species name is not a hybrid, then this loop will run just once."""
+
+                """Does this Annotation's settings conflict with any previously-known Annotations?"""
+                sql = "SELECT count(*) from Annotations where library_name='" + id + "' and species='" + species + "'"
+                cur.execute(sql)
+                count = cur.fetchone()[0]
+                if count == 0:
+                    """i.e. this Annotation is unique, so let's import it."""
+                    sql = "INSERT OR REPLACE INTO Annotations (library_name, fastqpath, species, tf, tag, condition, replicate, comment)"
+                    sql += " VALUES("
+                    sql += "'" + library_name + "',"
+                    sql += "'" + fastqpath + "',"
+                    sql += "'" + species + "',"
+                    sql += "'" + tf + "',"
+                    sql += tag.__str__() + ","
+                    sql += "'" + condition + "',"
+                    sql += replicate.__str__() + ","
+                    sql += "'" + comment + "'"
+                    sql += ")"
+                    #print sql
+                    cur.execute(sql)
+                    con.commit()
+                
+                """Get the annoid of the annotation we just imported."""
+                sql = "SELECT annoid from Annotations where library_name='" + library_name + "' and species='" + species + "'"
+                cur.execute(sql)
+                x = cur.fetchall()
+                annoid = x[0][0]
+                
+                """If it's a hybrid, then remember that we created TWO Annotation to represent it."""
+                if st.__len__() > 1:
+                    sql = "insert or replace into Hybrids(annoid, species1, species2) "
+                    sql += "VALUES(" + annoid.__str__() + ",'" + st[0] + "','" + st[1] + "')"
+                    cur.execute(sql)
+                    #print sql
+                    con.commit()        
+
+    """Second pass - experiment/control pairs"""
+    for l in lines:
+        tokens = l.split()
+        if tokens[0] == "PAIR":
+            exp_library_name = tokens[1]
+            control_library_name = tokens[2]
+            
+            sql = "SELECT annoid from Annotations where library_name='" + exp_library_name + "'"
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                emsg = "Something is wrong with a line in your configuration file:\n"
+                emsg += l + "\n"
+                emsg += "I cannot find a READS line for the library named " + exp_library_name
+                print emsg
+                write_error(emsg, con)
+                exit()
+            exp_annoid = x[0]
+
+            sql = "SELECT annoid from Annotations where library_name='" + control_library_name + "'"
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                emsg = "Something is wrong with a line in your configuration file:\n"
+                emsg += l + "\n"
+                emsg += "I cannot find a READS line for the library named " + control_library_name
+                print emsg
+                write_error(emsg, con)
+                exit()
+            control_annoid = x[0]
+            
+            pair_name = get_name_for_macs(exp_annoid, control_annoid, con)
+                      
 
 def get_hybrid_pairs(con):
     cur = con.cursor()

@@ -84,7 +84,7 @@ def find_hybrid_unique_reads(con):
                 sql += readid.__str__() + ")"
                 cur.execute(sql)  
         
-        sys.stdout.write("\r    --> %100.0f\n")
+        sys.stdout.write("\r    --> %100.0\n")
         sys.stdout.flush()      
         
         """Repeat for the second species."""
