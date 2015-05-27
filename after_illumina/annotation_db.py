@@ -120,7 +120,7 @@ def get_macs_pairs(con):
                     cur.execute(sql)
                     controls = cur.fetchall()               
                     if controls.__len__() > 1:
-                        print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid
+                        print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, replicate, repid, tf
                         exit()
                     control = controls[0][0]
                     for t in treatments:
