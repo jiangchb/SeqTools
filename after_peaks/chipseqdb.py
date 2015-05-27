@@ -141,6 +141,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     """filter_chrom is a list of chromosomes that should be ignored."""
     cur = con.cursor()
     
+    print "144:"
+    
     print "\n. Importing genome features from", gffpath
     
     chromids = get_chrom_ids(con, speciesid)
