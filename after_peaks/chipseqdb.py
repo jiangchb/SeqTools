@@ -58,8 +58,9 @@ def build_db(dbpath = None):
     """GeneSummits maps summits to the their putative target gene."""
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSummits(gene INTEGER, summit INTEGER, distance INT)") # a mapping of Summits to nearby Genes    
     
-    # The table Summits2Summits stores relationships about summits that are nearby, perhaps identical, because conditions and species.
+    # The table Summits2Summits stores relationships about summits that are nearby, perhaps identical, between conditions and species.
     # Not all summits will have an entry in this table.
+    # NOTE: The table Summits2Summits is not currently being used. Some work is required here.
     cur.execute("CREATE TABLE IF NOT EXISTS Summits2Summits(summitid1 INTEGER, summitid2 INTEGER, distance FLOAT)")
     
     """EnrichmentStats stores data about fold-enrichment (max, mean, etc.) for each gene."""
@@ -169,6 +170,12 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
         
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
+            
+            if tokens.__len__() < 8:
+                print "\n. Error, something is wrong with the following line in the GFF:"
+                print l
+                exit()
+            
             if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
                 continue
             chr = tokens[0]

@@ -201,7 +201,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     fin.close()
     
     ratio = 100.0*float(inserted)/total
-    ratio = "%.3f"%ratio
+    ratio = "%.1f"%ratio
     print "\n\t--> I found " + inserted.__str__() + " reads out of " + total.__str__() + " reads (" + ratio.__str__() + "%) that satisfied all validation checks."  
 
     """How many reads were perfect?"""
@@ -271,7 +271,9 @@ def write_sorted_bam(con):
             os.system("source run_sam2bam.sh")
     
 def check_bams(con, delete_sam = True):
-    """Will exit on error."""
+    """Checks for the presence of sorted BAM files. If they all exist,
+        then the SAM files (from which the BAMs were created) will be deleted.
+        If the files aren't found, then the program will terminate."""
     cur = con.cursor()        
     sql = "select annoid from Annotations"
     cur.execute(sql)
@@ -281,11 +283,15 @@ def check_bams(con, delete_sam = True):
         cur.execute(sql)
         y = cur.fetchall()
         if y.__len__() < 1:
-            print "\n. Error, the table SortedBamFiles has no records for annotation #", ii[0].__str__()
+            emsg = "Error, the table SortedBamFiles has no records for annotation #" + ii[0].__str__()
+            print "\n.", emsg
+            write_error(con, emsg)
             exit()
         bampath = y[0][0]
         if False == os.path.exists( bampath ):
-            print "\n. Error, I can't find your BAM file at", bampath
+            emsg = "Error, I can't find your BAM file at " + bampath
+            print "\n.", emsg
+            write_error(con, emsg)
             exit()
     
     """At this point, all the BAMs look good."""
@@ -303,6 +309,7 @@ def check_bams(con, delete_sam = True):
 #         for ii in x:
 #             sampath = ii[0]
 #             os.system("rm " + sampath)
+    write_log(con, "The sorted BAMs appear OK")
     print "\n. The sorted BAMs appear OK."
     return
 
@@ -323,7 +330,9 @@ def run_peak_calling(con):
         annoid = ii[0]
         bampath = ii[1]
         if False == os.path.exists(bampath):
-            print "\n. Error, I can't find your BAM at", bampath
+            emsg = "Error, I can't find your BAM at " + bampath.__str__()
+            print "\n.", emsg
+            write_error(con, emsg)
             exit()
     
     macs_commands = []
@@ -388,8 +397,7 @@ def check_peaks(con):
         summits = ii[2] + "_summits.bed"
     
         outpaths = [tbdg, cbdg, peaks, summits]
-        for f in outpaths:    
-            #outbdg = ii[2] + "_output_FE.bdg"
+        for f in outpaths:
             if False == os.path.exists(f):
                 print "\n. Error, I can't find the MACS2 output file", tbdg
                 exit()
@@ -400,6 +408,7 @@ def check_peaks(con):
         cur.execute(sql)
         con.commit()
     return
+
 
 def calculate_fe(con):
     cur = con.cursor()
@@ -441,6 +450,7 @@ def calculate_fe(con):
         else:
             os.system("source fe_commands.sh")
 
+
 def check_fe(con):
     cur = con.cursor()
     sql = "select exp_annoid, bdgpath from MacsFE"
@@ -459,6 +469,12 @@ def bam2bedgraph(con):
     print "\n. Converting sorted BAMs to bedgraph files."
     
     cur = con.cursor()        
+    
+    """Clear any prior entries in the table Bedgraphfiles"""
+    sql = "delete from BedgraphFiles"
+    cur.execute(sql)
+    con.commit()
+    
     sql = "select annoid from Annotations"
     cur.execute(sql)
     x = cur.fetchall()
@@ -515,16 +531,18 @@ def check_bedgraphs(con):
         annoid = ii[0]
         bedpath = ii[1]
         if False == os.path.exists(bedpath):
-            print "\n. Error, I can't find your bedgraph file at", bedpath
+            emsg = " Error, I can't find your bedgraph file at " + bedpath.__str__()
+            print "\n.", emsg
+            write_error(con, emsg)
             exit()
         fin = open(bedpath, "r")
         firstline = fin.readline()
         tokens = firstline.split()
         fin.close()
         if tokens.__len__() != 4:
-            print "\n. Error, the first line of your bedgraph doesn't contain 4 columns."
-            print ". It appears to not be a bedgraph file."
-            print bedpath
+            emsg = "Error, the first line of your bedgraph doesn't contain 4 columns. It appears to not be a bedgraph file."
+            print "\n.", emsg
+            write_error(con, emsg)
             exit()
     return
 
@@ -534,7 +552,9 @@ def bed2wig_helper(bedgraphpath, wigpath):
     count = 0
     last_seen_chrom = None
     fin = open(bedgraphpath, "r")
-    print "\n. Converting BDG->WIG:", bedgraphpath, "-->", wigpath
+    msg = "Converting BDG->WIG:" + bedgraphpath.__str__() + " --> " + wigpath.__str__()
+    print "\n.", msg
+    write_log(con, msg)
     fout = open(wigpath, "w")
     fout.write("track type=WIG\n")
     for l in fin.xreadlines():
@@ -705,6 +725,8 @@ def write_viz_config(con):
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
         if s == "Scer":
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/saccharomyces_cerevisiae.gff\n")
+        if s == "Pstip":
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/pstip.gff\n")
         
         repgroups = []
         sql = "select distinct strain from Annotations where species='" + s + "'"
