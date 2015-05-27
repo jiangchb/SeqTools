@@ -75,6 +75,8 @@ if jump <= 1 and stop > 1:
 if jump <= 1.1 and stop > 1.1:
     check_bowtie_output(con)
 
+# drop table
+
 """Extract the reads from Bowtie output."""
 if jump <= 2 and stop > 2:
     """There are no hybrids in this analysis, just process annotations."""

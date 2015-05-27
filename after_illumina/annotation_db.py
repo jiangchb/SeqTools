@@ -112,19 +112,24 @@ def get_macs_pairs(con):
                 s = cur.execute(sql)
                 for z in cur.fetchall():
                     species = z[0]
-                    sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and tag=1 and tf='" + tf.__str__() + "'"
+                    sql = "select distinct media from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "' and species='" + species.__str__() + "'"
                     cur.execute(sql)
-                    treatments = cur.fetchall()
-                    sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
-                    cur.execute(sql)
-                    controls = cur.fetchall()               
-                    if controls.__len__() > 1:
-                        print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid, tf
-                        exit()
-                    control = controls[0][0]
-                    for t in treatments:
-                        pairs.append( (t[0],control)  ) 
-                        print "Experiment:", t[0], "Control:", control, "Sample:", sample, "ReplicateID:",  repid, "Species:", species
+                    mm = cur.fetchall()
+                    for media in mm:
+                        sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=1 and tf='" + tf.__str__() + "'"
+                        cur.execute(sql)
+                        treatments = cur.fetchall()
+                        sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
+                        cur.execute(sql)
+                        controls = cur.fetchall()               
+                        if controls.__len__() > 1:
+                            print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid, tf
+                            print controls
+                            exit()
+                        control = controls[0][0]
+                        for t in treatments:
+                            pairs.append( (t[0],control)  ) 
+                            print "Experiment:", t[0], "Control:", control, "Sample:", sample, "ReplicateID:",  repid, "Species:", species
     return pairs
 
 def get_db(dbpath):    
