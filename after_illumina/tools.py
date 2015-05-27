@@ -101,7 +101,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     """
     cur = con.cursor()
 
-    sql = "delete * from if exists Reads" + annoid.__str__()
+    sql = "delete from if exists Reads" + annoid.__str__()
     cur.execute(sql)
     con.commit()
     
