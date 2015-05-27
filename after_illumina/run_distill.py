@@ -86,7 +86,6 @@ if jump <= 2 and stop > 2:
         annoids.append( ii[0] )
 
     cur.execute(sql)
-    #build_anno_db(con)
     for annoid in annoids:
         extract_matched_reads(annoid, con)
 

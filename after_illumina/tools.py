@@ -101,7 +101,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     """
     cur = con.cursor()
 
-    sql = "drop table if exists Reads" + annoid.__str__()
+    sql = "delete * from if exists Reads" + annoid.__str__()
     cur.execute(sql)
     con.commit()
     
@@ -200,7 +200,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     fin.close()
     
     ratio = 100.0*float(inserted)/total
-    ratio = "%.3f"%ratiio
+    ratio = "%.3f"%ratio
     print "\n\t--> I found " + inserted.__str__() + " reads out of " + total.__str__() + " reads (" + ratio.__str__() + "%) that satisfied all validation checks."  
 
     """How many reads were perfect?"""
@@ -212,7 +212,6 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     sql += annoid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
     cur.execute(sql)
     con.commit()
-
 
 def write_sorted_bam(con):
     print "\n. Writing sorted BAM files."
