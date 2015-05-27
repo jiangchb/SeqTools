@@ -115,8 +115,10 @@ def get_macs_pairs(con):
                     sql = "select distinct media from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "' and species='" + species.__str__() + "'"
                     cur.execute(sql)
                     mm = cur.fetchall()
+                    print mm
                     for media in mm:
                         sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=1 and tf='" + tf.__str__() + "'"
+                        print sql
                         cur.execute(sql)
                         treatments = cur.fetchall()
                         sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
