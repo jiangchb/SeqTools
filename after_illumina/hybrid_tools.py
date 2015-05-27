@@ -25,16 +25,16 @@ def find_hybrid_unique_reads(con):
         annoid1 = pair[0]
         annoid2 = pair[1]
 
-        sql = "drop table if exists UniqueReads" + annoid1.__str__()
-        cur.execute(sql)
-        sql = "drop table if exists UniqueReads" + annoid2.__str__()
-        cur.execute(sql)
-        con.commit()
-
         sql = "CREATE TABLE IF NOT EXISTS UniqueReads" + annoid1.__str__() + "(readid INTEGER primary key)" # reads that are unique to an annotation
         cur.execute(sql)
         con.commit()
         sql = "CREATE TABLE IF NOT EXISTS UniqueReads" + annoid2.__str__() + "(readid INTEGER primary key)" # reads that are unique to an annotation
+        cur.execute(sql)
+        con.commit()
+
+        sql = "delete from UniqueReads" + annoid1.__str__()
+        cur.execute(sql)
+        sql = "delete from UniqueReads" + annoid2.__str__()
         cur.execute(sql)
         con.commit()
 
