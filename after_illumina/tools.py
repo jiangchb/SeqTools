@@ -792,7 +792,7 @@ def launch_viz(con):
     scriptpath = get_setting("outdir", con) + "/run_viz.sh"
     fout = open(scriptpath, "w")
     
-    c = "python ~/Applications/SeqTools/after_peaks/apres.py "
+    c = "python /common/REPOSITORY/SeqTools/after_peaks/apres.py "
     c += "--dbpath " + vizdbpath
     c += " --pillarspath " + get_setting("pillars_path", con)
     c += " --configpath " + vcpath

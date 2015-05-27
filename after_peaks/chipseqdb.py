@@ -140,9 +140,7 @@ def build_idr_tables(con):
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chrom = []):
     """filter_chrom is a list of chromosomes that should be ignored."""
     cur = con.cursor()
-    
-    print "144:"
-    
+        
     print "\n. Importing genome features from", gffpath
     
     chromids = get_chrom_ids(con, speciesid)
@@ -172,9 +170,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
         
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
-            
-            print "174:", l
-            
+                        
             if tokens.__len__() < 8:
                 print "\n. Error, something is wrong with the following line in the GFF:"
                 print l
