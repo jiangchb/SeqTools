@@ -98,17 +98,20 @@ def find_hybrid_unique_reads(con):
             unique_readids = []
             count = 0
             total_count = names2.__len__()
-            for name in unique_read_names:
-                count += 1
-                if count%10000 == 0:
-                    sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-                    sys.stdout.flush()
-                    con.commit()
-                    
-                readid = set2[name]
-                sql = "insert into UniqueReads" + annoid2.__str__() + "(readid) VALUES("
-                sql += readid.__str__() + ")"
+            try:
+                for name in unique_read_names:
+                    count += 1
+                    if count%10000 == 0:
+                        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+                        sys.stdout.flush()
+                        con.commit()
+                        
+                    readid = set2[name]
+                    sql = "insert into UniqueReads" + annoid2.__str__() + "(readid) VALUES("
+                    sql += readid.__str__() + ")"
                 cur.execute(sql)            
+            except:
+                con.rollback()
             con.commit()
         
         sys.stdout.write("\r    --> %100.0f\n")

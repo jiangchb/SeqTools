@@ -277,7 +277,6 @@ def import_annotations(apath, con):
                     sql = "insert or replace into Hybrids(annoid, species1, species2) "
                     sql += "VALUES(" + annoid.__str__() + ",'" + st[0] + "','" + st[1] + "')"
                     cur.execute(sql)
-                    #print sql
                     con.commit()           
     return con
 
@@ -379,7 +378,6 @@ def import_configuration(cpath, con):
                     sql = "insert or replace into Hybrids(annoid, species1, species2) "
                     sql += "VALUES(" + annoid.__str__() + ",'" + st[0] + "','" + st[1] + "')"
                     cur.execute(sql)
-                    #print sql
                     con.commit()        
 
     """Second pass - experiment/control pairs"""
@@ -414,7 +412,13 @@ def import_configuration(cpath, con):
             control_annoid = x[0]
             
             pair_name = get_name_for_macs(exp_annoid, control_annoid, con)
-                      
+
+
+        sql = "insert or replace into MacsRun(exp_annoid, control_annoid, name) VALUES("
+        sql += exp_annoid.__str__() + "," + control_annoid.__str__()
+        sql += ",'" + get_name_for_macs(exp_annoid, control_annoid, con) + "')"
+        cur.execute(sql)
+        con.commit()         
 
 def get_hybrid_pairs(con):
     cur = con.cursor()

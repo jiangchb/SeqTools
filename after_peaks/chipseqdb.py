@@ -147,9 +147,12 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     """Remove stale data."""
     sql = "DELETE FROM Chromosomes where species=" + speciesid.__str__()
     cur.execute(sql)
-    for chromid in chromids:
-        sql = "DELETE FROM Genes where chrom=" + chromid.__str__()
-        cur.execute(sql)
+    try:
+        for chromid in chromids:
+            sql = "DELETE FROM Genes where chrom=" + chromid.__str__()
+            cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
     
     chromname_id = {}
@@ -256,27 +259,31 @@ def import_pillars(pillarspath, con):
     
     fin = open(pillarspath, "r")
     count = 0
-    for l in fin.xreadlines():
-        if l.startswith("orf"):
-            count += 1
-            #if count%100 == 0:
-                #sys.stdout.write(".")
-                #sys.stdout.flush()            
-            l = l.strip()
-            tokens = l.split()
-            #print tokens
-            orf_list = []
-            for t in tokens:
-                if False == t.startswith("-"):
-                    orf_list.append(t)
-            orf_list = orf_list
-            #print orf_list
-
-            realname = orf_list[0]
-            for aliasname in orf_list:
-                sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
-                cur.execute(sql)
+    try:
+        for l in fin.xreadlines():
+            if l.startswith("orf"):
+                count += 1
+                #if count%100 == 0:
+                    #sys.stdout.write(".")
+                    #sys.stdout.flush()            
+                l = l.strip()
+                tokens = l.split()
+                #print tokens
+                orf_list = []
+                for t in tokens:
+                    if False == t.startswith("-"):
+                        orf_list.append(t)
+                orf_list = orf_list
+                #print orf_list
+    
+                realname = orf_list[0]
+                for aliasname in orf_list:
+                    sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
+                    cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
+    fin.close()
     return con
 
 def import_summits(summitpath, repid, con):
@@ -301,42 +308,45 @@ def import_summits(summitpath, repid, con):
     total_count = estimate_line_count(summitpath)
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
-    for l in fin.xreadlines():
-        count += 1
-        #sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-        #sys.stdout.flush()
-        if count%100==0:
-            con.commit()
-        
-        if l.__len__() > 0 and False == l.startswith("#"):
-            tokens = l.split()
-            chr = tokens[0]
-            site = int( tokens[1] )
-            name = tokens[3]
-            score = float( tokens[4] )
+    try:
+        for l in fin.xreadlines():
+            count += 1
+            #sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            #sys.stdout.flush()
+            if count%100==0:
+                con.commit()
             
-            cur = con.cursor()
-            sql = "SELECT id FROM Chromosomes WHERE name='" + chr + "'"                
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x == None:
-                pass
-            else:
-                chrid = x[0]
-                """Sanity Check"""
-                sql = "select species from Chromosomes where id=" + chrid.__str__()
-                cur.execute(sql)
-                chrom_species = int( cur.fetchone()[0] )
-                sql = "select species from Replicates where id=" + repid.__str__()
-                cur.execute(sql)
-                rep_species = int(cur.fetchone()[0])
-                #if chrom_species != rep_species:
-                    #print "\n. Error 336:", rep_species, chrom_species, chrid, chr, site, name, score
-                    #print l
-                    #exit()
+            if l.__len__() > 0 and False == l.startswith("#"):
+                tokens = l.split()
+                chr = tokens[0]
+                site = int( tokens[1] )
+                name = tokens[3]
+                score = float( tokens[4] )
                 
-                sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
+                cur = con.cursor()
+                sql = "SELECT id FROM Chromosomes WHERE name='" + chr + "'"                
                 cur.execute(sql)
+                x = cur.fetchone()
+                if x == None:
+                    pass
+                else:
+                    chrid = x[0]
+                    """Sanity Check"""
+                    sql = "select species from Chromosomes where id=" + chrid.__str__()
+                    cur.execute(sql)
+                    chrom_species = int( cur.fetchone()[0] )
+                    sql = "select species from Replicates where id=" + repid.__str__()
+                    cur.execute(sql)
+                    rep_species = int(cur.fetchone()[0])
+                    #if chrom_species != rep_species:
+                        #print "\n. Error 336:", rep_species, chrom_species, chrid, chr, site, name, score
+                        #print l
+                        #exit()
+                    
+                    sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
+                    cur.execute(sql)
+    except:
+        con.rollback()
     fin.close()
     con.commit()
     
@@ -575,21 +585,24 @@ def import_foldenrichment(bdgpath, repid, con):
     """Finally, write all our findings into the table EnrichmentStats."""
     count = 0
     total_count = geneid_sum.__len__()
-    for geneid in geneid_sum:
-        if geneid_n[geneid] > 0:
-            count += 1
-            if count%5000==0:
-                #sys.stdout.write(".")
-                #sys.stdout.flush()
-                con.commit()
-            sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite)  "
-            sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
-            sql += "," + geneid_max[geneid].__str__()
-            sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
-            sql += "," + geneid_sum[geneid].__str__()
-            sql += "," + geneid_maxsite[geneid].__str__()
-            sql += ")"
-            cur.execute(sql)
+    try:
+        for geneid in geneid_sum:
+            if geneid_n[geneid] > 0:
+                count += 1
+                if count%5000==0:
+                    #sys.stdout.write(".")
+                    #sys.stdout.flush()
+                    con.commit()
+                sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite)  "
+                sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
+                sql += "," + geneid_max[geneid].__str__()
+                sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
+                sql += "," + geneid_sum[geneid].__str__()
+                sql += "," + geneid_maxsite[geneid].__str__()
+                sql += ")"
+                cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()        
 
     return con
@@ -816,32 +829,35 @@ def resolve_aliasids(con):
     count = 0
     sql = "SELECT * from Genes"
     cur.execute(sql)
-    for g in cur.fetchall():
-        count += 1
-        if count%5 == 0:
-            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-            sys.stdout.flush()
-        if count%2000 == 0:
-            #sys.stdout.write(".")
-            #sys.stdout.flush()
-            """Note the commit happens here"""
-            con.commit()
-        
-        this_id = g[0]
-        this_name = g[1]
-        
-        """If there is an alias reference for this gene, then get the reference name for this gene."""
-        realname = get_genename_for_aliasname( this_name, con )
-        if realname == None:
-            #print "No pillar entry for", this_name
-            realname = this_name
-            realid = this_id
-        
-        if realname in genename2id:
-            realid = genename2id[realname]
-                
-        sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
-        cur.execute(sql)
+    try:
+        for g in cur.fetchall():
+            count += 1
+            if count%5 == 0:
+                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+                sys.stdout.flush()
+            if count%2000 == 0:
+                #sys.stdout.write(".")
+                #sys.stdout.flush()
+                """Note the commit happens here"""
+                con.commit()
+            
+            this_id = g[0]
+            this_name = g[1]
+            
+            """If there is an alias reference for this gene, then get the reference name for this gene."""
+            realname = get_genename_for_aliasname( this_name, con )
+            if realname == None:
+                #print "No pillar entry for", this_name
+                realname = this_name
+                realid = this_id
+            
+            if realname in genename2id:
+                realid = genename2id[realname]
+                    
+            sql = "INSERT INTO GeneHomology (geneid, aliasid) VALUES(" + realid.__str__() + "," + this_id.__str__() + ")"
+            cur.execute(sql)
+    except:
+        con.rollback()
     
     """Save the commit for the end."""
     con.commit()
@@ -867,80 +883,83 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         chroms = get_chrom_ids(con, speciesid)
     
     count = 0    
-    for chrid in chroms:
-        genes = get_genes_for_chrom(con, chrid)
-        summits = get_summits(con, repid, chrid)
-                
-        for s in summits:
-            sid = s[0] # summit ID
-            sumsite = s[3] # summit site in the genome
-            score = s[5] # summit score
-            
-            min_up = None
-            closest_up = ""
-            min_down = None
-            closest_down = ""
-            for g in genes:
-                if count%100==0:
-                    #sys.stdout.write(".")
-                    #sys.stdout.flush()
-                    con.commit()
-                
-                gid = g[0]
-                start = g[2]
-                stop = g[3]
-                d = start - sumsite
-                
-                """Sense direction, and upstream"""
-                if start < stop and start >= sumsite:
-                    if min_up == None:
-                        min_up = d
-                        closest_up = gid
-                    if min_up > d:
-                        min_up = d
-                        closest_up = gid
-                        
-                elif start < stop and stop < sumsite:
-                    """Sense direction and downstream"""
-                    if min_down == None:
-                        min_down = d
-                        closest_down = None
-                    if min_down < d:
-                        min_down = d
-                        closest_down = None
+    try:
+        for chrid in chroms:
+            genes = get_genes_for_chrom(con, chrid)
+            summits = get_summits(con, repid, chrid)
                     
-                elif start > stop and start <= sumsite:
-                    """Antisense and downstream"""
-                    if min_down == None:
-                        min_down = d
-                        closest_down = gid
-                    if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
-                        min_down = d
-                        closest_down = gid
+            for s in summits:
+                sid = s[0] # summit ID
+                sumsite = s[3] # summit site in the genome
+                score = s[5] # summit score
+                
+                min_up = None
+                closest_up = ""
+                min_down = None
+                closest_down = ""
+                for g in genes:
+                    if count%100==0:
+                        #sys.stdout.write(".")
+                        #sys.stdout.flush()
+                        con.commit()
+                    
+                    gid = g[0]
+                    start = g[2]
+                    stop = g[3]
+                    d = start - sumsite
+                    
+                    """Sense direction, and upstream"""
+                    if start < stop and start >= sumsite:
+                        if min_up == None:
+                            min_up = d
+                            closest_up = gid
+                        if min_up > d:
+                            min_up = d
+                            closest_up = gid
+                            
+                    elif start < stop and stop < sumsite:
+                        """Sense direction and downstream"""
+                        if min_down == None:
+                            min_down = d
+                            closest_down = None
+                        if min_down < d:
+                            min_down = d
+                            closest_down = None
                         
-                elif start > stop and stop > sumsite:
-                    """Antisense and upstream"""
-                    if min_up == None:
-                        min_up = d
-                        closest_up = None
-                    if min_up > d:
-                        min_up = d
-                        closest_up = None
-
-            if closest_up != None and min_up != None:
-                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + closest_up.__str__() + "," 
-                sql += sid.__str__() + ","
-                sql += min_up.__str__() + ") "
-                #print sql         
-                cur.execute(sql) 
-            if closest_down != None and min_down != None:
-                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + closest_down.__str__() + "," 
-                sql += sid.__str__() + ","
-                sql += min_down.__str__() + ") "  
-                #print sql           
-                cur.execute(sql) 
+                    elif start > stop and start <= sumsite:
+                        """Antisense and downstream"""
+                        if min_down == None:
+                            min_down = d
+                            closest_down = gid
+                        if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
+                            min_down = d
+                            closest_down = gid
+                            
+                    elif start > stop and stop > sumsite:
+                        """Antisense and upstream"""
+                        if min_up == None:
+                            min_up = d
+                            closest_up = None
+                        if min_up > d:
+                            min_up = d
+                            closest_up = None
+    
+                if closest_up != None and min_up != None:
+                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                    sql += " VALUES(" + closest_up.__str__() + "," 
+                    sql += sid.__str__() + ","
+                    sql += min_up.__str__() + ") "
+                    #print sql         
+                    cur.execute(sql) 
+                if closest_down != None and min_down != None:
+                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                    sql += " VALUES(" + closest_down.__str__() + "," 
+                    sql += sid.__str__() + ","
+                    sql += min_down.__str__() + ") "  
+                    #print sql           
+                    cur.execute(sql) 
+    except:
+        con.rollback()
     con.commit()
     return con
                 

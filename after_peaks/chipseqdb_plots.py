@@ -71,55 +71,58 @@ def compute_summits_for_union(unionid, con):
     union_genes = []
     for ii in x:
         union_genes.append( ii[0] )
-        
-    for geneid in union_genes:
-        
-        """Find the maximum scoring summit."""        
-        sql = "select id, max(score) from Summits where "
-        sql += " id in (select maxsummitid from RepgroupSummits where geneid=" + geneid.__str__()
-        sql_pieces = []
-        for repgroupid in rgroupids:
-            sql_pieces.append(" repgroupid=" + repgroupid.__str__() )
-        sql += " and (" + " or ".join( sql_pieces ) + ")"
-        sql += ")"
-        cur.execute(sql)
-        max_summit_id = cur.fetchone()[0]
-        
-        """Find the summit nearest to the TSS"""
-        sql = "select summit, min( abs(distance) ) from GeneSummits where "
-        sql += " summit in (select nearestsummitid from RepgroupSummits where geneid=" + geneid.__str__()
-        sql_pieces = []
-        for repgroupid in rgroupids:
-            sql_pieces.append(" repgroupid=" + repgroupid.__str__() )
-        sql += " and (" + " or ".join( sql_pieces ) + ")"
-        sql += ")"
-        cur.execute(sql)
-        nearest_summit_id = cur.fetchone()[0] 
-        
-        """Find the mean of (mean of max summit scores) for all replicate groups in the union."""
-        meanmax_scores = []
-        for repgroupid in rgroupids:                    
-            sql = "select mean_maxsummitscore from RepgroupSummits where repgroupid=" + repgroupid.__str__()
-            sql += " and geneid=" + geneid.__str__()
+    
+    try:
+        for geneid in union_genes:
+            
+            """Find the maximum scoring summit."""        
+            sql = "select id, max(score) from Summits where "
+            sql += " id in (select maxsummitid from RepgroupSummits where geneid=" + geneid.__str__()
+            sql_pieces = []
+            for repgroupid in rgroupids:
+                sql_pieces.append(" repgroupid=" + repgroupid.__str__() )
+            sql += " and (" + " or ".join( sql_pieces ) + ")"
+            sql += ")"
             cur.execute(sql)
-            x = cur.fetchone()
-            if x == None:
-                """This gene may not have a summit score in the rep. group"""
-                this_meanmaxscore = None
-            else:
-                this_meanmaxscore = float( x[0] )
-                meanmax_scores.append( this_meanmaxscore )
-        meanmaxscore = mean(meanmax_scores)
-
-        sql = "INSERT INTO UnionSummits(unionid, geneid, maxsummitid, nearestsummitid, mean_maxsummitscore) "
-        sql += " VALUES("
-        sql += unionid.__str__() + ","
-        sql += geneid.__str__() + ","
-        sql += max_summit_id.__str__() + ","
-        sql += nearest_summit_id.__str__()  + ","
-        sql += meanmaxscore.__str__()
-        sql += ")"
-        cur.execute(sql)
+            max_summit_id = cur.fetchone()[0]
+            
+            """Find the summit nearest to the TSS"""
+            sql = "select summit, min( abs(distance) ) from GeneSummits where "
+            sql += " summit in (select nearestsummitid from RepgroupSummits where geneid=" + geneid.__str__()
+            sql_pieces = []
+            for repgroupid in rgroupids:
+                sql_pieces.append(" repgroupid=" + repgroupid.__str__() )
+            sql += " and (" + " or ".join( sql_pieces ) + ")"
+            sql += ")"
+            cur.execute(sql)
+            nearest_summit_id = cur.fetchone()[0] 
+            
+            """Find the mean of (mean of max summit scores) for all replicate groups in the union."""
+            meanmax_scores = []
+            for repgroupid in rgroupids:                    
+                sql = "select mean_maxsummitscore from RepgroupSummits where repgroupid=" + repgroupid.__str__()
+                sql += " and geneid=" + geneid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                if x == None:
+                    """This gene may not have a summit score in the rep. group"""
+                    this_meanmaxscore = None
+                else:
+                    this_meanmaxscore = float( x[0] )
+                    meanmax_scores.append( this_meanmaxscore )
+            meanmaxscore = mean(meanmax_scores)
+    
+            sql = "INSERT INTO UnionSummits(unionid, geneid, maxsummitid, nearestsummitid, mean_maxsummitscore) "
+            sql += " VALUES("
+            sql += unionid.__str__() + ","
+            sql += geneid.__str__() + ","
+            sql += max_summit_id.__str__() + ","
+            sql += nearest_summit_id.__str__()  + ","
+            sql += meanmaxscore.__str__()
+            sql += ")"
+            cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
  
     sql = "SELECT COUNT(*) from UnionSummits where unionid=" + unionid.__str__()
@@ -355,16 +358,19 @@ def compute_summits_for_speciesunion(uid, con):
             geneid_nearest[geneid] = nearest_nearest_summit_id
     
     """Insert the max and nearest summit stats into UnionSummits."""
-    for geneid in geneid_max:    
-        if geneid in geneid_nearest:
-            
-            sql = "INSERT INTO SpeciesunionSummits (spunionid, geneid, maxsummitid, nearestsummitid)"
-            sql += " VALUES(" + uid.__str__() + ","
-            sql += geneid.__str__() + ","
-            sql += geneid_max[geneid].__str__() + ","
-            sql += geneid_nearest[geneid].__str__() + ")"
-            #print sql
-            cur.execute(sql)
+    try:
+        for geneid in geneid_max:    
+            if geneid in geneid_nearest:
+                
+                sql = "INSERT INTO SpeciesunionSummits (spunionid, geneid, maxsummitid, nearestsummitid)"
+                sql += " VALUES(" + uid.__str__() + ","
+                sql += geneid.__str__() + ","
+                sql += geneid_max[geneid].__str__() + ","
+                sql += geneid_nearest[geneid].__str__() + ")"
+                #print sql
+                cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
  
     sql = "SELECT COUNT(*) from SpeciesunionSummits where spunionid=" + uid.__str__()
@@ -670,45 +676,48 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     
     #print "\n. chipseqdb_plot 573 - repgroupid ", rgroupid, repgroupname, "has N genes:", seen_genes.__len__()
     
-    for geneid in seen_genes:
-                
-        """Find the nearest summit."""
-        sql = "select summit, min( abs(distance) ) from GeneSummits where gene=" + geneid.__str__() 
-        sql += " and summit in (select summit from Summits where "
-        sql_pieces = []
-        for repid in repids:
-            sql_pieces.append(" replicate=" + repid.__str__() )
-        sql += " or ".join( sql_pieces )
-        sql += " )"
-        cur.execute(sql)
-        nearest_summit_id = cur.fetchone()[0]
-        
-        """Find the mean of max peak scores, across replicates."""
-        max_scores = []
-        max_score = 0.0
-        max_summit_id = None
-        for repid in repids:        
-            sql = "select max(score), id from Summits where "
-            sql += " id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
-            sql += " and replicate=" + repid.__str__()
+    try:
+        for geneid in seen_genes:
+                    
+            """Find the nearest summit."""
+            sql = "select summit, min( abs(distance) ) from GeneSummits where gene=" + geneid.__str__() 
+            sql += " and summit in (select summit from Summits where "
+            sql_pieces = []
+            for repid in repids:
+                sql_pieces.append(" replicate=" + repid.__str__() )
+            sql += " or ".join( sql_pieces )
+            sql += " )"
             cur.execute(sql)
-            x = cur.fetchone()
-            this_max = float( x[0] )
-            if this_max > max_score:
-                max_score = this_max
-                max_summit_id = x[1]
+            nearest_summit_id = cur.fetchone()[0]
             
-            max_scores.append( max_score )
-
-        sql = "INSERT INTO RepgroupSummits(repgroupid, geneid, maxsummitid, nearestsummitid, mean_maxsummitscore) "
-        sql += " VALUES("
-        sql += rgroupid.__str__() + ","
-        sql += geneid.__str__() + ","
-        sql += max_summit_id.__str__() + ","
-        sql += nearest_summit_id.__str__() + ","
-        sql += mean( max_scores ).__str__()
-        sql += ")"
-        cur.execute(sql)
+            """Find the mean of max peak scores, across replicates."""
+            max_scores = []
+            max_score = 0.0
+            max_summit_id = None
+            for repid in repids:        
+                sql = "select max(score), id from Summits where "
+                sql += " id in (select summit from GeneSummits where gene=" + geneid.__str__() + ")"
+                sql += " and replicate=" + repid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                this_max = float( x[0] )
+                if this_max > max_score:
+                    max_score = this_max
+                    max_summit_id = x[1]
+                
+                max_scores.append( max_score )
+        
+            sql = "INSERT INTO RepgroupSummits(repgroupid, geneid, maxsummitid, nearestsummitid, mean_maxsummitscore) "
+            sql += " VALUES("
+            sql += rgroupid.__str__() + ","
+            sql += geneid.__str__() + ","
+            sql += max_summit_id.__str__() + ","
+            sql += nearest_summit_id.__str__() + ","
+            sql += mean( max_scores ).__str__()
+            sql += ")"
+            cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
     
     sql = "SELECT COUNT(*) from RepgroupSummits where repgroupid=" + rgroupid.__str__()
@@ -925,30 +934,33 @@ def compute_enrichments_for_union(unionid, con, keyword=None):
             gene_results[geneid] = []
         gene_results[geneid].append( ii )
     
-    for geneid in gene_results.keys():        
-        """Compute union-wide stats, but only if we have data from all the replicates in this union."""
-        if gene_results[geneid].__len__() == nrgids:
-            max_max = 0
-            all_maxes = []
-            all_means = []
-            all_meanmaxes = []
-            
-            for ii in gene_results[geneid]:
-                all_maxes.append( float(ii[2]) )
-                all_means.append( float( ii[3] ) )
-                all_meanmaxes.append( float( ii[4] ) )
-            
-            maxenrich = max( all_maxes )
-            meanenrich = mean( all_means )
-            meanmaxenrich = mean( all_meanmaxes )
-            
-            sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, meanmaxenrich)"
-            sql += "VALUES (" + unionid.__str__() + ","
-            sql += geneid.__str__() + ","
-            sql += maxenrich.__str__() + ","
-            sql += meanenrich.__str__() +  ","
-            sql += meanmaxenrich.__str__() + ")"
-            cur.execute(sql)
+    try:
+        for geneid in gene_results.keys():        
+            """Compute union-wide stats, but only if we have data from all the replicates in this union."""
+            if gene_results[geneid].__len__() == nrgids:
+                max_max = 0
+                all_maxes = []
+                all_means = []
+                all_meanmaxes = []
+                
+                for ii in gene_results[geneid]:
+                    all_maxes.append( float(ii[2]) )
+                    all_means.append( float( ii[3] ) )
+                    all_meanmaxes.append( float( ii[4] ) )
+                
+                maxenrich = max( all_maxes )
+                meanenrich = mean( all_means )
+                meanmaxenrich = mean( all_meanmaxes )
+                
+                sql = "INSERT INTO UnionEnrichmentStats (unionid, geneid, maxenrich, meanenrich, meanmaxenrich)"
+                sql += "VALUES (" + unionid.__str__() + ","
+                sql += geneid.__str__() + ","
+                sql += maxenrich.__str__() + ","
+                sql += meanenrich.__str__() +  ","
+                sql += meanmaxenrich.__str__() + ")"
+                cur.execute(sql)
+    except:
+        con.rollback()
     con.commit() 
     
 
@@ -1301,14 +1313,17 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
         else:
             pass
             
-    for ii in range(0, geneids_inall.__len__() ):
-        geneid = geneids_inall[ii]
-        sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, meanmaxenrich)"
-        sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
-        sql += maxfe[ii].__str__() + ","
-        sql += meanfe[ii].__str__() + ","
-        sql += meanmaxfe[ii].__str__() + ")"
-        cur.execute(sql)
+    try:
+        for ii in range(0, geneids_inall.__len__() ):
+            geneid = geneids_inall[ii]
+            sql = "INSERT into GroupEnrichmentStats (rgroupid, geneid, maxenrich, meanenrich, meanmaxenrich)"
+            sql += " VALUES(" + rgroupid.__str__() + "," + geneid.__str__() + ","
+            sql += maxfe[ii].__str__() + ","
+            sql += meanfe[ii].__str__() + ","
+            sql += meanmaxfe[ii].__str__() + ")"
+            cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
 
 
@@ -1591,22 +1606,25 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         sql = "DELETE from GeneRepgroupEnrichIdr where repid1=" + repids[ii%repids.__len__()].__str__() + " and repid2=" + repids[jj%repids.__len__()].__str__()
         cur.execute(sql)
         con.commit()
-    for gg in range(0, geneids.__len__() ):
-        geneid = geneids[gg]
-        if gg in idr_stats:
-            for ii in range(0, repids.__len__() ):
-                if ii in idr_stats[gg]:
-                    for jj in range(0, repids.__len__() ):
-                        if jj in idr_stats[gg][ii]:
-                            this_idr = idr_stats[gg][ii][jj]
-                            ii_repid = repids[ii]
-                            jj_repid = repids[jj]
-                            sql = "INSERT into GeneRepgroupEnrichIdr(geneid, repid1, repid2, lidr)"
-                            sql += " VALUES(" + geneid.__str__() + ","
-                            sql += ii_repid.__str__() + ","
-                            sql += jj_repid.__str__() + ","
-                            sql += this_idr.__str__() + ")"
-                            cur.execute(sql)
+    try:
+        for gg in range(0, geneids.__len__() ):
+            geneid = geneids[gg]
+            if gg in idr_stats:
+                for ii in range(0, repids.__len__() ):
+                    if ii in idr_stats[gg]:
+                        for jj in range(0, repids.__len__() ):
+                            if jj in idr_stats[gg][ii]:
+                                this_idr = idr_stats[gg][ii][jj]
+                                ii_repid = repids[ii]
+                                jj_repid = repids[jj]
+                                sql = "INSERT into GeneRepgroupEnrichIdr(geneid, repid1, repid2, lidr)"
+                                sql += " VALUES(" + geneid.__str__() + ","
+                                sql += ii_repid.__str__() + ","
+                                sql += jj_repid.__str__() + ","
+                                sql += this_idr.__str__() + ")"
+                                cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
 
     """Write the Excel Table"""
@@ -1838,31 +1856,34 @@ def compute_enrichments_for_speciesunion(uid, con):
         if geneid_results[gid].__len__() == nuids:
             total_count += nuids
     
-    for gid in geneid_results.keys():
-        """Only keep those genes that have enrichment scores in all the replicates in this union."""
-        if geneid_results[gid].__len__() == nuids:    
-            all_maxes = []
-            all_means = []
-            
-            for ii in geneid_results[gid]:
-                unionid = ii[0]
-               
-                count += 1
-                #if count%50 == 0:
-                sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-                sys.stdout.flush()
-             
-                all_maxes.append( ii[2] )
-                all_means.append( ii[3] )
-
-            """Each row in SpeciesunionEnrichmentStats corresponds to a gene that as FE data
-                in all the member unions of this species-union."""
-            sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich)"
-            sql += "VALUES (" + uid.__str__() + ","
-            sql += gid.__str__() + ","
-            sql += max(all_maxes).__str__() + ","
-            sql += mean(all_means).__str__() + ")"
-            cur.execute(sql)
+    try:
+        for gid in geneid_results.keys():
+            """Only keep those genes that have enrichment scores in all the replicates in this union."""
+            if geneid_results[gid].__len__() == nuids:    
+                all_maxes = []
+                all_means = []
+                
+                for ii in geneid_results[gid]:
+                    unionid = ii[0]
+                   
+                    count += 1
+                    #if count%50 == 0:
+                    sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+                    sys.stdout.flush()
+                 
+                    all_maxes.append( ii[2] )
+                    all_means.append( ii[3] )
+    
+                """Each row in SpeciesunionEnrichmentStats corresponds to a gene that as FE data
+                    in all the member unions of this species-union."""
+                sql = "INSERT INTO SpeciesunionEnrichmentStats (unionid, geneid, maxenrich, meanenrich)"
+                sql += "VALUES (" + uid.__str__() + ","
+                sql += gid.__str__() + ","
+                sql += max(all_maxes).__str__() + ","
+                sql += mean(all_means).__str__() + ")"
+                cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()    
 
 

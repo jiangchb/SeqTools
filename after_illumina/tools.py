@@ -89,10 +89,13 @@ def check_bowtie_output(con):
 
 
 def extract_matched_reads(annoid, con, chrom_filter = None):
-    """This method extracts reads that have a mismatch level <= the user-specified mismatch level.
+    """This method parses the SAM output from Bowtie and extracts those reads that pass a gauntlet of test:
+        1. Is the read's mismatch level <= the user-specified mismatch level?
+        2. Is the read aligned to multiple locations in the genome? (Default: if yes, then discard the read)
+        3. Did the user specify the parameter --chrom_filter to process reads only from a subset of chromosomes?
         Output: Writes a new (shorted) SAM file, and also returns a hash of read IDs.
     
-        If the user specified the parameter --eliminate_multilocs, then
+        If the user specified the parameter --eliminate_multialign, then
         this method will also cull reads mapped to multiple locations within the same genome.
     
     """
@@ -118,7 +121,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
         exit()
     outsampath = re.sub(".sam", ".perfect.sam", sampath)
     
-    """mismatch threshold:"""
+    """Get the mismatch threshold:"""
     MTHRESH = int( get_setting("mismatch_thresh", con) )
     if MTHRESH < 0:
         MTHRESH = 100000000 # effectively, gathers all reads regardless of their mismatch level.
@@ -126,13 +129,14 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     else:
         print "\n. Extracting reads with mismatch <= " + MTHRESH.__str__() + ", from", sampath
     
-    
-    """Parse each line of the SAM"""
+    """Open the SAM output of Bowtie""" 
     fin = open(sampath, "r")
     total = 0 # the total count of all reads seen
     inserted = 0
     for line in fin.xreadlines():
+        """Parse each line of the SAM"""
         try:
+            """The var outline will be a printed statement when we're done processing this line."""
             outline = ""
             if line.startswith("@"):
                 continue
@@ -195,9 +199,9 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     con.commit()
     fin.close()
     
-    ratio = float(inserted)/total
-    print "\n\t--> I found", inserted, " reads (out of", total, "reads) with a match <= the mismatch threshold. (%.3f)"%ratio
-    print "\t\t and which satisfied other validation checks."
+    ratio = 100.0*float(inserted)/total
+    ratio = "%.3f"%ratiio
+    print "\n\t--> I found " + inserted.__str__() + " reads out of " + total.__str__() + " reads (" + ratio.__str__() + "%) that satisfied all validation checks."  
 
     """How many reads were perfect?"""
     sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=0"
@@ -605,7 +609,7 @@ def bed2wig(con):
         bdgpath = ii[1]
         wigpath = re.sub(".bdg", ".wig", bdgpath)
         
-        """THis is a sanity check to prevent the BED being overwritten."""
+        """This is a sanity check to prevent the BED being overwritten."""
         if wigpath == bdgpath: # wtf.
             wigpath = bdgpath + ".wig"
         
@@ -631,8 +635,7 @@ def bed2wig(con):
     #    if get_setting("use_mpi", con) == "1":
     #        os.system( get_setting("mpirun",con) + " " + scriptpath ) 
     #    else:
-    #        os.system("source " + scriptpath)
-    
+    #        os.system("source " + scriptpath)  
     
 def check_wig(con):
     cur = con.cursor()

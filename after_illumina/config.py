@@ -170,7 +170,6 @@ def read_cli(ap):
     cur.execute(sql)
     con.commit()
     
-    
     con = import_genome_list(GENOME_LIST, con)
     
     con = import_annotations(APATH, con)

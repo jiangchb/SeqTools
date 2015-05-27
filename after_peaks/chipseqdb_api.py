@@ -515,23 +515,27 @@ def get_unionids_in_speciesunion(spunionid, con):
         ids.append( ii[0] )
     return ids
 
+
 def remove_all_for_gene(gene, con):
     cur = con.cursor()
     geneid = gene[0]
     genename = gene[1]
         
     tables = ["GroupEnrichmentStats", "GroupEnrichmentStats", "RepgroupSummits", "GeneSummits", "GeneHomology", "GeneAlias", "Genes"]
-    for t in tables:
-        if t == "GeneSummits":
-            sql = "DELETE FROM " + t + " where gene=" + geneid.__str__()
-        elif t == "GeneAlias":
-            sql = "DELETE FROM " + t + " where alias='" + genename.__str__() + "'"
-        elif t == "Genes":
-            sql = "DELETE FROM " + t + " where id=" + geneid.__str__()
-        else:
-            sql = "DELETE FROM " + t + " where geneid=" + geneid.__str__()
-        #print sql
-        cur.execute(sql)
+    try:
+        for t in tables:
+            if t == "GeneSummits":
+                sql = "DELETE FROM " + t + " where gene=" + geneid.__str__()
+            elif t == "GeneAlias":
+                sql = "DELETE FROM " + t + " where alias='" + genename.__str__() + "'"
+            elif t == "Genes":
+                sql = "DELETE FROM " + t + " where id=" + geneid.__str__()
+            else:
+                sql = "DELETE FROM " + t + " where geneid=" + geneid.__str__()
+            #print sql
+            cur.execute(sql)
+    except:
+        con.rollback()
     con.commit()
     
     # skip Summits for now
@@ -584,9 +588,12 @@ def reset_files(con):
     sqls.append("DELETE from ReplicategroupFiles")
     sqls.append("DELETE from UnionFiles")
     sqls.append("DELETE from SpeciesunionFiles")
-    for s in sqls:
-        print s
-        cur.execute(s)
+    try:
+        for s in sqls:
+            print s
+            cur.execute(s)
+    except:
+        con.rollback()
     con.commit()
 
 def add_file(filepath, note, con):
