@@ -171,6 +171,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
         if l.__len__() > 0 and False == l.startswith("#"):
             tokens = l.split()
             
+            print "174:", l
+            
             if tokens.__len__() < 8:
                 print "\n. Error, something is wrong with the following line in the GFF:"
                 print l
