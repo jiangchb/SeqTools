@@ -105,7 +105,6 @@ def get_macs_pairs(con):
             sample = x[0]
             sql = "select distinct replicate from Annotations where sample='" + sample + "' and tf='" + tf.__str__() + "'"
             cur.execute(sql)
-            r = cur.execute(sql)
             for y in cur.fetchall():
                 repid = y[0]     
                 sql = "Select distinct species from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "'"
@@ -120,7 +119,7 @@ def get_macs_pairs(con):
                     cur.execute(sql)
                     controls = cur.fetchall()               
                     if controls.__len__() > 1:
-                        print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, replicate, repid, tf
+                        print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid, tf
                         exit()
                     control = controls[0][0]
                     for t in treatments:
