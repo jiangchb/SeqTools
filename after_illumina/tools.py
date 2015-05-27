@@ -100,16 +100,17 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     
     """
     cur = con.cursor()
-
-    sql = "delete from Reads" + annoid.__str__() + " where exists Reads" + annoid.__str__()
-    cur.execute(sql)
-    con.commit()
     
     sql = "create table if not exists Reads" + annoid.__str__() + " (readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)" # reads without mismatches
     #sql = "delete from Reads where annoid=" + annoid.__str__()
     cur.execute(sql)
     con.commit()
         
+    sql = "delete from Reads" + annoid.__str__()
+    cur.execute(sql)
+    con.commit()
+    
+    
     sampath = None
     sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
     cur.execute(sql)
