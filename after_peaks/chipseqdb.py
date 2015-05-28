@@ -176,6 +176,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 print l
                 exit()
             
+            print "179:", tokens[0], tokens[2]
+            
             if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
                 continue
             chr = tokens[0]
