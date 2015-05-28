@@ -221,12 +221,15 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 stop = x
             gene = tokens[8].split(";")[0].split("=")[1] # orfName
             
-            if tokens[8].split(";").__len__() > 2:
-                note = tokens[8].split(";")[2].split("=")[1]
-                if note.__contains__("orf"):
-                    for t in note.split():
-                        if t.startswith("orf"):
-                            gene = t # use this name instead of the orfName
+            notetoks = tokens[8].split(";")
+            if notetoks.__len__() > 2:
+                qrs = notetoks[2].split("=")
+                if qrs.__len__() > 1:
+                    note = qrs[1]
+                    if note.__contains__("orf"):
+                        for t in note.split():
+                            if t.startswith("orf"):
+                                gene = t # use this name instead of the orfName
                                                   
             sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
             cur.execute(sql) 
