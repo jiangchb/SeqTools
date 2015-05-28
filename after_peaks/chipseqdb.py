@@ -163,78 +163,83 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
     curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
-    for l in fin.xreadlines():
-        count += 1
-        sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-        sys.stdout.flush()
-        
-        if l.__len__() > 0 and False == l.startswith("#"):
-            tokens = l.split()
-                        
-            if tokens.__len__() < 8:
-                print "\n. Error, something is wrong with the following line in the GFF:"
-                print l
-                exit()
+    try:
+        for l in fin.xreadlines():
+            count += 1
+            sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
+            sys.stdout.flush()
             
-            print "179:", tokens[0], tokens[2]
-            
-            if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
-                continue
-            chr = tokens[0]
-            
-            restrict = False
-            for f in filter_chrom:
-                if chr.__contains__(f):
-                    restrict = True
-            if restrict == True:
-                #print "\n. Skipping", l
-                """Skip this entry"""
-                continue
-
-            
-            if chr != curr_chromname:
-                """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
-                curr_chromname = chr
-                #sql = "SELECT COUNT(*) from Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
-                #cur.execute(sql)
-                #if cur.fetchone()[0] == 0:
-                if curr_chromname not in chromname_id:
-                    sql = "SELECT COUNT(*) FROM Chromosomes where name='" + curr_chromname + "'"
-                    cur.execute(sql)
-                    if cur.fetchone()[0] == 0:
-                        """We've not seen this chrom yet... insert it!"""
-                        sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
-                        cur.execute( sql )  
-                        con.commit()
-                    """Get the row ID of the newly-added chromosome."""
-                    cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
-                    curr_chromid = cur.fetchone()[0]
-                    chromname_id[curr_chromname] = curr_chromid
-                """Remember the ID."""
-                curr_chromid = chromname_id[curr_chromname]
-            
-            start = int( tokens[3] )
-            stop = int( tokens[4] )
-            strand = tokens[6]
-            if strand == "-":
-                x = start
-                y = stop
-                start = y
-                stop = x
-            gene = tokens[8].split(";")[0].split("=")[1] # orfName
-            
-            notetoks = tokens[8].split(";")
-            if notetoks.__len__() > 2:
-                qrs = notetoks[2].split("=")
-                if qrs.__len__() > 1:
-                    note = qrs[1]
-                    if note.__contains__("orf"):
-                        for t in note.split():
-                            if t.startswith("orf"):
-                                gene = t # use this name instead of the orfName
-                                                  
-            sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
-            cur.execute(sql) 
+            if l.__len__() > 0 and False == l.startswith("#"):
+                tokens = l.split()
+                            
+                if tokens.__len__() < 8:
+                    print "\n. Error, something is wrong with the following line in the GFF:"
+                    print l
+                    exit()
+                            
+                if tokens[2] != restrict_to_feature: # e.g., if restrict_to_feature == "gene", then we'll only import genes.
+                    continue
+                chr = tokens[0]
+                
+                print "179:", tokens[0], tokens[2]
+                
+                restrict = False
+                for f in filter_chrom:
+                    if chr.__contains__(f):
+                        restrict = True
+                if restrict == True:
+                    #print "\n. Skipping", l
+                    """Skip this entry"""
+                    continue
+    
+                
+                if chr != curr_chromname:
+                    """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
+                    curr_chromname = chr
+                    #sql = "SELECT COUNT(*) from Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
+                    #cur.execute(sql)
+                    #if cur.fetchone()[0] == 0:
+                    if curr_chromname not in chromname_id:
+                        sql = "SELECT COUNT(*) FROM Chromosomes where name='" + curr_chromname + "'"
+                        cur.execute(sql)
+                        if cur.fetchone()[0] == 0:
+                            """We've not seen this chrom yet... insert it!"""
+                            sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
+                            cur.execute( sql )  
+                            con.commit()
+                            print "209:", curr_chromname, speciesid 
+                        """Get the row ID of the newly-added chromosome."""
+                        cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
+                        curr_chromid = cur.fetchone()[0]
+                        chromname_id[curr_chromname] = curr_chromid
+                    """Remember the ID."""
+                    curr_chromid = chromname_id[curr_chromname]
+                
+                start = int( tokens[3] )
+                stop = int( tokens[4] )
+                strand = tokens[6]
+                if strand == "-":
+                    x = start
+                    y = stop
+                    start = y
+                    stop = x
+                gene = tokens[8].split(";")[0].split("=")[1] # orfName
+                
+                notetoks = tokens[8].split(";")
+                if notetoks.__len__() > 2:
+                    qrs = notetoks[2].split("=")
+                    if qrs.__len__() > 1:
+                        note = qrs[1]
+                        if note.__contains__("orf"):
+                            for t in note.split():
+                                if t.startswith("orf"):
+                                    gene = t # use this name instead of the orfName
+                                                      
+                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
+                cur.execute(sql) 
+                print "240:", gene, start, stop, curr_chromid, strand
+    except:
+        con.rollback()
     fin.close()
     con.commit()
     
