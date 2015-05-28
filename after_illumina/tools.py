@@ -724,7 +724,7 @@ def write_viz_config(con):
         if s == "Ctro":
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
         if s == "Scer":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/saccharomyces_cerevisiae.gff\n")
+            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/scer.gff\n")
         if s == "Pstip":
             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/pstip.gff\n")
         
