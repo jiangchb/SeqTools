@@ -137,6 +137,7 @@ def build_idr_tables(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSpeciesunionEnrichIdr(geneid INTEGER, unionid1 INTEGER, unionid2 INTEGER, lidr FLOAT, idr FLOAT)")
     con.commit()
 
+
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chrom = []):
     """filter_chrom is a list of chromosomes that should be ignored."""
     cur = con.cursor()
@@ -181,7 +182,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     continue
                 chr = tokens[0]
                 
-                print "179:", tokens[0], tokens[2]
+                #print "179:", tokens[0], tokens[2]
                 
                 restrict = False
                 for f in filter_chrom:
@@ -207,7 +208,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             sql = "INSERT INTO Chromosomes (name,species) VALUES('" + curr_chromname + "', " + speciesid.__str__() + ")"
                             cur.execute( sql )  
                             con.commit()
-                            print "209:", curr_chromname, speciesid 
+                            #print "209:", curr_chromname, speciesid 
                         """Get the row ID of the newly-added chromosome."""
                         cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
                         curr_chromid = cur.fetchone()[0]
