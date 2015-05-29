@@ -201,7 +201,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     #cur.execute(sql)
                     #if cur.fetchone()[0] == 0:
                     if curr_chromname not in chromname_id:
-                        sql = "SELECT COUNT(*) FROM Chromosomes where name='" + curr_chromname + "'"
+                        sql = "SELECT COUNT(*) FROM Chromosomes where name='" + curr_chromname + "' and species=" + speciesid.__str__()
                         cur.execute(sql)
                         if cur.fetchone()[0] == 0:
                             """We've not seen this chrom yet... insert it!"""
@@ -210,7 +210,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             con.commit()
                             #print "209:", curr_chromname, speciesid 
                         """Get the row ID of the newly-added chromosome."""
-                        cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "'")
+                        cur.execute("SELECT id FROM Chromosomes WHERE name='" + curr_chromname + "' and species=" + speciesid.__str__())
                         curr_chromid = cur.fetchone()[0]
                         chromname_id[curr_chromname] = curr_chromid
                     """Remember the ID."""
