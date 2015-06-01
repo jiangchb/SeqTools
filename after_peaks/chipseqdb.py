@@ -352,7 +352,6 @@ def import_summits(summitpath, repid, con):
                         naming format than the GFF."""
                     tts = chr.split("_")
                     chrnum = int(tts[ tts.__len__()-1 ])
-                    print "355:", chrnum
                     alt_chrom_name = "chr" + int2roman(chrnum).__str__()
                     sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
                     cur.execute(sql)
@@ -381,8 +380,6 @@ def import_summits(summitpath, repid, con):
                     
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
-                else:
-                    print "383", l
     except:
         print "\n. Error 385:"
         con.rollback()
