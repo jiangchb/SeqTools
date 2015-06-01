@@ -341,31 +341,9 @@ def import_summits(summitpath, repid, con):
                 name = tokens[3]
                 score = float( tokens[4] )
                 
-                cur = con.cursor()
-                sql = "SELECT id FROM Chromosomes WHERE name='" + chr + "'"                
-                cur.execute(sql)
-                chrid = None
-                x = cur.fetchone()
-                if x == None:
-                    """The chromosome specified for this summit isn't known to our database.
-                        One possible reason is that the chrom. name in the summit file uses a different
-                        naming format than the GFF."""
-                    tts = chr.split("_")
-                    chrnum = int(tts[ tts.__len__()-1 ])
-                    alt_chrom_name = "chr" + int2roman(chrnum).__str__()
-                    sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
-                    cur.execute(sql)
-                    x = cur.fetchone() 
-                    if x == None:
-                        print "\n. 361 - Chromosome", alt_chrom_name, "doesn't exist." 
-                        pass
-                    else:
-                        chrid = x[0]
-                else:
-                    chrid = x[0]
+                chrid = get_chrom_id(con, chr)
                 
                 if chrid != None:
-                    chrid = x[0]
                     """Sanity Check"""
                     sql = "select species from Chromosomes where id=" + chrid.__str__()
                     cur.execute(sql)
@@ -380,6 +358,7 @@ def import_summits(summitpath, repid, con):
                     
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
+
     except:
         print "\n. Error 385:"
         con.rollback()
