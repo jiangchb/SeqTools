@@ -358,6 +358,7 @@ def import_summits(summitpath, repid, con):
                     cur.execute(sql)
                     x = cur.fetchone() 
                     if x == None:
+                        print "\n. 361 - Chromosome", alt_chrom_name, "doesn't exist." 
                         pass
                     else:
                         chrid = x[0]
