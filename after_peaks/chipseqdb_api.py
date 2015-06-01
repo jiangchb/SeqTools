@@ -657,3 +657,48 @@ def are_replicates_same_species(repids, con):
             #print "\n. Error while computing summits for replicates in the group", repgroupname
             #print ". It appears that not all the replicates belong to the same species."
     return True
+
+def int2roman(x):
+    if x == 0:
+        return 0
+    if x == 1:
+        return "I"
+    if x == 2:
+        return "II"
+    if x == 3:
+        return "III"
+    if x == 4:
+        return "IV"
+    if x == 5:
+        return "V"
+    if x == 6:
+        return "VI"
+    if x == 7:
+        return "VII"
+    if x == 8:
+        return "VIII"
+    if x == 9:
+        return "IX"
+    if x == 10:
+        return "X"
+    if x == 11:
+        return "XI"
+    if x == 12:
+        return "XII"
+    if x == 13:
+        return "XIII"
+    if x == 14:
+        return "XIV"
+    if x == 15:
+        return "XV"
+    if x == 16:
+        return "XVI"
+    if x == 17:
+        return "XVII"
+    if x == 18:
+        return "XVIII"
+    if x == 19:
+        return "XIX"
+    if x == 20:
+        return "XX"
+    return None

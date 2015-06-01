@@ -351,9 +351,9 @@ def import_summits(summitpath, repid, con):
                         One possible reason is that the chrom. name in the summit file uses a different
                         naming format than the GFF."""
                     tts = chr.split("_")
-                    chrnum = tts[ tts.__len__()-1 ]
+                    chrnum = int(tts[ tts.__len__()-1 ])
                     print "355:", chrnum
-                    alt_chrom_name = "chr" + chrnum.__str__()
+                    alt_chrom_name = "chr" + int2roman(chrnum).__str__()
                     sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
                     cur.execute(sql)
                     x = cur.fetchone() 
