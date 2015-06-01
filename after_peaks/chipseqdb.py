@@ -379,7 +379,10 @@ def import_summits(summitpath, repid, con):
                     
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
+                else:
+                    print "383", l
     except:
+        print "\n. Error 385:"
         con.rollback()
     fin.close()
     con.commit()
