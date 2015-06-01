@@ -87,8 +87,6 @@ def build_sm2gn(summitpath, chr_gene_sites):
             if chr not in chr_site_score:
                 chr_site_score[chr] = {}
             chr_site_score[chr][site] = score
-        else:
-            print "91:", l
     fin.close()
     
     count_summits = 0

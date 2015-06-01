@@ -344,10 +344,26 @@ def import_summits(summitpath, repid, con):
                 cur = con.cursor()
                 sql = "SELECT id FROM Chromosomes WHERE name='" + chr + "'"                
                 cur.execute(sql)
+                chrid = None
                 x = cur.fetchone()
                 if x == None:
-                    pass
+                    """The chromosome specified for this summit isn't known to our database.
+                        One possible reason is that the chrom. name in the summit file uses a different
+                        naming format than the GFF."""
+                    tts = chr.split("_")
+                    chrnum = tts[ tts.__len__()-1 ]
+                    alt_chrom_name = "chr" + chrnum.__str__()
+                    sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
+                    cur.execute(sql)
+                    x = cur.fetchone() 
+                    if x == None:
+                        pass
+                    else:
+                        chrid = x[0]
                 else:
+                    chrid = x[0]
+                
+                if chrid != None:
                     chrid = x[0]
                     """Sanity Check"""
                     sql = "select species from Chromosomes where id=" + chrid.__str__()
