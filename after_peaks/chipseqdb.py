@@ -352,6 +352,7 @@ def import_summits(summitpath, repid, con):
                         naming format than the GFF."""
                     tts = chr.split("_")
                     chrnum = tts[ tts.__len__()-1 ]
+                    print "355:", chrnum
                     alt_chrom_name = "chr" + chrnum.__str__()
                     sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
                     cur.execute(sql)
