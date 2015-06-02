@@ -673,9 +673,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     seen_genes = []
     for ii in x:
         seen_genes.append( ii[0] )
-    
-    print "\n. chipseqdb_plot 573 - repgroupid ", rgroupid, repgroupname, "has N genes:", seen_genes.__len__()
-    
+        
     try:
         for geneid in seen_genes:
                     
@@ -717,6 +715,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
             sql += ")"
             cur.execute(sql)
     except:
+        print "\n. An error occurred (718). I'm rolling back changes to GeneSummits."
         con.rollback()
     con.commit()
     
@@ -1323,6 +1322,7 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
             sql += meanmaxfe[ii].__str__() + ")"
             cur.execute(sql)
     except:
+        print "\n. An error occurred (1325). I'm rolling back changes to GroupEnrichmentStats."
         con.rollback()
     con.commit()
 
@@ -1687,6 +1687,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     
     """If there's only one replicate in this group, then we're done."""
     if repids.__len__() < 2:
+        print "\n. Warning: The replicate group,", repgroupname, "contains only one replicate."
         return
         
     """Get the names of the reps in the group."""
