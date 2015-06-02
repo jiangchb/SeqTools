@@ -973,6 +973,9 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                     sql += min_down.__str__() + ") "  
                     #print sql           
                     cur.execute(sql) 
+                
+                if min_up == None and min_down == None:
+                    print "\n. I cannot find a nearby gene for summit", sid, "(species", speciesid, ")"
     except:
         con.rollback()
     con.commit()
