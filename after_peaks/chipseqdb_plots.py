@@ -674,7 +674,7 @@ def compute_summits_for_reps_in_group(rgroupid, con):
     for ii in x:
         seen_genes.append( ii[0] )
     
-    #print "\n. chipseqdb_plot 573 - repgroupid ", rgroupid, repgroupname, "has N genes:", seen_genes.__len__()
+    print "\n. chipseqdb_plot 573 - repgroupid ", rgroupid, repgroupname, "has N genes:", seen_genes.__len__()
     
     try:
         for geneid in seen_genes:

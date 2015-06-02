@@ -89,8 +89,6 @@ def import_data(con):
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
                     con = import_foldenrichment(bdgpath, repid, con)
                 
-                print "92: calling map_summits2genes", repid, speciesid
-                
                 con = map_summits2genes(con, repid, speciesid=speciesid)
     return con
 
