@@ -285,7 +285,7 @@ def import_annotations(apath, con):
                     con.commit()           
     return con
 
-
+# the configuration file is new for June 2015
 def import_configuration(cpath, con):
     """Each line in the configuration file contains the following columns:
         * READS

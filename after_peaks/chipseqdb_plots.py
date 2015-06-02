@@ -1700,6 +1700,24 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         else:
             repid_repname[repid] = repid.__str__()
     
+    """Get FE data for all genes."""
+    """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
+    rep1_genfe = get_maxfe_for_replicate(repids[0], con)
+    rep2_genfe = get_maxfe_for_replicate(repids[1], con)
+    
+    print "\n. 1708 - ", rep1_genfe.__len__(), rep2_genfe.__len__()
+    
+    """Sanity Check for FE data"""
+    if rep1_genfe.__len__() != rep2_genfe.__len__():
+        print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
+        print "\n.", rep1_genfe.__len__(), rep2_genfe.__len__()
+        for geneid in rep1_genfe:
+            if geneid not in rep2_genfe:
+                print "\n.", geneid
+        for geneid in rep2_genfe:
+            if geneid not in rep1_genfe:
+                print "\n.", geneid
+    
     """Get the names of genes in the replicate group"""
     sql = "select geneid from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
     cur.execute(sql)
@@ -1708,7 +1726,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     for ii in x:
         geneids.append( ii[0] )
             
-    """This is stuff we want to know:"""
+    """Build lists of gene IDs that are in both/neither/either replicate."""
     geneids_nosummits = [] # a list of geneids
     geneids_rep1summits = get_geneids_with_summits(con, repids[0])
     geneids_rep2summits = get_geneids_with_summits(con, repids[1])
@@ -1731,22 +1749,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     fe_rep2summits_yvalues = []
     fe_bothsummits_xvalues = []
     fe_bothsummits_yvalues = []
-    
-    """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
-    rep1_genfe = get_maxfe_for_replicate(repids[0], con)
-    rep2_genfe = get_maxfe_for_replicate(repids[1], con)
-    
-    """Sanity Check:"""
-    if rep1_genfe.__len__() != rep2_genfe.__len__():
-        print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
-        print "\n.", rep1_genfe.__len__(), rep2_genfe.__len__()
-        for geneid in rep1_genfe:
-            if geneid not in rep2_genfe:
-                print "\n.", geneid
-        for geneif in rep2_genfe:
-            if geneid not in rep1_genfe:
-                print "\n.", geneid
-    
+        
     total_count = geneids.__len__()
     count = 0
     for geneid in geneids_nosummits:
