@@ -27,9 +27,10 @@ def get_chrom_ids(con, speciesid):
         chromids.append( ii[0] )
     return chromids
 
-def get_chrom_id(con, name):
+def get_chrom_id(con, name, speciesid):
+    """Returns the chormosome ID for the chromosome with 'name'"""
     cur = con.cursor()
-    sql = "SELECT id FROM Chromosomes WHERE name='" + name + "'"                
+    sql = "SELECT id FROM Chromosomes WHERE name='" + name + "' and species=" + speciesid.__str__()                
     cur.execute(sql)
     x = cur.fetchone()
     if x == None:
@@ -39,7 +40,7 @@ def get_chrom_id(con, name):
         tts = name.split("_")
         chrnum = int(tts[ tts.__len__()-1 ])
         alt_chrom_name = "chr" + int2roman(chrnum).__str__()
-        sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "'"                
+        sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "' and species=" + speciesid.__str__()                
         cur.execute(sql)
         x = cur.fetchone() 
         if x == None:
@@ -50,7 +51,6 @@ def get_chrom_id(con, name):
     else:
         return x[0]
     
-
 
 def get_chrom_name(con, id):
     cur = con.cursor()

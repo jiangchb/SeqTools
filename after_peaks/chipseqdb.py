@@ -319,6 +319,12 @@ def import_summits(summitpath, repid, con):
     cur.execute(sql)
     con.commit()
     
+    """Get the species for this replicate."""
+    sql = "select species from Replicates where id=" + repid.__str__()
+    cur.execute(sql)
+    x = cur.fetchone()
+    speciesid = int( x[0] )
+    
     #
     # Build a library of summits
     #
@@ -341,7 +347,7 @@ def import_summits(summitpath, repid, con):
                 name = tokens[3]
                 score = float( tokens[4] )
                 
-                chrid = get_chrom_id(con, chr)
+                chrid = get_chrom_id(con, chr, speciesid)
                 
                 if chrid != None:
                     """Sanity Check"""
@@ -399,6 +405,12 @@ def import_foldenrichment(bdgpath, repid, con):
     cur.execute(sql)
     con.commit()
     
+    """Get the species for this replicate."""
+    sql = "select species from Replicates where id=" + repid.__str__()
+    cur.execute(sql)
+    x = cur.fetchone()
+    speciesid = int( x[0] )
+    
     """Open the BDG file"""
     fin = open(bdgpath, "r")
     curr_chromname = None
@@ -439,7 +451,7 @@ def import_foldenrichment(bdgpath, repid, con):
             chromid = curr_chromid
         else:
             """Found a new chromosome."""
-            chromid = get_chrom_id( con, chromname )
+            chromid = get_chrom_id( con, chromname, speciesid)
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 continue
