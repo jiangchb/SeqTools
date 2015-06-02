@@ -1740,6 +1740,11 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
             geneids_rep2summits.remove(geneid)
         elif geneid not in geneids_rep1summits and geneid not in geneids_rep2summits:
             geneids_nosummits.append(geneid)
+
+        if geneid in rep1_genfe and geneid not in rep2_genfe:
+            rep2_genfe[geneid] = 0.0
+        if geneid in rep2_genfe and geneid not in rep1_genfe:
+            rep1_genfe[geneid] = 0.0
     
     fe_nosummits_xvalues = []
     fe_nosummits_yvalues = []
