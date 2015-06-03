@@ -1736,12 +1736,12 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     for geneid in geneids_rep1summits:
         if geneid not in rep1_genfe:
             print "\n. Gene ", geneid, "has a summit in rep 1, but no FE data."
-            print ". repgroupid=", repgroupid, repgroupname
+            print ". repgroupid=", rgroupid, repgroupname
             exit()
     for geneid in geneids_rep2summits:
         if geneid not in rep2_genfe:
             print "\n. Gene ", geneid, "has a summit in rep 2, but no FE data."
-            print ". repgroupid=", repgroupid, repgroupname
+            print ". repgroupid=", rgroupid, repgroupname
             exit()            
         
     for geneid in geneids:        
