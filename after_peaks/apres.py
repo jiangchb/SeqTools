@@ -76,7 +76,6 @@ def import_data(con):
                 ii += 1
 
                 repname = groupname + "-" + jj.__str__()
-                print repname
                 if False == does_replicate_exist(repname, speciesid, con):
                     con = add_replicate(repname, speciesid, con)
                 repid = get_repid(repname, speciesid, con)
