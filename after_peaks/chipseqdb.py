@@ -448,10 +448,12 @@ def import_foldenrichment(bdgpath, repid, con):
         """Get a list of genes for this chromosome."""
         chromname = tokens[0]
         if curr_chromname == chromname:
+            """If this is the same chrom. we saw on the previous line,
+                then we already know the chrom. ID"""
             chromid = curr_chromid
         else:
-            """Found a new chromosome."""
-            chromid = get_chrom_id( con, chromname, speciesid)
+            """We need to look up the chrom. ID"""
+            chromid = get_chrom_id(con, chromname, speciesid)
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 continue
@@ -465,7 +467,11 @@ def import_foldenrichment(bdgpath, repid, con):
             if genes.__len__() == 0:
                 print "\n. An error occurred at chipseqdb.py 322"
                 exit()
-            gene_pairs = []
+                
+            """gene_pairs is a list of tuples. 
+                The 0th element is a gene on the 5' side, and the 1st 
+                element is a neighboring gene on the 3' side."""
+            gene_pairs = [] 
             for ii in xrange(0, genes.__len__()):
                 if ii == 0:
                     pair = (None,ii)
@@ -477,7 +483,6 @@ def import_foldenrichment(bdgpath, repid, con):
             pairi = 0
             
             summit_sites = []
-            #next_summit_sites_ii = 0
             sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
             sql += " order by site ASC"
             cur.execute(sql)
@@ -490,7 +495,7 @@ def import_foldenrichment(bdgpath, repid, con):
             cur.execute(sql)
             con.commit()
                             
-        """Get the fold-enrichment values in this window."""
+        """Get the fold-enrichment values for this line"""
         start = int(tokens[1]) # start of this enrichment window
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
@@ -590,14 +595,14 @@ def import_foldenrichment(bdgpath, repid, con):
     cur.execute(sql)
     count_missing = cur.fetchone()[0]
     if count_missing > 0:
-        print "\n. Warning: I could not find fold-enrichment values for", count_missing, "of the summits."
+        print "\n. Error: I could not find fold-enrichment values for", count_missing, "of the summits:"
 
         sql = "select id, site, chrom from Summits where replicate=" + repid.__str__()
         sql += " and id not in (select summit from SummitsEnrichment)"
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
-            print "missing summit", ii[0], "at site:", ii[1], get_chrom_name(con, ii[2])
+            print "Summit", ii[0], "at site:", ii[1], "on chrom:", get_chrom_name(con, ii[2])
 
         sql = "select name from Chromosomes where id in ("
         sql += "select distinct chrom from Summits where replicate=" + repid.__str__()
@@ -605,9 +610,9 @@ def import_foldenrichment(bdgpath, repid, con):
         sql += " ) "
         cur.execute(sql)
         x = cur.fetchall()
-        print ". Missing summits on chromosomes:", x
-        
-        #exit()
+        print ". Overall, there are missing summits on the following chromosomes:", x
+
+        exit()
     
     """Finally, write all our findings into the table EnrichmentStats."""
     count = 0

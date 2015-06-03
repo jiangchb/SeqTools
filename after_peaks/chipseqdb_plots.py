@@ -1725,12 +1725,12 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         geneids.append( ii[0] )
             
     """Build lists of gene IDs that are in both/neither/either replicate."""
-    geneids_nosummits = [] # a list of geneids
     geneids_rep1summits = get_geneids_with_summits(con, repids[0])
     geneids_rep2summits = get_geneids_with_summits(con, repids[1])
+    geneids_nosummits = [] # a list of geneids
     geneids_bothsummits = [] # with peaks in both reps.
     
-    """Sanith Check for summit data"""
+    """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
         if geneid not in rep1_genfe:
             print "\n. Gene ", geneid, "has a summit in rep 1, but no FE data."
