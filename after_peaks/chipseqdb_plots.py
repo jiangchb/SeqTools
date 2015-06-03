@@ -1745,6 +1745,9 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
             rep2_genfe[geneid] = 0.0
         if geneid in rep2_genfe and geneid not in rep1_genfe:
             rep1_genfe[geneid] = 0.0
+        if geneid not in rep1_genfe and geneid not in rep2_genfe:
+            rep1_genfe[geneid] = 0.0
+            rep2_genfe[geneid] = 0.0
     
     fe_nosummits_xvalues = []
     fe_nosummits_yvalues = []
