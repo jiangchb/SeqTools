@@ -1704,9 +1704,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
     rep1_genfe = get_maxfe_for_replicate(repids[0], con)
     rep2_genfe = get_maxfe_for_replicate(repids[1], con)
-    
-    print "\n. 1708 - ", rep1_genfe.__len__(), rep2_genfe.__len__()
-    
+        
     """Sanity Check for FE data"""
     if rep1_genfe.__len__() != rep2_genfe.__len__():
         print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
@@ -1737,12 +1735,14 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         if geneid not in rep1_genfe:
             print "\n. Gene ", geneid, "has a summit in rep 1, but no FE data."
             print ". repgroupid=", rgroupid, repgroupname
-            exit()
+            geneids_rep1summits.remove( geneid )
+            #exit()
     for geneid in geneids_rep2summits:
         if geneid not in rep2_genfe:
             print "\n. Gene ", geneid, "has a summit in rep 2, but no FE data."
             print ". repgroupid=", rgroupid, repgroupname
-            exit()            
+            geneids_rep2summits.remove( geneid )
+            #exit()            
         
     for geneid in geneids:        
         """Does the gene have a summit in both replicates?"""
