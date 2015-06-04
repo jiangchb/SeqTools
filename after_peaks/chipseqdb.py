@@ -341,33 +341,23 @@ def import_summits(summitpath, repid, con):
                 con.commit()
             
             if l.__len__() > 0 and False == l.startswith("#"):
+                """If the summit line has content, and isn't a comment, then process it"""
                 tokens = l.split()
                 chr = tokens[0]
                 site = int( tokens[1] )
                 name = tokens[3]
                 score = float( tokens[4] )
-                
                 chrid = get_chrom_id(con, chr, speciesid)
                 
-                if chrid != None:
-                    """Sanity Check"""
-                    sql = "select species from Chromosomes where id=" + chrid.__str__()
-                    cur.execute(sql)
-                    chrom_species = int( cur.fetchone()[0] )
-                    sql = "select species from Replicates where id=" + repid.__str__()
-                    cur.execute(sql)
-                    rep_species = int(cur.fetchone()[0])
-                    #if chrom_species != rep_species:
-                        #print "\n. Error 336:", rep_species, chrom_species, chrid, chr, site, name, score
-                        #print l
-                        #exit()
-                    
+                if chrid != None:                    
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
 
     except:
-        print "\n. Error 385:"
+        print "\n. Error (357) Something wrong occurred while importing summits from", summitpath
+        print ". I'm rolling back the changes to the tables Summits"
         con.rollback()
+        exit()
     fin.close()
     con.commit()
     
@@ -391,7 +381,9 @@ def estimate_line_count(filepath):
 
 def import_foldenrichment(bdgpath, repid, con):
     """Imports a BDG file with enrichment scores tracked across genome sequence sites.
-    The BDG must be sorted by site for each chromosome, ascending.""" 
+    The BDG must be sorted by site for each chromosome, ascending.
+    Upon success, this method inserts data into two tables: EnrichmentStats and SummitsEnrichment
+    """ 
     print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
 
     cur = con.cursor()
@@ -419,6 +411,9 @@ def import_foldenrichment(bdgpath, repid, con):
     curr_chromname = None
     curr_chromid = None
     last_start_site = -1
+    
+    """As we parse the BDG, we'll map enrichment values to genes,
+        and store the following information. . . """
     geneid_sum = {} # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
     geneid_n = {} # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
     geneid_max = {}
@@ -426,12 +421,13 @@ def import_foldenrichment(bdgpath, repid, con):
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
-    gene_pairs = [] # the pair of genes before and after this enrichment window
-    pairi = 0 # index into gene_pairs
+    chromid_genepairs = {} # the pair of genes before and after this enrichment window
+    pairi = 0 # index into chromid_genepairs[curr_chromid]
     count = 0
     total_count = estimate_line_count(bdgpath)
     
-    summit_sites = None
+    chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
+    
     count_found_summits = 0
     
     """For each line in the BDG file"""
@@ -464,35 +460,36 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromname = chromname
             curr_chromid = chromid
             last_start_site = -1
-            
+                        
             """genes will be sorted by the start sites of the genes."""
             genes = get_genes_for_chrom(con, chromid)
             if genes.__len__() == 0:
                 print "\n. An error occurred at chipseqdb.py 322"
                 exit()
                 
-            """gene_pairs is a list of tuples. 
-                The 0th element is a gene on the 5' side, and the 1st 
-                element is a neighboring gene on the 3' side."""
-            gene_pairs = [] 
-            for ii in xrange(0, genes.__len__()):
-                if ii == 0:
-                    pair = (None,ii)
-                if ii == genes.__len__()-1:
-                    pair = (ii,None)
-                else:
-                    pair = (ii-1,ii)
-                gene_pairs.append( pair )
-            pairi = 0
             
-            summit_sites = []
-            sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
-            sql += " order by site ASC"
-            cur.execute(sql)
-            x = cur.fetchall()
-            for ii in x:
-                summit_sites.append( ii[0] )
-            summit_sites.sort()
+            if curr_chromid not in chromid_summitsites:
+                chromid_summitsites[curr_chromid] = []
+                sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
+                sql += " order by site ASC"
+                cur.execute(sql)
+                x = cur.fetchall()
+                for ii in x:
+                    chromid_summitsites[curr_chromid].append( ii[0] )
+                chromid_summitsites[curr_chromid].sort()
+            
+            if curr_chromid not in chromid_genepairs:
+                chromid_genepairs[curr_chromid] = []
+                for ii in xrange(0, genes.__len__()):
+                    if ii == 0:
+                        pair = (None,ii)
+                    if ii == genes.__len__()-1:
+                        pair = (ii,None)
+                    else:
+                        pair = (ii-1,ii)
+                    chromid_genepairs[curr_chromid].append( pair )
+                pairi = 0
+                
                                         
         """Get the fold-enrichment values for this line"""
         start = int(tokens[1]) # start of this enrichment window
@@ -501,10 +498,12 @@ def import_foldenrichment(bdgpath, repid, con):
     
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
-        for ii in range(start, stop): # for each site in this enrichment window. . .
-            if ii in summit_sites: # is there a summit at this site?
+        for ii in range(start, stop):
+            """For each site in the enrichment window, is there a known summit at this site?"""
+            if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
         if summit_here != False:
+            """Yes, there is a summit in this enrichment window."""
             sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
             sql += " and site=" + summit_here.__str__()
             cur.execute(sql)
@@ -519,19 +518,17 @@ def import_foldenrichment(bdgpath, repid, con):
                 sql += eval.__str__() + ")"
                 cur.execute(sql)
                 con.commit()
-        #NOTE: if summit_here == False, then this enrichment window has no summit
-        
-        """Next map the FE to nearby genes."""
+        """NOTE: if summit_here == False, then this enrichment window has no summit"""
         
         """Ensure that pairi points to correct intergenic region."""
-        while gene_pairs[pairi][1] != None and (genes[ gene_pairs[pairi][1] ][2] < start and genes[ gene_pairs[pairi][1] ][3] < start):
+        while chromid_genepairs[curr_chromid][pairi][1] != None and (genes[ chromid_genepairs[curr_chromid][pairi][1] ][2] < start and genes[ chromid_genepairs[curr_chromid][pairi][1] ][3] < start):
             pairi += 1
             
         """Can we map enrichment to both upstream and downstream genes?"""
         down_ok = False
         up_ok = False
-        down_ii = gene_pairs[pairi][0]
-        up_ii = gene_pairs[pairi][1]
+        down_ii = chromid_genepairs[curr_chromid][pairi][0]
+        up_ii = chromid_genepairs[curr_chromid][pairi][1]
         if down_ii != None:
             if genes[down_ii][2] < start and genes[down_ii][3] < start:
                 if genes[down_ii][5] == "-":
@@ -588,32 +585,7 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_maxsite[geneid] = genes[up_ii][2] - ii
             
     fin.close()
-    
-    """Did we find FE values for all the summits?"""
-    sql = "select count(*) from Summits where replicate=" + repid.__str__()
-    sql += " and id not in (select summit from SummitsEnrichment)"
-    cur.execute(sql)
-    count_missing = int( cur.fetchone()[0] )
-    if count_missing > 0:
-        print "\n. Error: I could not find FE values for", count_missing, "of the summits:"
-
-        sql = "select id, site, chrom from Summits where replicate=" + repid.__str__()
-        sql += " and id not in (select summit from SummitsEnrichment)"
-        cur.execute(sql)
-        x = cur.fetchall()
-        for ii in x:
-            print "Summit", ii[0], "at site:", ii[1], "on chrom:", get_chrom_name(con, ii[2])
-
-        sql = "select name from Chromosomes where id in ("
-        sql += "select distinct chrom from Summits where replicate=" + repid.__str__()
-        sql += " and id not in (select summit from SummitsEnrichment)"        
-        sql += " ) "
-        cur.execute(sql)
-        x = cur.fetchall()
-        print ". Overall, there are missing summits on the following chromosomes:", x
-
-        exit()
-    
+        
     """Finally, write all our findings into the table EnrichmentStats."""
     count = 0
     total_count = geneid_sum.__len__()
@@ -641,201 +613,50 @@ def import_foldenrichment(bdgpath, repid, con):
 
     return con
 
-# def import_bdg_original(bdgpath, repid, con):
-#     """Imports a BDG file with enrichment scores tracked across genome sequence sites.
-#     The BDG must be sorted by site for each chromosome, ascending.""" 
-#     print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
-# 
-#     cur = con.cursor()
-#     
-#     if False == os.path.exists(bdgpath):
-#         print "\n. Error: I cannot find the BedGraph file", bdgpath
-#         exit()
-#     
-#     """Remove any stale entries."""
-#     sql = "DELETE FROM EnrichmentStats where repid=" + repid.__str__()
-#     cur.execute(sql)
-#     con.commit()
-#     
-#     fin = open(bdgpath, "r")
-#     curr_chromname = None
-#     curr_chromid = None
-#     last_start_site = -1
-#     geneid_sum = {} # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
-#     geneid_n = {} # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
-#     geneid_max = {}
-#     geneid_maxsite = {} # key = geneid, value = the site number of the maximum FE in the gene's regulatory region
-#     genes = None # an ordered list of gene objects, 
-#                     # it will be filled with data whenever we 
-#                     # encounter a new chromosome in the BDG file
-#     nearest_up_gene_i = 0; # an index into genes, the nearest gene going up in order
-#     nearest_down_gene_i = 0 # an index into genes, the nearest gene going down in order
-#     count = 0
-#     total_count = estimate_line_count(bdgpath)
-#     for l in fin.xreadlines():
-#         if l.__len__() <= 5:
-#             """Skip to the next line."""
-#             continue
-#         
-#         """Progress indicator."""
-#         count += 1
-#         if count%10 == 0:
-#             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-#             sys.stdout.flush()
-#                     
-#         tokens = l.split()
-#         
-#         """Get a list of genes for this chromosome."""
-#         chromname = tokens[0]
-#         if curr_chromname == chromname:
-#             chromid = curr_chromid
-#         else:
-#             chromid = get_chrom_id( con, chromname )
-#             if chromid == None:
-#                 """Skip to the next FE window."""
-#                 continue
-#             
-#             curr_chromname = chromname
-#             curr_chromid = chromid
-#             last_start_site = -1
-#             
-#             """genes will be sorted by the start sites of the genes."""
-#             genes = get_genes_for_chrom(con, chromid)
-#             if genes.__len__() == 0:
-#                 print "\n. An error occurred at chipseqdb.py 322"
-#                 exit()
-#                 
-#                 
-#             """Reset our gene counters"""
-#             nearest_up_gene_i = 0
-#             nearest_down_gene_i = 0
-#         
-#         """Get the fold-enrichment values in this window."""
-#         start = int(tokens[1]) # start of this enrichment window
-#         stop = int(tokens[2])
-#         eval = float(tokens[3]) # enrichment value across this window
-#     
-#         """Sanity check:"""
-#         if last_start_site >= start:
-#             """Then the BDG probably isn't sorted, because we're seeing sites out of order."""
-#             print "\n. Error importing BDG. I don't think your BDG file is sorted:", bdgpath
-#             exit()
-#         last_start_site = start
-#     
-#         """Is nearest_up_gene_i actually the nearest upstream gene?"""
-#         while nearest_up_gene_i < genes.__len__() and (start > genes[nearest_up_gene_i][2] and start > genes[nearest_up_gene_i][3] ):
-#             """ we've moved beyond this genes."""
-#             nearest_up_gene_i += 1
-#     
-#         skip_up = False
-#         """If this FE window is inside a coding region, then skip it."""
-#         if (start >= genes[nearest_up_gene_i][2] and start <= genes[nearest_up_gene_i][3] ):
-#             """ we're in the middle of a + gene"""
-#             skip_up = True
-#         elif (start <= genes[nearest_up_gene_i][2] and start >= genes[nearest_up_gene_i][3] ):
-#             """we're in the middle of a - gene"""
-#             skip_up = True
-#         
-#         """A normal regulatory region for + genes"""
-#         if skip_up == False and (start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3] ):
-#             """Get a tuple representing the gene's meta information"""
-#             this_gene = genes[nearest_up_gene_i]
-#             
-#             if this_gene[5] != "+":
-#                 """Then this gene is negative strand. Continue with the next loop iteration."""
-#                 continue
-#             
-#             geneid = this_gene[0]
-#             """Initialize some data structures about this gene."""
-#             if geneid not in geneid_sum:
-#                 geneid_sum[geneid] = 0
-#             if geneid not in geneid_n:
-#                 geneid_n[geneid] = 0
-#             if geneid not in geneid_max:
-#                 geneid_max[geneid] = 0
-#             if geneid not in geneid_maxsite:
-#                 geneid_maxsite[geneid] = 0
-#             
-#             for ii in range(start, stop):
-#                 geneid_sum[geneid] += eval
-#                 geneid_n[geneid] += 1
-#                 
-#                 """Is this fe value larger than we've seen before?"""
-#                 if eval > geneid_max[geneid]:
-#                     geneid_max[geneid] = eval
-#                     geneid_maxsite[geneid] = genes[nearest_up_gene_i][2] - ii
-# 
-#         """Repeat for downstream_gene..."""
-#         while nearest_down_gene_i != 0 and nearest_down_gene_i < genes.__len__() and (start < genes[nearest_down_gene_i][2] and start < genes[nearest_down_gene_i][3] ):
-#             """ we've moved beyond this gene."""
-#             nearest_down_gene_i += 1
-#     
-#         """If this FE window is inside a coding region, then skip it."""
-#         if (start >= genes[nearest_down_gene_i][2] and start <= genes[nearest_down_gene_i][3] ):
-#             """ we're in the middle of a + gene"""
-#             continue
-#         elif (start <= genes[nearest_down_gene_i][2] and start >= genes[nearest_down_gene_i][3] ):
-#             """we're in the middle of a - gene"""
-#             continue
-#         
-#         """A normal regulatory region for + genes"""
-#         if (start < genes[nearest_up_gene_i][2] and start < genes[nearest_up_gene_i][3] ):
-#             """Get a tuple representing the gene's meta information"""
-#             this_gene = genes[nearest_up_gene_i]
-#             
-#             if this_gene[5] != "+":
-#                 """Then this gene is negative strand. Continue with the next loop iteration."""
-#                 continue
-#             
-#             geneid = this_gene[0]
-#             """Initialize some data structures about this gene."""
-#             if geneid not in geneid_sum:
-#                 geneid_sum[geneid] = 0
-#             if geneid not in geneid_n:
-#                 geneid_n[geneid] = 0
-#             if geneid not in geneid_max:
-#                 geneid_max[geneid] = 0
-#             if geneid not in geneid_maxsite:
-#                 geneid_maxsite[geneid] = 0
-#             
-#             for ii in range(start, stop):
-#                 geneid_sum[geneid] += eval
-#                 geneid_n[geneid] += 1
-#                 
-#                 """Is this fe value larger than we've seen before?"""
-#                 if eval > geneid_max[geneid]:
-#                     geneid_max[geneid] = eval
-#                     geneid_maxsite[geneid] = genes[nearest_up_gene_i][2] - ii    
-# 
-#                                 
-#             
-#     count = 0
-#     total_count = geneid_sum.__len__()
-#     for geneid in geneid_sum:
-#         if geneid_n[geneid] > 0:
-#             count += 1
-#             if count%5000==0:
-#                 #sys.stdout.write(".")
-#                 #sys.stdout.flush()
-#                 con.commit()
-#             sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite)  "
-#             sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
-#             sql += "," + geneid_max[geneid].__str__()
-#             sql += "," + (geneid_sum[geneid]/float(geneid_n[geneid])).__str__()
-#             sql += "," + geneid_sum[geneid].__str__()
-#             sql += "," + geneid_maxsite[geneid].__str__()
-#             sql += ")"
-#             cur.execute(sql)
-#     con.commit()        
-#     fin.close()
-#     
-#     #print "384:", geneid_sum # key = geneid, value = sum of enrichment scores in its nearby regulatory regions
-#     #print "385:", geneid_n # key = geneid, value = number of sites with enrichment scores in its regulatory regions 
-#     #print "386:", geneid_max     
-# 
-#     #con.commit()
-#     return con
+def validate_summits_fe(repid, con):    
+    speciesid = None
+    
+    """Look for any summits that don't have a corresponding FE value."""
+    sql = "select count(*) from Summits where replicate=" + repid.__str__()
+    sql += " and id not in (select summit from SummitsEnrichment)"
+    cur.execute(sql)
+    count_missing = int( cur.fetchone()[0] )
+    if count_missing > 0:
+        print "\n. Error: I could not find FE values for", count_missing, "of the summits:"
 
+        sql = "select id, site, chrom from Summits where replicate=" + repid.__str__()
+        sql += " and id not in (select summit from SummitsEnrichment)"
+        cur.execute(sql)
+        x = cur.fetchall()
+        for ii in x:
+            print "Summit", ii[0], "at site:", ii[1], "on chrom:", get_chrom_name(con, ii[2])
+
+        sql = "select name from Chromosomes where id in ("
+        sql += "select distinct chrom from Summits where replicate=" + repid.__str__()
+        sql += " and id not in (select summit from SummitsEnrichment)"        
+        sql += " ) "
+        cur.execute(sql)
+        x = cur.fetchall()
+        print ". Overall, there are missing summits on the following chromosomes:", x
+        exit()
+    
+    """Look for any genes that lack a max FE value."""
+    sql = "select * from Genes where "
+    sql += "id in (select id from Genes where chrom in (select id from Chromosomes where species=" + speciesid.__str__() + "))"
+    sql += "and id not in (select geneid from EnrichmentStats where repid=" + repid.__str__() + ") "
+    cur.execute(sql)
+    x = cur.fetchall()
+    if x.__len__() > 0:
+        print "\n. Error: I found not FE values for", x.__len__().__str__(), "genes."
+        print ". Replicate: ", repid
+        for ii in x:
+            print "Gene:", ii[0].__str__()
+        exit()
+    
+
+    #     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
+    #cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)
+    #EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)
 
 def resolve_aliasids(con):
     """This method inserts data into the table GeneHomology."""
@@ -896,6 +717,77 @@ def resolve_aliasids(con):
     """Save the commit for the end."""
     con.commit()
 
+def get_genes4site(con, repid, site, chromid, speciesid=None):
+    """Given a site on a chromosome, this method finds the nearest upstream and downstream gene.
+        Returns a tuple (upstream gene ID, distance to upstream TSS, downstream gene ID, distance to downstream TSS), 
+        If a nearby gene cannot be found, then the gene IDs and the distance values will be None."""
+    cur = con.cursor()
+    
+    if speciesid == None:
+        sql = "select species from Replicates where id=" + repid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x == None:
+            print "\n. Error 913: there is no species defined for replicate ID", repid
+            exit()
+        speciesid = int( x[0] )
+    
+    try:
+        """Iterate through all the genes on this chromosome and find the closest upstream
+            and downstream gene from the given 'site'."""
+        genes = get_genes_for_chrom(con, chromid)        
+        min_up = None       # the minimum, so far, distance to an upstream TSS from the given site
+        closest_up = None
+        min_down = None     # the minimum, so far, distance to the a downstream TSS from the given site
+        closest_down = None
+        for g in genes:            
+            gid = g[0]          # gene ID
+            start = g[2]        # gene start site
+            stop = g[3]         # gene stop site
+            d = start - site    # distance to the TSS from the given site
+            
+            """Sense direction, and upstream"""
+            if start < stop and start >= site:
+                if min_up == None:
+                    min_up = d
+                    closest_up = gid
+                if min_up > d:
+                    min_up = d
+                    closest_up = gid
+                    
+            elif start < stop and stop < site:
+                """Sense direction and downstream"""
+                if min_down == None:
+                    min_down = d
+                    closest_down = None
+                if min_down < d:
+                    min_down = d
+                    closest_down = None
+                
+            elif start > stop and start <= site:
+                """Antisense and downstream"""
+                if min_down == None:
+                    min_down = d
+                    closest_down = gid
+                if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
+                    min_down = d
+                    closest_down = gid
+                    
+            elif start > stop and stop > site:
+                """Antisense and upstream"""
+                if min_up == None:
+                    min_up = d
+                    closest_up = None
+                if min_up > d:
+                    min_up = d
+                    closest_up = None
+        return (closest_up, min_up, closest_down, min_down)
+    except:
+        print "\n. An error occurred (968) while looking for a nearby gene."
+        exit()
+    return (None, None, None, None)
+    
+    
 def map_summits2genes(con, repid, speciesid=None, chroms=None):
     """This methods puts values into the table GeneSummits.
         speciesid can be the integer ID of a species whose genome will be used to map summits.
@@ -927,56 +819,58 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                 sumsite = s[3] # summit site in the genome
                 score = s[5] # summit score
                 
-                min_up = None
-                closest_up = ""
-                min_down = None
-                closest_down = ""
-                for g in genes:
-                    if count%100==0:
-                        #sys.stdout.write(".")
-                        #sys.stdout.flush()
-                        con.commit()
-                    
-                    gid = g[0]
-                    start = g[2]
-                    stop = g[3]
-                    d = start - sumsite
-                    
-                    """Sense direction, and upstream"""
-                    if start < stop and start >= sumsite:
-                        if min_up == None:
-                            min_up = d
-                            closest_up = gid
-                        if min_up > d:
-                            min_up = d
-                            closest_up = gid
-                            
-                    elif start < stop and stop < sumsite:
-                        """Sense direction and downstream"""
-                        if min_down == None:
-                            min_down = d
-                            closest_down = None
-                        if min_down < d:
-                            min_down = d
-                            closest_down = None
-                        
-                    elif start > stop and start <= sumsite:
-                        """Antisense and downstream"""
-                        if min_down == None:
-                            min_down = d
-                            closest_down = gid
-                        if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
-                            min_down = d
-                            closest_down = gid
-                            
-                    elif start > stop and stop > sumsite:
-                        """Antisense and upstream"""
-                        if min_up == None:
-                            min_up = d
-                            closest_up = None
-                        if min_up > d:
-                            min_up = d
-                            closest_up = None
+                (closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, sumsite, chrid, speciesid=None)
+                
+#                 min_up = None
+#                 closest_up = ""
+#                 min_down = None
+#                 closest_down = ""
+#                 for g in genes:
+#                     if count%100==0:
+#                         #sys.stdout.write(".")
+#                         #sys.stdout.flush()
+#                         con.commit()
+                                   
+#                     gid = g[0]
+#                     start = g[2]
+#                     stop = g[3]
+#                     d = start - sumsite
+#                     
+#                     """Sense direction, and upstream"""
+#                     if start < stop and start >= sumsite:
+#                         if min_up == None:
+#                             min_up = d
+#                             closest_up = gid
+#                         if min_up > d:
+#                             min_up = d
+#                             closest_up = gid
+#                             
+#                     elif start < stop and stop < sumsite:
+#                         """Sense direction and downstream"""
+#                         if min_down == None:
+#                             min_down = d
+#                             closest_down = None
+#                         if min_down < d:
+#                             min_down = d
+#                             closest_down = None
+#                         
+#                     elif start > stop and start <= sumsite:
+#                         """Antisense and downstream"""
+#                         if min_down == None:
+#                             min_down = d
+#                             closest_down = gid
+#                         if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
+#                             min_down = d
+#                             closest_down = gid
+#                             
+#                     elif start > stop and stop > sumsite:
+#                         """Antisense and upstream"""
+#                         if min_up == None:
+#                             min_up = d
+#                             closest_up = None
+#                         if min_up > d:
+#                             min_up = d
+#                             closest_up = None
     
                 if closest_up != None and min_up != None:
                     sql = "INSERT INTO GeneSummits (gene,summit,distance)" 

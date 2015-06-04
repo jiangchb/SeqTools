@@ -3,7 +3,7 @@ import os, re, sys
 
 def get_species(con):
     cur = con.cursor()                
-    cur.execute("SELECT * FROM Species")
+    cur.execute("SELECT id, name FROM Species")
     return cur.fetchall()
 
 def get_species_ids(con):
@@ -139,15 +139,14 @@ def get_geneids_with_summits(con, repid):
 
 def get_genes_for_species(con, speciesid):
     cur = con.cursor()
-    sql = "SELECT * from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ") order by id"
+    sql = "select id, name, start, stop, chrom, strand from Genes where chrom in (SELECT id from Chromosomes where species=" + speciesid.__str__() + ") order by id"
     cur.execute(sql)
     return cur.fetchall()
 
 def get_genes_for_chrom(con, chromid):
     """Returns list of genes (represented as tuples), in order by their start sites"""
     cur = con.cursor()
-    sql = "SELECT * FROM Genes where chrom=" + chromid.__str__() + " order by start ASC"
-    #print "46:", sql
+    sql = "select id, name, start, stop, chrom, strand from Genes where chrom=" + chromid.__str__() + " order by start ASC"
     cur.execute(sql)
     return cur.fetchall()
 
@@ -214,7 +213,8 @@ def get_summits(con, repid, chromid):
      """Returns a list of Summits entires from the table Summits. Each element of the returned list
      is a tuple, containing all the parts of each Summit row."""
      cur = con.cursor()
-     sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
+     sql = "SELECT id, replicate, name, site, chrom, score, pvalue, qvalue FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
+     #sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
      cur.execute(sql)
      x = cur.fetchall()
      if x == None:
@@ -243,14 +243,16 @@ def get_max_summit_score_for_gene(geneid, repid, con):
 
 def get_enrichment_stats_for_gene(geneid, repid, con):
     cur = con.cursor()
-    sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + geneid.__str__()
+    sql = "SELECT repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + geneid.__str__()
+    #sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__() + " and geneid=" + geneid.__str__()
     cur.execute(sql)
     return cur.fetchone()
 
 def get_enrichment_stats_for_replicate(repid, con):
     """Returns gene_stats[geneid] = [stats]"""
     cur = con.cursor()
-    sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__()
+    sql = "SELECT repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite from EnrichmentStats where repid=" + repid.__str__()
+    #sql = "SELECT * from EnrichmentStats where repid=" + repid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     if x == None:
@@ -280,7 +282,8 @@ def get_maxfe_for_replicate(repid, con):
 def get_enrichment_stats_for_union( unionid, con ):
     """Returns gene_stats[geneid] = [stats]"""
     cur = con.cursor()
-    sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__()
+    sql = "SELECT unionid, geneid, maxenrich, meanenrich, meanmaxenrich, sumenrich from UnionEnrichmentStats where unionid=" + unionid.__str__()
+    #sql = "SELECT * from UnionEnrichmentStats where unionid=" + unionid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     if x == None:

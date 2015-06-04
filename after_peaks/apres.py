@@ -83,11 +83,17 @@ def import_data(con):
                 if "summitpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     summitpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["summitpath"]
                     con = import_summits(summitpath, repid, con)
+                    con = map_summits2genes(con, repid, speciesid=speciesid)
+                
+                
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
-                    con = import_foldenrichment(bdgpath, repid, con)
+                    con = import_foldenrichment(bdgpath, repid, con)                
                 
-                con = map_summits2genes(con, repid, speciesid=speciesid)
+                """Check that all summits have a corresponding FE value,
+                    and that all genes have an FE value."""
+                validate_summits_fe(repid, con)
+                
     return con
 
 def setup_unions(con):    
