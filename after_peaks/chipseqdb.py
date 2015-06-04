@@ -634,6 +634,8 @@ def import_foldenrichment(bdgpath, repid, con):
                 sql += ")"
                 cur.execute(sql)
     except:
+        print "\n. An error occurred updating the table EnrichmentStats."
+        print ". I'm rolling back the changes."
         con.rollback()
     con.commit()        
 

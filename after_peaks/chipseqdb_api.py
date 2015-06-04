@@ -129,7 +129,7 @@ def get_rgroupids_for_species(speciesid, con):
 def get_geneids_with_summits(con, repid):
     """Returns a list of gene IDs with summits in the replicate repid"""
     cur = con.cursor()
-    sql = "SELECT gene FROM GeneSummits where summit in (SELECT id from Summits where replicate=" + repid.__str__() + ")"
+    sql = "SELECT distinct gene FROM GeneSummits where summit in (SELECT id from Summits where replicate=" + repid.__str__() + ")"
     cur.execute(sql)
     x = cur.fetchall()
     ret = []
@@ -161,7 +161,6 @@ def get_genename(geneid, con):
     else:
         return x[0]
     
-
 def get_genename_for_aliasname(name, con):
     cur = con.cursor()
     sql = "SELECT realname from GeneAlias where alias='" + name + "' COLLATE NOCASE"
@@ -193,7 +192,7 @@ def get_geneid_from_aliasid(aliasid, con):
         
 def get_geneids_from_repgroup(con, repgroupid):
     cur = con.cursor()
-    sql = "SELECT geneid from RepgroupSummits where repgroupid=" + repgroupid.__str__()
+    sql = "SELECT distinct geneid from RepgroupSummits where repgroupid=" + repgroupid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     genes = []
@@ -203,7 +202,7 @@ def get_geneids_from_repgroup(con, repgroupid):
 
 def get_geneids_from_union(con, unionid):
     cur = con.cursor()
-    sql = "SELECT geneid from UnionSummits where unionid=" + unionid.__str__()
+    sql = "SELECT distinct geneid from UnionSummits where unionid=" + unionid.__str__()
     cur.execute(sql)
     x = cur.fetchall()
     genes = []
