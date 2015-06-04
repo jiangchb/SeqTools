@@ -1702,7 +1702,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     
     """Get FE data for all genes."""
     """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
-    rep1_genfe = get_maxfe_for_replicate(repids[0], con)
+    rep1_genfe = get_maxfe_for_replicate(repids[0], con) # data from the table EnrichmentStats
     rep2_genfe = get_maxfe_for_replicate(repids[1], con)
         
     """Sanity Check for FE data"""
@@ -1725,10 +1725,14 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         geneids.append( ii[0] )
             
     """Build lists of gene IDs that are in both/neither/either replicate."""
-    geneids_rep1summits = get_geneids_with_summits(con, repids[0])
+    geneids_rep1summits = get_geneids_with_summits(con, repids[0]) # data from the table GeneSummits
     geneids_rep2summits = get_geneids_with_summits(con, repids[1])
     geneids_nosummits = [] # a list of geneids
     geneids_bothsummits = [] # with peaks in both reps.
+    
+    print "\n. 1733:", rep1_genfe.__len__(), rep2_genfe.__len__()
+    print "\n. 1734:", geneids_rep1summits.__len__(), geneids_rep2summits.__len__()
+    exit()
     
     """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
