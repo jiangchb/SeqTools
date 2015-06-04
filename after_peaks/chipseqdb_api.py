@@ -134,7 +134,7 @@ def get_geneids_with_summits(con, repid):
     x = cur.fetchall()
     ret = []
     for ii in x:
-        ret.append( ii[0] )
+        ret.append( int(ii[0]) )
     return ret
 
 def get_genes_for_species(con, speciesid):
@@ -275,7 +275,7 @@ def get_maxfe_for_replicate(repid, con):
         return None
     gene_stats = {}
     for ii in x:
-        gene_stats[ ii[0] ] = ii[1]
+        gene_stats[ int(ii[0]) ] = ii[1]
     return gene_stats
 
 def get_enrichment_stats_for_union( unionid, con ):
