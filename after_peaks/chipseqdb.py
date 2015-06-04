@@ -404,6 +404,9 @@ def import_foldenrichment(bdgpath, repid, con):
     sql = "DELETE FROM EnrichmentStats where repid=" + repid.__str__()
     cur.execute(sql)
     con.commit()
+    sql = "DELETE FROM SummitsEnrichment where summit in (select id from Summits where replicate=" + repid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
     
     """Get the species for this replicate."""
     sql = "select species from Replicates where id=" + repid.__str__()
@@ -431,13 +434,13 @@ def import_foldenrichment(bdgpath, repid, con):
     summit_sites = None
     count_found_summits = 0
     
-    """For each line in the BDG"""
+    """For each line in the BDG file"""
     for l in fin.xreadlines():
         if l.__len__() <= 5:
             """Skip to the next line."""
             continue
         
-        """Progress indicator."""
+        """Print a progress indicator."""
         count += 1
         if count%10 == 0:
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) + "     (" + count_found_summits.__str__() + " summits)" )
@@ -490,11 +493,7 @@ def import_foldenrichment(bdgpath, repid, con):
             for ii in x:
                 summit_sites.append( ii[0] )
             summit_sites.sort()
-            
-            sql = "DELETE FROM SummitsEnrichment where summit in (select id from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__() + " )"
-            cur.execute(sql)
-            con.commit()
-                            
+                                        
         """Get the fold-enrichment values for this line"""
         start = int(tokens[1]) # start of this enrichment window
         stop = int(tokens[2])
@@ -502,8 +501,8 @@ def import_foldenrichment(bdgpath, repid, con):
     
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
-        for ii in range(start, stop):
-            if ii in summit_sites:
+        for ii in range(start, stop): # for each site in this enrichment window. . .
+            if ii in summit_sites: # is there a summit at this site?
                 summit_here = ii
         if summit_here != False:
             sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
@@ -520,6 +519,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 sql += eval.__str__() + ")"
                 cur.execute(sql)
                 con.commit()
+        #NOTE: if summit_here == False, then this enrichment window has no summit
         
         """Next map the FE to nearby genes."""
         
@@ -593,9 +593,9 @@ def import_foldenrichment(bdgpath, repid, con):
     sql = "select count(*) from Summits where replicate=" + repid.__str__()
     sql += " and id not in (select summit from SummitsEnrichment)"
     cur.execute(sql)
-    count_missing = cur.fetchone()[0]
+    count_missing = int( cur.fetchone()[0] )
     if count_missing > 0:
-        print "\n. Error: I could not find fold-enrichment values for", count_missing, "of the summits:"
+        print "\n. Error: I could not find FE values for", count_missing, "of the summits:"
 
         sql = "select id, site, chrom from Summits where replicate=" + repid.__str__()
         sql += " and id not in (select summit from SummitsEnrichment)"

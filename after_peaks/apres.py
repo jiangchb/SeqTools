@@ -52,7 +52,6 @@ def import_data(con):
     con.commit()
     
     """Remove  stale data."""
-
     sql = "DELETE FROM GeneSummits"
     cur.execute(sql)
     con.commit()
