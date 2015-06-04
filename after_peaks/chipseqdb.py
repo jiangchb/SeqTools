@@ -613,7 +613,8 @@ def import_foldenrichment(bdgpath, repid, con):
 
     return con
 
-def validate_summits_fe(repid, con):    
+def validate_summits_fe(repid, con):
+    """This method validates the data in the tables SummitsEnrichment and EnrichmentStats."""    
     speciesid = None
     
     print "\n. Validating Summits and FE values for replicate", repid
@@ -647,6 +648,7 @@ def validate_summits_fe(repid, con):
     sql = "select * from Genes where "
     sql += "id in (select id from Genes where chrom in (select id from Chromosomes where species=" + speciesid.__str__() + "))"
     sql += "and id not in (select geneid from EnrichmentStats where repid=" + repid.__str__() + ") "
+    print sql
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
