@@ -85,7 +85,6 @@ def import_data(con):
                     con = import_summits(summitpath, repid, con)
                     con = map_summits2genes(con, repid, speciesid=speciesid)
                 
-                
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
                     con = import_foldenrichment(bdgpath, repid, con)                
