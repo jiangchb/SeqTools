@@ -528,25 +528,36 @@ def import_foldenrichment(bdgpath, repid, con):
                 con.commit()
         """NOTE: if summit_here == False, then this enrichment window has no summit"""
         
+        
+        """Does this enrichment site map to a known gene?"""
+        (closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, start, curr_chromid, speciesid=speciesid)
+ 
+        if closest_up != None:
+            up_ii = closest_up
+            up_ok = True
+        if closest_down != None:
+            down_ii = closest_down
+            down_ok = True
+        
         """Ensure that pairi points to correct intergenic region."""
-        while chromid_genepairs[curr_chromid][pairi][1] != None and (genes[ chromid_genepairs[curr_chromid][pairi][1] ][2] < start and genes[ chromid_genepairs[curr_chromid][pairi][1] ][3] < start):
-            pairi += 1
+#        while chromid_genepairs[curr_chromid][pairi][1] != None and (genes[ chromid_genepairs[curr_chromid][pairi][1] ][2] < start and genes[ chromid_genepairs[curr_chromid][pairi][1] ][3] < start):
+#            pairi += 1
             
-        """Can we map enrichment to both upstream and downstream genes?"""
-        down_ok = False
-        up_ok = False
-        down_ii = chromid_genepairs[curr_chromid][pairi][0]
-        up_ii = chromid_genepairs[curr_chromid][pairi][1]
-        if down_ii != None:
-            if genes[down_ii][2] < start and genes[down_ii][3] < start:
-                if genes[down_ii][5] == "-":
-                    """Yes, map scores to the downstream gene."""
-                    down_ok = True
-        if up_ii != None:
-            if genes[up_ii][2] > start and genes[up_ii][3] > start:
-                if genes[up_ii][5] == "+":
-                    """Yes, map scores to the upstream gene."""
-                    up_ok = True
+#         """Can we map enrichment to both upstream and downstream genes?"""
+#         down_ok = False
+#         up_ok = False
+#         down_ii = chromid_genepairs[curr_chromid][pairi][0]
+#         up_ii = chromid_genepairs[curr_chromid][pairi][1]
+#         if down_ii != None:
+#             if genes[down_ii][2] < start and genes[down_ii][3] < start:
+#                 if genes[down_ii][5] == "-":
+#                     """Yes, map scores to the downstream gene."""
+#                     down_ok = True
+#         if up_ii != None:
+#             if genes[up_ii][2] > start and genes[up_ii][3] > start:
+#                 if genes[up_ii][5] == "+":
+#                     """Yes, map scores to the upstream gene."""
+#                     up_ok = True
 
         if down_ok:     
             geneid = genes[down_ii][0]
