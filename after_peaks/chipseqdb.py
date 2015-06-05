@@ -415,7 +415,7 @@ def import_foldenrichment(bdgpath, repid, con):
     fin = open(bdgpath, "r")
     curr_chromname = None
     curr_chromid = None
-    last_start_site = -1
+    last_start_site = 0
     
     """As we parse the BDG, we'll map enrichment values to genes,
         and store the following information. . . """
@@ -464,7 +464,7 @@ def import_foldenrichment(bdgpath, repid, con):
             
             curr_chromname = chromname
             curr_chromid = chromid
-            last_start_site = -1
+            last_start_site = 0
                         
             """genes will be sorted by the start sites of the genes."""
             genes = get_genes_for_chrom(con, chromid)
@@ -503,6 +503,7 @@ def import_foldenrichment(bdgpath, repid, con):
         
         if last_start_site < start-1:
             print ". Warning: the BDG file may skip some sites, at site:",start,"for chrom",curr_chromname,"for BDG", bdgpath
+        last_start_site = start
     
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
