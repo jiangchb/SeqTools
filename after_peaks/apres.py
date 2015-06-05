@@ -7,7 +7,6 @@ from read_config import *
 from chipseqdb import *
 from chipseqdb_plots import *
 from overlap_stats import *
-from validation import *
 
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
