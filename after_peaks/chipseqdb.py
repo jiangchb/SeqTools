@@ -426,6 +426,12 @@ def import_foldenrichment(bdgpath, repid, con):
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
+    
+    allgenes = get_genes_for_species(con, speciesid)
+    genes = []
+    for ii in allgenes:
+        genes.append( ii[0] )
+    
     chromid_genepairs = {} # the pair of genes before and after this enrichment window
     pairi = 0 # index into chromid_genepairs[curr_chromid]
     count = 0
@@ -465,13 +471,13 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromid = chromid
             last_start_site = 0
                         
-            """genes will be sorted by the start sites of the genes."""
-            genes = get_genes_for_chrom(con, chromid)
-            if genes.__len__() == 0:
-                print "\n. An error occurred at chipseqdb.py 322"
-                exit()
-                
-            
+#             """genes will be sorted by the start sites of the genes."""
+#             genes = get_genes_for_chrom(con, chromid)
+#             if genes.__len__() == 0:
+#                 print "\n. An error occurred at chipseqdb.py 322"
+#                 exit()
+                 
+             
             if curr_chromid not in chromid_summitsites:
                 chromid_summitsites[curr_chromid] = []
                 sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
@@ -481,18 +487,18 @@ def import_foldenrichment(bdgpath, repid, con):
                 for ii in x:
                     chromid_summitsites[curr_chromid].append( ii[0] )
                 chromid_summitsites[curr_chromid].sort()
-            
-            if curr_chromid not in chromid_genepairs:
-                chromid_genepairs[curr_chromid] = []
-                for ii in xrange(0, genes.__len__()):
-                    if ii == 0:
-                        pair = (None,ii)
-                    if ii == genes.__len__()-1:
-                        pair = (ii,None)
-                    else:
-                        pair = (ii-1,ii)
-                    chromid_genepairs[curr_chromid].append( pair )
-                pairi = 0
+#             
+#             if curr_chromid not in chromid_genepairs:
+#                 chromid_genepairs[curr_chromid] = []
+#                 for ii in xrange(0, genes.__len__()):
+#                     if ii == 0:
+#                         pair = (None,ii)
+#                     if ii == genes.__len__()-1:
+#                         pair = (ii,None)
+#                     else:
+#                         pair = (ii-1,ii)
+#                     chromid_genepairs[curr_chromid].append( pair )
+#                 pairi = 0
                 
                                         
         """Get the fold-enrichment values for this line"""
