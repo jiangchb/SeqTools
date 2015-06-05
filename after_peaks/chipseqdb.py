@@ -532,6 +532,8 @@ def import_foldenrichment(bdgpath, repid, con):
         """Does this enrichment site map to a known gene?"""
         (closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, start, curr_chromid, speciesid=speciesid)
  
+        up_ok = False
+        down_ok = False
         if closest_up != None:
             up_ii = closest_up
             up_ok = True
