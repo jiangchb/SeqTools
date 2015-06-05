@@ -428,9 +428,9 @@ def import_foldenrichment(bdgpath, repid, con):
                     # encounter a new chromosome in the BDG file
     
     allgenes = get_genes_for_species(con, speciesid)
-    genes = []
+    genes = {}
     for ii in allgenes:
-        genes.append( ii[0] )
+        genes[ ii[0] ].append( ii )
     
     chromid_genepairs = {} # the pair of genes before and after this enrichment window
     pairi = 0 # index into chromid_genepairs[curr_chromid]
