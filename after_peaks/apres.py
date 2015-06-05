@@ -7,6 +7,7 @@ from read_config import *
 from chipseqdb import *
 from chipseqdb_plots import *
 from overlap_stats import *
+from validation import *
 
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
@@ -87,7 +88,8 @@ def import_data(con):
                 
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
-                    con = import_foldenrichment(bdgpath, repid, con)                
+                    #validate_enrichment(bdgpath, repid, con)
+                    con = import_foldenrichment(bdgpath, speciesid, con)                
                 
                 """Check that all summits have a corresponding FE value,
                     and that all genes have an FE value."""

@@ -39,6 +39,7 @@ def build_db(dbpath = None):
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key autoincrement, species INT, filepath TEXT)")
     
     # This data comes from the pillars file:
     cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
@@ -186,14 +187,13 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 
                 restrict = False
                 for f in filter_chrom:
-                    if chr.__contains__(f):
+                    if False == chr.__contains__(f):
                         restrict = True
                 if restrict == True:
                     #print "\n. Skipping", l
                     """Skip this entry"""
                     continue
     
-                
                 if chr != curr_chromname:
                     """Add (or potentially overwrite) this chromosome into the table Chromosomes."""
                     curr_chromname = chr
@@ -243,6 +243,12 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
         con.rollback()
     fin.close()
     con.commit()
+    
+    sql = "insert or replace into GFFs (species, filepath) VALUES(" + speciesid.__str__() + ",'" + gffpath + "')"
+    cur.execute(sql)
+    con.commit() 
+    
+    #GFFs(id INTEGER primary key autoincrement, species INT, filepath TEXT)
     
     print ""
     cur.execute("SELECT id,name from Chromosomes where species=" + speciesid.__str__())
@@ -385,7 +391,6 @@ def import_foldenrichment(bdgpath, repid, con):
     Upon success, this method inserts data into two tables: EnrichmentStats and SummitsEnrichment
     """ 
     print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
-
     cur = con.cursor()
     
     if False == os.path.exists(bdgpath):
@@ -495,6 +500,9 @@ def import_foldenrichment(bdgpath, repid, con):
         start = int(tokens[1]) # start of this enrichment window
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
+        
+        if last_start_site < start-1:
+            print ". Warning: the BDG file may skip some sites, at site:",start,"for chrom",curr_chromname,"for BDG", bdgpath
     
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
@@ -656,7 +664,7 @@ def validate_summits_fe(repid, con):
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
-        print "\n. Error: I found not FE values for", x.__len__().__str__(), "genes."
+        print "\n. Error: I found no FE values for", x.__len__().__str__(), "genes."
         print ". Replicate: ", repid
         for ii in x:
             print "Gene:", ii[0].__str__()
