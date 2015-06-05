@@ -432,7 +432,6 @@ def import_foldenrichment(bdgpath, repid, con):
     total_count = estimate_line_count(bdgpath)
     
     chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
-    
     count_found_summits = 0
     
     """For each line in the BDG file"""
@@ -501,9 +500,9 @@ def import_foldenrichment(bdgpath, repid, con):
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
         
-        if last_start_site < start-1:
+        if last_start_site < start and last_start_site != 0:
             print ". Warning: the BDG file may skip some sites, at site:",start,"for chrom",curr_chromname,"for BDG", bdgpath
-        last_start_site = start
+        last_start_site = stop
     
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
