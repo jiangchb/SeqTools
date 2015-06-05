@@ -430,7 +430,7 @@ def import_foldenrichment(bdgpath, repid, con):
     allgenes = get_genes_for_species(con, speciesid)
     genes = {}
     for ii in allgenes:
-        genes[ ii[0] ].append( ii )
+        genes[ ii[0] ] = ii
     
     chromid_genepairs = {} # the pair of genes before and after this enrichment window
     pairi = 0 # index into chromid_genepairs[curr_chromid]
