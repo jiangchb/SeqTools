@@ -615,11 +615,15 @@ def import_foldenrichment(bdgpath, repid, con):
 
 def validate_summits_fe(repid, con):
     """This method validates the data in the tables SummitsEnrichment and EnrichmentStats."""    
-    speciesid = None
-    
+       
     print "\n. Validating Summits and FE values for replicate", repid
     
     cur = con.cursor()
+    speciesid = get_speciesid_for_repid(repid, con)
+    if speciesid == None:
+        print "\n. An error occurred, I cannot find the species for replicate", repid
+        exit()
+    
     """Look for any summits that don't have a corresponding FE value."""
     sql = "select count(*) from Summits where replicate=" + repid.__str__()
     sql += " and id not in (select summit from SummitsEnrichment)"
