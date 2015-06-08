@@ -310,6 +310,7 @@ def import_pillars(pillarspath, con):
     fin.close()
     return con
 
+
 def import_summits(summitpath, repid, con):
     """Reads a summit file (from MACS2, for example), and puts values into the Summits table."""
     
@@ -369,7 +370,7 @@ def import_summits(summitpath, repid, con):
     
     cur.execute("SELECT COUNT(*) FROM Summits where replicate=" + repid.__str__())
     count_genes = cur.fetchone()[0]
-    print "\n. Found", count_genes, "summits in", summitpath
+    print "\t--> Found", count_genes, "summits in", summitpath
     return con
 
 

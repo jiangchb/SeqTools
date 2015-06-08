@@ -54,6 +54,10 @@ print "\n\t--> I found", count, "annotations in the database."
 #     print ii
 # exit()
 
+if ap.getOptionalToggle("--load_db_only"):
+    "\n. Ending"
+    exit()
+
 """Jump allows for some steps to be skipped."""
 jump = ap.getOptionalArg("--jump")
 stop = ap.getOptionalArg("--stop")
