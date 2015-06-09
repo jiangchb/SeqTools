@@ -446,7 +446,6 @@ def import_foldenrichment(bdgpath, repid, con):
     
     """For each line in the BDG file"""
     for l in fin.xreadlines():
-        print "446:", l
         if l.__len__() <= 5:
             """Skip to the next line."""
             continue
@@ -523,7 +522,6 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
-            print "526:"
             """For each site in the enrichment window, is there a known summit at this site?"""
             if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
@@ -533,7 +531,6 @@ def import_foldenrichment(bdgpath, repid, con):
             sql += " and site=" + summit_here.__str__()
             cur.execute(sql)
             x = cur.fetchone()
-            print "536:", x
             if x == None:
                 print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
             
@@ -566,7 +563,7 @@ def import_foldenrichment(bdgpath, repid, con):
             #
             # this is where the problem is occurring.
             #
-            print "advancing the pair"
+            #print "advancing the pair"
             pairi += 1
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             
@@ -600,7 +597,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 geneid_maxsite[geneid] = 0
             
             for ii in range(start, stop):
-                print "600"
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
@@ -622,7 +618,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 geneid_maxsite[geneid] = 0
             
             for ii in range(start, stop):
-                print "621"
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
