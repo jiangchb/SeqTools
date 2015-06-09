@@ -592,7 +592,7 @@ def import_foldenrichment(bdgpath, repid, con):
             if geneid not in geneid_n:
                 geneid_n[geneid] = 0
             if geneid not in geneid_max:
-                geneid_max[geneid] = 0
+                geneid_max[geneid] = -1
             if geneid not in geneid_maxsite:
                 geneid_maxsite[geneid] = 0
             
@@ -613,7 +613,7 @@ def import_foldenrichment(bdgpath, repid, con):
             if geneid not in geneid_n:
                 geneid_n[geneid] = 0
             if geneid not in geneid_max:
-                geneid_max[geneid] = 0
+                geneid_max[geneid] = -1
             if geneid not in geneid_maxsite:
                 geneid_maxsite[geneid] = 0
             
