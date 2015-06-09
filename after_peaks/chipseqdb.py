@@ -412,6 +412,8 @@ def import_foldenrichment(bdgpath, repid, con):
     x = cur.fetchone()
     speciesid = int( x[0] )
     
+    total_count = estimate_line_count(bdgpath)
+    
     """Open the BDG file"""
     fin = open(bdgpath, "r")
     curr_chromname = None
@@ -436,7 +438,8 @@ def import_foldenrichment(bdgpath, repid, con):
     chromid_genepairs = {} # the pair of genes before and after this enrichment window
     pairi = 0 # index into chromid_genepairs[curr_chromid]
     count = 0
-    total_count = estimate_line_count(bdgpath)
+
+
     
     chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
     count_found_summits = 0
@@ -561,6 +564,7 @@ def import_foldenrichment(bdgpath, repid, con):
             current gene pair, then we need to advance to the next gene pair.
         """
         while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
+            "advanding the pair"
             pairi += 1
             
         """Can we map enrichment to both upstream and downstream genes?"""
