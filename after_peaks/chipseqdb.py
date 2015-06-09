@@ -501,7 +501,7 @@ def import_foldenrichment(bdgpath, repid, con):
                     if ii == 0:
                         pair = (None,ii)
                         chromid_genepairs[curr_chromid].append( pair )
-                    if ii == genes.__len__()-1:
+                    elif ii == genes.__len__()-1:
                         pair = (ii,None)
                         chromid_genepairs[curr_chromid].append( pair )
                         pair = (ii-1,ii)
@@ -565,6 +565,9 @@ def import_foldenrichment(bdgpath, repid, con):
             current gene pair, then we need to advance to the next gene pair.
         """
         while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
+            #
+            # this is where the problem is occurring.
+            #
             print "advancing the pair"
             pairi += 1
             
