@@ -439,8 +439,6 @@ def import_foldenrichment(bdgpath, repid, con):
     pairi = 0 # index into chromid_genepairs[curr_chromid]
     count = 0
 
-
-    
     chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
     count_found_summits = 0
     
@@ -525,78 +523,67 @@ def import_foldenrichment(bdgpath, repid, con):
             """For each site in the enrichment window, is there a known summit at this site?"""
             if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
-        if summit_here != False:
-            """Yes, there is one, or multiple, summit in this enrichment window."""
-            sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
-            sql += " and site=" + summit_here.__str__()
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x == None:
-                print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
-            
-            if x != None:
-                count_found_summits += 1
-                sql = "insert into SummitsEnrichment (summit, max_enrichment) "
-                sql += " VALUES(" + x[0].__str__() + ","
-                sql += eval.__str__() + ")"
+            if summit_here != False:
+                """Yes, there is one, or multiple, summit in this enrichment window."""
+                sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
+                sql += " and site=" + summit_here.__str__()
                 cur.execute(sql)
-                con.commit()
-        """NOTE: if summit_here == False, then this enrichment window has no summit"""
-              
-        """Does this enrichment site map to a known gene?"""
-#         (closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, start, curr_chromid, speciesid=speciesid)
-#  
-#         up_ok = False
-#         down_ok = False
-#         if closest_up != None:
-#             down_ii = closest_up
-#             up_ok = True
-#         if closest_down != None:
-#             ups_ii = closest_down
-#             down_ok = True
-
-        """If the current enrichment window ('start') is beyond the intergenic region defined by the
-            current gene pair, then we need to advance to the next gene pair.
-        """
-        this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-        while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
-            #
-            # this is where the problem is occurring.
-            #
-            #print "advancing the pair"
-            pairi += 1
+                x = cur.fetchone()
+                if x == None:
+                    print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
+                
+                if x != None:
+                    count_found_summits += 1
+                    sql = "insert into SummitsEnrichment (summit, max_enrichment) "
+                    sql += " VALUES(" + x[0].__str__() + ","
+                    sql += eval.__str__() + ")"
+                    cur.execute(sql)
+                    con.commit()
+            """NOTE: if summit_here == False, then this enrichment window has no summit"""
+                  
+    
+            """If the current enrichment window ('start') is beyond the intergenic region defined by the
+                current gene pair, then we need to advance to the next gene pair.
+            """
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+            while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
+                #
+                # this is where the problem is occurring.
+                #
+                #print "advancing the pair"
+                pairi += 1
+                this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+                
+            """Can we map enrichment to both upstream and downstream genes?"""
+            down_ok = False # is there a downstream gene?
+            up_ok = False   # is there an upstream gene?
+            ups_ii = chromid_genepairs[curr_chromid][pairi][0] # the ID of the downstream gene
+            down_ii = chromid_genepairs[curr_chromid][pairi][1]   # the ID of the upstream gene
             
-        """Can we map enrichment to both upstream and downstream genes?"""
-        down_ok = False # is there a downstream gene?
-        up_ok = False   # is there an upstream gene?
-        ups_ii = chromid_genepairs[curr_chromid][pairi][0] # the ID of the downstream gene
-        down_ii = chromid_genepairs[curr_chromid][pairi][1]   # the ID of the upstream gene
-        
-        if ups_ii != None:
-            if genes[ups_ii][2] < start and genes[ups_ii][3] < start:
-                if genes[ups_ii][5] == "-":
-                    """Yes, map scores to the downstream gene."""
-                    up_ok = True
-        if down_ii != None:
-            if genes[down_ii][2] > start and genes[down_ii][3] > start:
-                if genes[down_ii][5] == "+":
-                    """Yes, map scores to the upstream gene."""
-                    down_ok = True
-
-        if up_ok:     
-            geneid = genes[ups_ii][0]
-            """Initialize some data structures about this gene."""
-            if geneid not in geneid_sum:
-                geneid_sum[geneid] = 0
-            if geneid not in geneid_n:
-                geneid_n[geneid] = 0
-            if geneid not in geneid_max:
-                geneid_max[geneid] = -1
-            if geneid not in geneid_maxsite:
-                geneid_maxsite[geneid] = 0
-            
-            for ii in range(start, stop):
+            if ups_ii != None:
+                if genes[ups_ii][2] < start and genes[ups_ii][3] < start:
+                    if genes[ups_ii][5] == "-":
+                        """Yes, map scores to the downstream gene."""
+                        up_ok = True
+            if down_ii != None:
+                if genes[down_ii][2] > start and genes[down_ii][3] > start:
+                    if genes[down_ii][5] == "+":
+                        """Yes, map scores to the upstream gene."""
+                        down_ok = True
+    
+            if up_ok:     
+                geneid = genes[ups_ii][0]
+                """Initialize some data structures about this gene."""
+                if geneid not in geneid_sum:
+                    geneid_sum[geneid] = 0
+                if geneid not in geneid_n:
+                    geneid_n[geneid] = 0
+                if geneid not in geneid_max:
+                    geneid_max[geneid] = -1
+                if geneid not in geneid_maxsite:
+                    geneid_maxsite[geneid] = 0
+                
+                #for jj in range(start, stop):
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
@@ -604,20 +591,20 @@ def import_foldenrichment(bdgpath, repid, con):
                 if eval > geneid_max[geneid]:
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = ii - genes[ups_ii][2]
-        
-        if down_ok:     
-            geneid = genes[down_ii][0]
-            """Initialize some data structures about this gene."""
-            if geneid not in geneid_sum:
-                geneid_sum[geneid] = 0
-            if geneid not in geneid_n:
-                geneid_n[geneid] = 0
-            if geneid not in geneid_max:
-                geneid_max[geneid] = -1
-            if geneid not in geneid_maxsite:
-                geneid_maxsite[geneid] = 0
             
-            for ii in range(start, stop):
+            if down_ok:     
+                geneid = genes[down_ii][0]
+                """Initialize some data structures about this gene."""
+                if geneid not in geneid_sum:
+                    geneid_sum[geneid] = 0
+                if geneid not in geneid_n:
+                    geneid_n[geneid] = 0
+                if geneid not in geneid_max:
+                    geneid_max[geneid] = -1
+                if geneid not in geneid_maxsite:
+                    geneid_maxsite[geneid] = 0
+                
+                #for jj in range(start, stop):
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
