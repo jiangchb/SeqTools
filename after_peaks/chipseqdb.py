@@ -523,6 +523,7 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
+            print "526:"
             """For each site in the enrichment window, is there a known summit at this site?"""
             if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
@@ -564,7 +565,7 @@ def import_foldenrichment(bdgpath, repid, con):
             current gene pair, then we need to advance to the next gene pair.
         """
         while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
-            "advancing the pair"
+            print "advancing the pair"
             pairi += 1
             
         """Can we map enrichment to both upstream and downstream genes?"""
@@ -848,6 +849,8 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             genes on these chromosomes)."""
 
     cur = con.cursor()    
+    
+    print "\n. Mapping summits to nearby genes. . ."
     
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
