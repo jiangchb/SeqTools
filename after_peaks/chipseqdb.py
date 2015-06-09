@@ -443,6 +443,7 @@ def import_foldenrichment(bdgpath, repid, con):
     
     """For each line in the BDG file"""
     for l in fin.xreadlines():
+        print "446:", l
         if l.__len__() <= 5:
             """Skip to the next line."""
             continue
@@ -494,6 +495,7 @@ def import_foldenrichment(bdgpath, repid, con):
             if curr_chromid not in chromid_genepairs:
                 chromid_genepairs[curr_chromid] = []
                 for ii in xrange(0, genes.__len__()):
+                    print "497:", ii
                     if ii == 0:
                         pair = (None,ii)
                         chromid_genepairs[curr_chromid].append( pair )
