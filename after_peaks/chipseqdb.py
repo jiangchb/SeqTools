@@ -557,19 +557,18 @@ def import_foldenrichment(bdgpath, repid, con):
 #         if closest_down != None:
 #             ups_ii = closest_down
 #             down_ok = True
-        
-        """Ensure that pairi points to correct intergenic region."""
-        this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-        
+
         """If the current enrichment window ('start') is beyond the intergenic region defined by the
             current gene pair, then we need to advance to the next gene pair.
         """
+        this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
         while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
             #
             # this is where the problem is occurring.
             #
             print "advancing the pair"
             pairi += 1
+            this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             
         """Can we map enrichment to both upstream and downstream genes?"""
         down_ok = False # is there a downstream gene?
