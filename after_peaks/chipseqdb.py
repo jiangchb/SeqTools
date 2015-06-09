@@ -498,7 +498,6 @@ def import_foldenrichment(bdgpath, repid, con):
             if curr_chromid not in chromid_genepairs:
                 chromid_genepairs[curr_chromid] = []
                 for ii in xrange(0, genes.__len__()):
-                    print "497:", ii
                     if ii == 0:
                         pair = (None,ii)
                         chromid_genepairs[curr_chromid].append( pair )
@@ -528,11 +527,12 @@ def import_foldenrichment(bdgpath, repid, con):
             if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
         if summit_here != False:
-            """Yes, there is a summit in this enrichment window."""
+            """Yes, there is one, or multiple, summit in this enrichment window."""
             sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
             sql += " and site=" + summit_here.__str__()
             cur.execute(sql)
             x = cur.fetchone()
+            print "536:", x
             if x == None:
                 print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
             
@@ -564,7 +564,7 @@ def import_foldenrichment(bdgpath, repid, con):
             current gene pair, then we need to advance to the next gene pair.
         """
         while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
-            "advanding the pair"
+            "advancing the pair"
             pairi += 1
             
         """Can we map enrichment to both upstream and downstream genes?"""
@@ -597,6 +597,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 geneid_maxsite[geneid] = 0
             
             for ii in range(start, stop):
+                print "600"
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
@@ -618,6 +619,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 geneid_maxsite[geneid] = 0
             
             for ii in range(start, stop):
+                print "621"
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
