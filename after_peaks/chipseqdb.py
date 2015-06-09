@@ -613,8 +613,9 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - ii
             
-            if up_ok == False and down_ok == False:
-                print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
+            # The following print statement is too noisy:
+            #if up_ok == False and down_ok == False:
+            #    print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
             
     fin.close()
         
