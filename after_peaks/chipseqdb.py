@@ -76,6 +76,8 @@ def build_db(dbpath = None):
 #     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupSummits(groupid INTEGER)")
 #     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupFiles(groupid INTEGER, fileid INTEGER)")
     
+    cur.execute("create table if not exists Log(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
+    cur.execute("create table if not exists ErrorLog(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     
     build_repgroups(con)
     build_unions(con)
@@ -137,6 +139,38 @@ def build_idr_tables(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GeneUnionEnrichIdr(geneid INTEGER, repgroupid1 INTEGER, repgroupid2 INTEGER, lidr FLOAT, idr FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GeneSpeciesunionEnrichIdr(geneid INTEGER, unionid1 INTEGER, unionid2 INTEGER, lidr FLOAT, idr FLOAT)")
     con.commit()
+
+def write_log(con, message, code=None):
+    """
+    Writes to the log file
+    """
+    cur = con.cursor()
+    sql = "insert into Log (message"
+    if code != None:
+        sql += ",code"
+    sql += ") values(\"" + message
+    if code != None:
+        sql += "\"," + code.__str__() + ")"
+    else:
+        sql += "\")"
+    cur.execute(sql)
+    con.commit()
+    
+    print "\n. " + message
+    
+def write_error(con, message, code=None):
+    cur = con.cursor()
+    sql = "insert into ErrorLog (message"
+    if code != None:
+        sql += ",code"
+    sql += ") values(\"" + message
+    if code != None:
+        sql += "\"," + code.__str__() + ")"
+    else:
+        sql += "\")"
+    cur.execute(sql)
+    con.commit()
+    print "\n. ERROR: " + message
 
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chrom = []):
@@ -237,8 +271,9 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                                     gene = t # use this name instead of the orfName
                 
                 if abs(stop - start) > 2000:
-                    print "\n. Warning, the gene named", gene, "is very long:", abs(stop-start).__len__(), "bp."
-                    print ". Check the accuracy of the GFF", gffpath
+                    msg = "Warning, the gene named " + gene + " is very long: " + abs(stop-start).__len__().__str__() +  " bp."
+                    write_log(con, msg)
+                    print msg
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
@@ -538,22 +573,19 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
+
+            # A test of some genes we know about:
             test_flag1 = False
             if curr_chromname.__contains__( "Chr_1" ):
-                if ii >= 182427 and ii <= 182427 + 100:
-                    # PICST_66237|186773|182427|9|-
+                if ii < 221489 and ii >= 221489 - 30:
+                    #81|PICST_37571|221489|223006|1|+
                     print l
                     test_flag1 = True
-                elif ii <=187206 and ii >= 187206 - 100:
-                    # PICST_34019|187206|187430|9|+
+                elif ii >= 1103089 and ii <= 1103089 - 30:
+                    #409|PICST_28392|1101228|1103089|1|+
                     print l
                     test_flag1 = True
-                #sqlite> select * from Genes where id=6087;
-#                 6087|PICST_28046|182124|181411|9|-
-#                 sqlite> select * from Genes where id=6088;
-#                 6088|PICST_66237|186773|182427|9|-
-#                 sqlite> select * from Genes where id=6089;
-#                 6089|psti_CGOB_00118|186403|1865630|9|+
+
             
             
             """For each site in the enrichment window, is there a known summit at this site?"""
