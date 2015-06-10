@@ -289,7 +289,7 @@ def import_pillars(pillarspath, con):
     count = 0
     try:
         for l in fin.xreadlines():
-            if False == l.startswith("-") and True == l[0].isalnum():
+            if l.startswith("-") or l[0].isalnum():
                 count += 1
                 #if count%100 == 0:
                     #sys.stdout.write(".")
@@ -300,6 +300,7 @@ def import_pillars(pillarspath, con):
                 orf_list = []
                 for t in tokens:
                     if False == t.startswith("-") and True == t[0].isalnum():
+                        """Skip the --- entries."""
                         orf_list.append(t)
                 orf_list = orf_list
                 #print orf_list
