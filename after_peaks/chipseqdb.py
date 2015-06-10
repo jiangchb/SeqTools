@@ -301,7 +301,7 @@ def import_pillars(pillarspath, con):
                     if False == t.startswith("-"):
                         """Skip the --- entries."""
                         orf_list.append(t)
-                if orf_list.__len__() > 0:
+                if orf_list.__len__() > 1:
                     realname = orf_list[0]
                     for aliasname in orf_list:
                         sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
