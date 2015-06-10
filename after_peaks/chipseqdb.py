@@ -519,7 +519,6 @@ def import_foldenrichment(bdgpath, repid, con):
                         pair = (ii-1,ii)
                         chromid_genepairs[curr_chromid].append( pair )                        
                 pairi = 0
-                print "\n. Chromosom", curr_chromid, "has", count_overlapping_genes, "gene overlaps."
                                         
         """Get the fold-enrichment values for this line"""
         start = int(tokens[1]) # start of this enrichment window
