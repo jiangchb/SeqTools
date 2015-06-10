@@ -299,7 +299,7 @@ def import_pillars(pillarspath, con):
                 #print tokens
                 orf_list = []
                 for t in tokens:
-                    if False == t.startswith("-") and True == t[0].isalnum():
+                    if False == t.startswith("-"):
                         """Skip the --- entries."""
                         orf_list.append(t)
                 orf_list = orf_list
