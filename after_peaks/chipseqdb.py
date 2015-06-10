@@ -312,6 +312,8 @@ def import_pillars(pillarspath, con):
         con.rollback()
     con.commit()
     fin.close()
+    
+    print "\n. The pillars file contains", count, "gene sets."
     return con
 
 
