@@ -526,14 +526,6 @@ def import_foldenrichment(bdgpath, repid, con):
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
         
-        if curr_chromname == "chrI":
-            if start >= 182427 and start <= 182427 + 100:
-                # PICST_66237|186773|182427|9|-
-                print l
-            elif start <=187206 and start >= 187206 - 100:
-                # PICST_34019|187206|187430|9|+
-                print l
-        
         
         if last_start_site < start and last_start_site != 0:
             print ". Warning: the BDG file may skip some sites, at site:", start, "for chrom", curr_chromname, "for BDG", bdgpath
@@ -542,6 +534,15 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
+            if curr_chromname == "chrI":
+                if ii >= 182427 and ii <= 182427 + 100:
+                    # PICST_66237|186773|182427|9|-
+                    print l
+                elif ii <=187206 and ii >= 187206 - 100:
+                    # PICST_34019|187206|187430|9|+
+                    print l
+            
+            
             """For each site in the enrichment window, is there a known summit at this site?"""
             if ii in chromid_summitsites[curr_chromid]:
                 summit_here = ii
