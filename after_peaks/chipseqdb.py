@@ -534,7 +534,7 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
-            if curr_chromname == "pst_Chr_1":
+            if curr_chromname.__contains__( "Chr_1" ):
                 if ii >= 182427 and ii <= 182427 + 100:
                     # PICST_66237|186773|182427|9|-
                     print l
