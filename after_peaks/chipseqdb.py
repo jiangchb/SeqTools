@@ -598,7 +598,7 @@ def import_foldenrichment(bdgpath, repid, con):
                         down_ok = True
     
             if test_flag1 == True:
-                print ". 643 - ", up_ok, ups_ii, down_ok, down_ii
+                print ". 643 - ", up_ok, ups_ii, genes[ups_ii][0], down_ok, down_ii, genes[down_ii][0]
     
     
             if up_ok:     
