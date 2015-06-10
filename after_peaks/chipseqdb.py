@@ -505,7 +505,6 @@ def import_foldenrichment(bdgpath, repid, con):
             in the genome. We'll iterate through these pairs in order to map FE values
             to intergenic regions."""
             if curr_chromid not in chromid_genepairs:
-                count_overlapping_genes = 0
                 chromid_genepairs[curr_chromid] = []
                 for ii in xrange(0, genes.__len__()):                    
                     if ii == 0:
@@ -516,17 +515,6 @@ def import_foldenrichment(bdgpath, repid, con):
                         chromid_genepairs[curr_chromid].append( pair )
                         pair = (ii-1,ii)
                         chromid_genepairs[curr_chromid].append( pair )
-                        
-                        this_start = genes[ii][2]
-                        this_stop = genes[ii][3]
-                        last_start = genes[ii-1][2]
-                        last_stop = genes[ii-1][3]
-                        if this_stop < last_stop:
-                            print "Error", pair
-                            count_overlapping_genes += 1
-                        elif last_start > this_stop:
-                            print "Overlapping genes", pair
-                            count_overlapping_genes += 1
                     else:
                         pair = (ii-1,ii)
                         chromid_genepairs[curr_chromid].append( pair )                        
@@ -537,6 +525,15 @@ def import_foldenrichment(bdgpath, repid, con):
         start = int(tokens[1]) # start of this enrichment window
         stop = int(tokens[2])
         eval = float(tokens[3]) # enrichment value across this window
+        
+        if curr_chromname == "chrI":
+            if start >= 182427 and start <= 182427 + 100:
+                # PICST_66237|186773|182427|9|-
+                print l
+            elif start <=187206 and start >= 187206 - 100:
+                # PICST_34019|187206|187430|9|+
+                print l
+        
         
         if last_start_site < start and last_start_site != 0:
             print ". Warning: the BDG file may skip some sites, at site:", start, "for chrom", curr_chromname, "for BDG", bdgpath
