@@ -500,10 +500,14 @@ def import_foldenrichment(bdgpath, repid, con):
                 for ii in x:
                     chromid_summitsites[curr_chromid].append( ii[0] )
                 chromid_summitsites[curr_chromid].sort()
-             
+            
+            """Build a list of gene pairs, corresponding to upstream-downstream neighbors
+            in the genome. We'll iterate through these pairs in order to map FE values
+            to intergenic regions."""
             if curr_chromid not in chromid_genepairs:
+                count_overlapping_genes = 0
                 chromid_genepairs[curr_chromid] = []
-                for ii in xrange(0, genes.__len__()):
+                for ii in xrange(0, genes.__len__()):                    
                     if ii == 0:
                         pair = (None,ii)
                         chromid_genepairs[curr_chromid].append( pair )
@@ -512,10 +516,22 @@ def import_foldenrichment(bdgpath, repid, con):
                         chromid_genepairs[curr_chromid].append( pair )
                         pair = (ii-1,ii)
                         chromid_genepairs[curr_chromid].append( pair )
+                        
+                        this_start = genes[ii][2]
+                        this_stop = genes[ii][3]
+                        last_start = genes[ii-1][2]
+                        last_stop = genes[ii-1][3]
+                        if this_stop < last_stop:
+                            print "Error", pair
+                            count_overlapping_genes += 1
+                        elif last_start > this_stop:
+                            print "Overlapping genes", pair
+                            count_overlapping_genes += 1
                     else:
                         pair = (ii-1,ii)
                         chromid_genepairs[curr_chromid].append( pair )                        
                 pairi = 0
+                print "\n. Chromosom", curr_chromid, "has", count_overlapping_genes, "gene overlaps."
                                         
         """Get the fold-enrichment values for this line"""
         start = int(tokens[1]) # start of this enrichment window
