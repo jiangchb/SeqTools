@@ -597,6 +597,10 @@ def import_foldenrichment(bdgpath, repid, con):
                         """Yes, map scores to the upstream gene."""
                         down_ok = True
     
+            if test_flag1 == True:
+                print ". 643 - ", up_ok, ups_ii, down_ok, down_ii
+    
+    
             if up_ok:     
                 geneid = genes[ups_ii][0]
                 """Initialize some data structures about this gene."""
@@ -639,8 +643,7 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - ii
             
-            if test_flag1:
-                print ". 643 - ", up_ok, ups_ii, down_ok, down_ii
+
             
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
