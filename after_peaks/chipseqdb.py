@@ -296,19 +296,16 @@ def import_pillars(pillarspath, con):
                     #sys.stdout.flush()            
                 l = l.strip()
                 tokens = l.split()
-                #print tokens
                 orf_list = []
                 for t in tokens:
                     if False == t.startswith("-"):
                         """Skip the --- entries."""
                         orf_list.append(t)
-                orf_list = orf_list
-                #print orf_list
-    
-                realname = orf_list[0]
-                for aliasname in orf_list:
-                    sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
-                    cur.execute(sql)
+                if orf_list.__len__() > 0:
+                    realname = orf_list[0]
+                    for aliasname in orf_list:
+                        sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
+                        cur.execute(sql)
     except:
         print "\n. An error occurred while reading the pillars at", pillarspath
         print ". I'm rolling back all changes to the database."
