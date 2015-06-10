@@ -285,11 +285,7 @@ def import_pillars(pillarspath, con):
     con.commit()
     
     
-    fin = open(pillarspath, "r")
-    lines = fin.readlines()
-    print "has", lines.__len__(), "lines."
-    exit()
-    
+    fin = open(pillarspath, "r")    
     count = 0
     try:
         for l in fin.xreadlines():
