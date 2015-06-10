@@ -235,7 +235,11 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             for t in note.split():
                                 if t.startswith("orf"):
                                     gene = t # use this name instead of the orfName
-                                                      
+                
+                if abs(stop - start) > 2000:
+                    print "\n. Warning, the gene named", gene, "is very long:", abs(stop-start).__len__(), "bp."
+                    print ". Check the accuracy of the GFF", gffpath
+                                              
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
                 #print "240:", gene, start, stop, curr_chromid, strand
@@ -544,6 +548,12 @@ def import_foldenrichment(bdgpath, repid, con):
                     # PICST_34019|187206|187430|9|+
                     print l
                     test_flag1 = True
+                #sqlite> select * from Genes where id=6087;
+#                 6087|PICST_28046|182124|181411|9|-
+#                 sqlite> select * from Genes where id=6088;
+#                 6088|PICST_66237|186773|182427|9|-
+#                 sqlite> select * from Genes where id=6089;
+#                 6089|psti_CGOB_00118|186403|1865630|9|+
             
             
             """For each site in the enrichment window, is there a known summit at this site?"""
