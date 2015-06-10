@@ -310,6 +310,8 @@ def import_pillars(pillarspath, con):
                     sql = "INSERT INTO GeneAlias (realname, alias) VALUES('" + realname + "','" + aliasname + "')"
                     cur.execute(sql)
     except:
+        print "\n. An error occurred while reading the pillars at", pillarspath
+        print ". I'm rolling back all changes to the database."
         con.rollback()
     con.commit()
     fin.close()
