@@ -92,8 +92,7 @@ def import_data(con):
                 
                 """Check that all summits have a corresponding FE value,
                     and that all genes have an FE value."""
-                validate_summits_fe(repid, con)
-                
+                validate_summits_fe(repid, con)     
     return con
 
 def setup_unions(con):    

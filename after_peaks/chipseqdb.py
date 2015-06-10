@@ -244,6 +244,10 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     fin.close()
     con.commit()
     
+    sql = "delete from GFFs where filepath='" + gffpath + "'"
+    cur.execute(sql)
+    con.commit()
+    
     sql = "insert or replace into GFFs (species, filepath) VALUES(" + speciesid.__str__() + ",'" + gffpath + "')"
     cur.execute(sql)
     con.commit() 
@@ -285,7 +289,7 @@ def import_pillars(pillarspath, con):
     count = 0
     try:
         for l in fin.xreadlines():
-            if l.startswith("orf"):
+            if False == l.startswith("-") and True == l[0].isalnum():
                 count += 1
                 #if count%100 == 0:
                     #sys.stdout.write(".")
@@ -295,7 +299,7 @@ def import_pillars(pillarspath, con):
                 #print tokens
                 orf_list = []
                 for t in tokens:
-                    if False == t.startswith("-"):
+                    if False == t.startswith("-") and True == t[0].isalnum():
                         orf_list.append(t)
                 orf_list = orf_list
                 #print orf_list
@@ -696,7 +700,7 @@ def validate_summits_fe(repid, con):
         exit()
     
 
-    #     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
+    #cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
     #cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)
     #EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)
 
