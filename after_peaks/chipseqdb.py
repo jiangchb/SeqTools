@@ -534,13 +534,16 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         summit_here = False
         for ii in range(start, stop):
+            test_flag1 = False
             if curr_chromname.__contains__( "Chr_1" ):
                 if ii >= 182427 and ii <= 182427 + 100:
                     # PICST_66237|186773|182427|9|-
                     print l
+                    test_flag1 = True
                 elif ii <=187206 and ii >= 187206 - 100:
                     # PICST_34019|187206|187430|9|+
                     print l
+                    test_flag1 = True
             
             
             """For each site in the enrichment window, is there a known summit at this site?"""
@@ -635,6 +638,9 @@ def import_foldenrichment(bdgpath, repid, con):
                 if eval > geneid_max[geneid]:
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - ii
+            
+            if test_flag1:
+                print ". 643 - ", up_ok, ups_ii, down_ok, down_ii
             
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
