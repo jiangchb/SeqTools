@@ -314,7 +314,10 @@ def import_pillars(pillarspath, con):
     con.commit()
     fin.close()
     
-    print "\n. The pillars file contains", count, "gene sets."
+    if count < 100:
+        print "\n. Warning, your pillars file contained only", count, "rows, but I was expecting thousands of rows."
+    else:
+        print "\n. The pillars file contains", count, "gene sets."
     return con
 
 
