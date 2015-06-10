@@ -490,7 +490,7 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromname = chromname
             curr_chromid = chromid
             last_start_site = 0
-            print "-> curr_chromname"
+            print "->", curr_chromname
                                          
             if curr_chromid not in chromid_summitsites:
                 chromid_summitsites[curr_chromid] = []
