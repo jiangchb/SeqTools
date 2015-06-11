@@ -209,8 +209,6 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
             sys.stdout.flush()
             
             if l.__len__() > 0 and False == l.startswith("#"):
-                print "212:", l
-                print "213"
                 tokens = l.split()
                             
                 if tokens.__len__() < 8:
@@ -255,7 +253,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     """Remember the ID."""
                     curr_chromid = chromname_id[curr_chromname]
                 
-                print "258", curr_chromname
+                #print "258", curr_chromname
                 
                 start = int( tokens[3] )
                 stop = int( tokens[4] )
@@ -265,12 +263,10 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     y = stop
                     start = y
                     stop = x
-                print "267a", tokens[8]
-                print "267b", tokens[8].split(";")[0]
-                print "267c", tokens[8].split(";")[0].split("=")
+                #print "267a", tokens[8]
+                #print "267b", tokens[8].split(";")[0]
+                #print "267c", tokens[8].split(";")[0].split("=")
                 gene = tokens[8].split(";")[0].split("=")[1] # orfName
-                
-                print "268", gene
                 
                 notetoks = tokens[8].split(";")
                 if notetoks.__len__() > 2:
@@ -281,18 +277,14 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             for t in note.split():
                                 if t.startswith("orf"):
                                     gene = t # use this name instead of the orfName
-                
-                print "278", notetoks
-                
+                                
                 if abs(stop - start) > 2000:
                     msg = "Warning, the gene named " + gene.__str__() + " is very long: " + (abs(stop-start).__len__()).__str__() +  " bp."
                     write_log(con, msg)
                     print msg
                                               
-                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
-                print "282:", sql
+                sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene.__str__() + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
-                print "240:", gene, start, stop, curr_chromid, strand
     except:
         msg = "An error occurred while parsing the GFF."
         write_error(con, msg)
