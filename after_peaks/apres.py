@@ -268,7 +268,6 @@ if configpath != False:
     if False == ap.getOptionalToggle("--skip_gff") and False == ap.getOptionalToggle("--skip_import"):
         import_gffs(con)
         resolve_aliasids(con)
-        exit()
     
     if False == ap.getOptionalToggle("--skip_import"):
         con = import_data(con)

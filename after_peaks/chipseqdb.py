@@ -284,8 +284,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     except:
         msg = "An error occurred while parsing the GFF."
         write_error(con, msg)
-        print msg
         con.rollback()
+        exit()
     fin.close()
     con.commit()
     
