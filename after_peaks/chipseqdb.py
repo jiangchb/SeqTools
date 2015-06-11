@@ -199,8 +199,11 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
     curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
+    lines = fin.readlines()
+    if lines.__len__() == 1:
+        lines = lines[0].split("\r")
     try:
-        for l in fin.xreadlines():
+        for l in lines:
             count += 1
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
             sys.stdout.flush()
