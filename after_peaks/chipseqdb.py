@@ -581,17 +581,17 @@ def import_foldenrichment(bdgpath, repid, con):
         summit_here = False
         for ii in range(start, stop):
 
-            # A test of some genes we know about:
-            test_flag1 = False
-            if curr_chromname.__contains__( "Chr_1" ):
-                if ii < 221489 and ii >= 221489 - 30:
-                    #81|PICST_37571|221489|223006|1|+
-                    print l
-                    test_flag1 = True
-                elif ii >= 1103089 and ii <= 1103089 - 30:
-                    #409|PICST_28392|1101228|1103089|1|+
-                    print l
-                    test_flag1 = True
+#             # A test of some genes we know about:
+#             test_flag1 = False
+#             if curr_chromname.__contains__( "Chr_1" ):
+#                 if ii < 221489 and ii >= 221489 - 30:
+#                     #81|PICST_37571|221489|223006|1|+
+#                     print l
+#                     test_flag1 = True
+#                 elif ii >= 1103089 and ii <= 1103089 - 30:
+#                     #409|PICST_28392|1101228|1103089|1|+
+#                     print l
+#                     test_flag1 = True
 
             
             
@@ -646,8 +646,8 @@ def import_foldenrichment(bdgpath, repid, con):
                         """Yes, map scores to the upstream gene."""
                         down_ok = True
     
-            if test_flag1 == True:
-                print ". 643 - ", up_ok, ups_ii, genes[ups_ii][0], down_ok, down_ii, genes[down_ii][0]
+            #if test_flag1 == True:
+            #    print ". 643 - ", up_ok, ups_ii, genes[ups_ii][0], down_ok, down_ii, genes[down_ii][0]
     
     
             if up_ok:     
