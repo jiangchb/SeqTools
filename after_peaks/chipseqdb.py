@@ -282,6 +282,9 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 cur.execute(sql) 
                 print "240:", gene, start, stop, curr_chromid, strand
     except:
+        msg = "An error occurred while parsing the GFF."
+        write_error(con, msg)
+        print msg
         con.rollback()
     fin.close()
     con.commit()
