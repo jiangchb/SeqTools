@@ -255,6 +255,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     """Remember the ID."""
                     curr_chromid = chromname_id[curr_chromname]
                 
+                print "258", curr_chromename
+                
                 start = int( tokens[3] )
                 stop = int( tokens[4] )
                 strand = tokens[6]
@@ -265,6 +267,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     stop = x
                 gene = tokens[8].split(";")[0].split("=")[1] # orfName
                 
+                print "268", gene
+                
                 notetoks = tokens[8].split(";")
                 if notetoks.__len__() > 2:
                     qrs = notetoks[2].split("=")
@@ -274,6 +278,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             for t in note.split():
                                 if t.startswith("orf"):
                                     gene = t # use this name instead of the orfName
+                
+                print "278", notetoks
                 
                 if abs(stop - start) > 2000:
                     msg = "Warning, the gene named " + gene.__str__() + " is very long: " + (abs(stop-start).__len__()).__str__() +  " bp."
