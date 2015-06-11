@@ -196,7 +196,6 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     
     count = 0
     total_count = estimate_line_count(gffpath)
-    print "199:", total_count
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
     curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
@@ -275,11 +274,12 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                                     gene = t # use this name instead of the orfName
                 
                 if abs(stop - start) > 2000:
-                    msg = "Warning, the gene named " + gene + " is very long: " + abs(stop-start).__len__().__str__() +  " bp."
+                    msg = "Warning, the gene named " + gene.__str__() + " is very long: " + (abs(stop-start).__len__()).__str__() +  " bp."
                     write_log(con, msg)
                     print msg
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
+                print "282:", sql
                 cur.execute(sql) 
                 print "240:", gene, start, stop, curr_chromid, strand
     except:
