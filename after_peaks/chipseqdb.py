@@ -277,7 +277,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                             for t in note.split():
                                 if t.startswith("orf"):
                                     gene = t # use this name instead of the orfName       
-                if abs(stop - start) > 2000:
+                if abs(stop - start) > 5000:
                     msg = "Warning, the gene named " + gene.__str__() + " is very long: " + abs(stop-start).__str__() +  " bp."
                     write_log(con, msg)
                                               
