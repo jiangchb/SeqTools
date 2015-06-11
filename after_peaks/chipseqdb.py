@@ -301,9 +301,9 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
         count = cur.fetchone()[0]
         print "    --> Chromosome", ii[1], "contains", count, "genes."
     
-    #cur.execute("SELECT COUNT(*) FROM Genes")
-    #count_genes = cur.fetchone()[0]
-    #print "\n. The database now contains", count_genes, "total genes."
+    cur.execute("SELECT COUNT(*) FROM Genes")
+    count_genes = cur.fetchone()[0]
+    print "\n. The database contains", count_genes, "total genes."
     
     return con
 
