@@ -209,6 +209,8 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
             sys.stdout.flush()
             
             if l.__len__() > 0 and False == l.startswith("#"):
+                print "212:", l
+                print "213"
                 tokens = l.split()
                             
                 if tokens.__len__() < 8:
