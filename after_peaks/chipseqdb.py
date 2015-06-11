@@ -276,17 +276,12 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                         if note.__contains__("orf"):
                             for t in note.split():
                                 if t.startswith("orf"):
-                                    gene = t # use this name instead of the orfName
-                print "280", stop, start
-                print "281:", abs(stop-start)         
+                                    gene = t # use this name instead of the orfName       
                 if abs(stop - start) > 2000:
-                    print "283:"
-                    msg = "Warning, the gene named " + gene.__str__() + " is very long: " + (abs(stop-start).__len__()).__str__() +  " bp."
+                    msg = "Warning, the gene named " + gene.__str__() + " is very long: " + abs(stop-start).__str__() +  " bp."
                     write_log(con, msg)
-                    print msg
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene.__str__() + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
-                print sql
                 cur.execute(sql) 
     except:
         msg = "An error occurred while parsing the GFF."
