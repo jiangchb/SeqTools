@@ -255,7 +255,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     """Remember the ID."""
                     curr_chromid = chromname_id[curr_chromname]
                 
-                print "258", curr_chromename
+                print "258", curr_chromname
                 
                 start = int( tokens[3] )
                 stop = int( tokens[4] )
@@ -265,6 +265,9 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                     y = stop
                     start = y
                     stop = x
+                print "267a", tokens[8]
+                print "267b", tokens[8].split(";")[0]
+                print "267c", tokens[8].split(";")[0].split("=")
                 gene = tokens[8].split(";")[0].split("=")[1] # orfName
                 
                 print "268", gene
