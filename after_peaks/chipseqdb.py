@@ -277,7 +277,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
-                #print "240:", gene, start, stop, curr_chromid, strand
+                print "240:", gene, start, stop, curr_chromid, strand
     except:
         con.rollback()
     fin.close()
