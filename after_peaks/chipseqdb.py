@@ -804,7 +804,6 @@ def get_geneorder(con, repid, chromid):
         return None
 
     last_start_site = 0
-    print "\n\t", curr_chromname
                     
     """Build a list of gene pairs, corresponding to upstream-downstream neighbors
     in the genome. We'll iterate through these pairs in order to map FE values
