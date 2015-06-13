@@ -575,7 +575,7 @@ def import_foldenrichment(bdgpath, repid, con):
 
             """For each site in the enrichment window, is there a known summit at this site?"""
             if fesite in chromid_summitsites[curr_chromid]:
-                summitid = chromid_summitsites[curr_chromid][fesite] 
+                summitid = chromid_summitsites[curr_chromid][fesite][0] 
                 if x != None:
                     count_found_summits += 1
                     sql = "insert into SummitsEnrichment (summit, max_enrichment) "
@@ -934,57 +934,6 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                 score = s[5] # summit score
                 
                 (closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, sumsite, chrid, speciesid=None)
-                
-#                 min_up = None
-#                 closest_up = ""
-#                 min_down = None
-#                 closest_down = ""
-#                 for g in genes:
-#                     if count%100==0:
-#                         #sys.stdout.write(".")
-#                         #sys.stdout.flush()
-#                         con.commit()
-                                   
-#                     gid = g[0]
-#                     start = g[2]
-#                     stop = g[3]
-#                     d = start - sumsite
-#                     
-#                     """Sense direction, and upstream"""
-#                     if start < stop and start >= sumsite:
-#                         if min_up == None:
-#                             min_up = d
-#                             closest_up = gid
-#                         if min_up > d:
-#                             min_up = d
-#                             closest_up = gid
-#                             
-#                     elif start < stop and stop < sumsite:
-#                         """Sense direction and downstream"""
-#                         if min_down == None:
-#                             min_down = d
-#                             closest_down = None
-#                         if min_down < d:
-#                             min_down = d
-#                             closest_down = None
-#                         
-#                     elif start > stop and start <= sumsite:
-#                         """Antisense and downstream"""
-#                         if min_down == None:
-#                             min_down = d
-#                             closest_down = gid
-#                         if min_down < d: # be careful here, we're looking for the largest NEGATIVR number.
-#                             min_down = d
-#                             closest_down = gid
-#                             
-#                     elif start > stop and stop > sumsite:
-#                         """Antisense and upstream"""
-#                         if min_up == None:
-#                             min_up = d
-#                             closest_up = None
-#                         if min_up > d:
-#                             min_up = d
-#                             closest_up = None
     
                 if closest_up != None and min_up != None:
                     sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
