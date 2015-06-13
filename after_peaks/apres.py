@@ -89,7 +89,7 @@ def import_data(con):
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
                     #validate_enrichment(bdgpath, repid, con)
                     print "91:", speciesname, speciesid, rgroupid, repname, repid
-                    con = import_foldenrichment(bdgpath, speciesid, con)                
+                    con = import_foldenrichment(bdgpath, repid, con)                
                 
                 """Check that all summits have a corresponding FE value,
                     and that all genes have an FE value."""
