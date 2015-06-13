@@ -168,7 +168,6 @@ def write_error(con, message, code=None):
         sql += "\")"
     cur.execute(sql)
     con.commit()
-    print "\n. ERROR: " + message
 
 
 def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chrom = []):
@@ -444,6 +443,8 @@ def estimate_line_count(filepath):
 def import_foldenrichment(bdgpath, repid, con):
     """Imports a BDG file with enrichment scores tracked across genome sequence sites.
     The BDG must be sorted by site for each chromosome, ascending.
+    For each FE value in the file, this method attempts to map that FE
+    to any known summits, and to nearby genes.
     Upon success, this method inserts data into two tables: EnrichmentStats and SummitsEnrichment
     """ 
     print "\n. Importing fold-enrichment values from", bdgpath,"for replicate", repid
@@ -471,9 +472,9 @@ def import_foldenrichment(bdgpath, repid, con):
     
     """Open the BDG file"""
     fin = open(bdgpath, "r")
-    curr_chromname = None
-    curr_chromid = None
-    last_start_site = 0
+    curr_chromname = None # as we parse the BDG, this string will store the name of the chromosome we are currently evaluating
+    curr_chromid = None   # the ID into the Chromosomes table for the chrom. we are currently evaluating
+    last_start_site = 0 # an index used while parsing the BDG; the value of the start site of the last enrichment window
     
     """As we parse the BDG, we'll map enrichment values to genes,
         and store the following information. . . """
@@ -484,23 +485,20 @@ def import_foldenrichment(bdgpath, repid, con):
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
-    
-#     allgenes = get_genes_for_species(con, speciesid)
-#     genes = {}
-#     for ii in allgenes:
-#         genes[ ii[0] ] = ii
-    
+        
     chromid_genepairs = {} # the pair of genes before and after this enrichment window
-    pairi = 0 # index into chromid_genepairs[curr_chromid]
-    count = 0
+    pairi = 0 # working index into chromid_genepairs[curr_chromid]
+    count = 0 # a count of how many lines we've analyzed -- used for displaying a progress indicator
 
     chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
-    count_found_summits = 0
+    count_found_summits = 0  # how many summits have we successfully matched with FE values?
     
-    """For each line in the BDG file"""
+    """
+    For each line in the BDG file:
+    """
     for l in fin.xreadlines():
         if l.__len__() <= 5:
-            """Skip to the next line."""
+            """Skip abnormally short lines."""
             continue
         
         """Print a progress indicator."""
@@ -508,78 +506,54 @@ def import_foldenrichment(bdgpath, repid, con):
         if count%10 == 0:
             sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) + "     (" + count_found_summits.__str__() + " summits)" )
             sys.stdout.flush()
-                    
+           
+        """Split the line into pieces"""         
         tokens = l.split()
+        
+        """Parse the line"""
+        chromname = tokens[0]
+        festart = int(tokens[1]) # start site of this enrichment window
+        festop = int(tokens[2])  # stop site of this enrichment window
+        eval = float(tokens[3])  # enrichment value across this window
         
         """Is the chromosome in this line the same chromosome from the previous line?
             If not, then we need to retrieve information about this chromosome, including
             the genes on this chrom."""
-        chromname = tokens[0]
         if curr_chromname == chromname:
-            """If this is the same chrom. we saw on the previous line,
-                then we already know the chrom. ID"""
             chromid = curr_chromid
         else:
-            """We need to look up the chrom. ID"""
-            chromid = get_chrom_id(con, chromname, speciesid)
+            """We need to look up the ID for this chromosome,
+                and get this chrom's list of gene pairs and summits."""
+            curr_chromname = chromname
+            chromid = get_chrom_id(con, curr_chromname, speciesid)
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
+                msg = "The chromosome named " + curr_chromname.__str__() + " exists in your FE file, but not in your GFF."
+                write_error(msg)
                 continue
-
-            if curr_chromid != chromid:
-                """genes will be sorted by the start sites of the genes."""
-                genes = get_genes_for_chrom(con, chromid)
-                if genes.__len__() == 0:
-                    print "\n. An error occurred at chipseqdb.py 322"
-                    exit()
-
-            curr_chromname = chromname
             curr_chromid = chromid
+            if curr_chromid not in chromid_genepairs:
+                """Get the list of ordered gene pair tuples for this chrom."""
+                chromid_genepairs[curr_chromid] = get_geneorder(con, repid, curr_chromid)
+                pairi = 0 # reset the pair index
+            if curr_chromid not in chromid_summitsites:
+                """Get the list of summits for this chromosome."""
+                chromid_summitsites[curr_chromid] = {}
+                summits = get_summits(con, repid, chromid)
+                for ss in summits:
+                    chromid_summitsites[curr_chromid][ ss[3] ] = ss
             last_start_site = 0
             print "\n\t", curr_chromname
                                          
-            if curr_chromid not in chromid_summitsites:
-                chromid_summitsites[curr_chromid] = []
-                sql = "select site from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
-                sql += " order by site ASC"
-                cur.execute(sql)
-                x = cur.fetchall()
-                for ii in x:
-                    chromid_summitsites[curr_chromid].append( ii[0] )
-                chromid_summitsites[curr_chromid].sort()
-            
-            """Build a list of gene pairs, corresponding to upstream-downstream neighbors
-            in the genome. We'll iterate through these pairs in order to map FE values
-            to intergenic regions."""
-            if curr_chromid not in chromid_genepairs:
-                chromid_genepairs[curr_chromid] = []
-                for ii in xrange(0, genes.__len__()):                    
-                    if ii == 0:
-                        pair = (None,ii)
-                        chromid_genepairs[curr_chromid].append( pair )
-                    elif ii == genes.__len__()-1:
-                        pair = (ii,None)
-                        chromid_genepairs[curr_chromid].append( pair )
-                        pair = (ii-1,ii)
-                        chromid_genepairs[curr_chromid].append( pair )
-                    else:
-                        pair = (ii-1,ii)
-                        chromid_genepairs[curr_chromid].append( pair )                        
-                pairi = 0
-                                        
-        """Get the fold-enrichment values for this line"""
-        start = int(tokens[1]) # start of this enrichment window
-        stop = int(tokens[2])
-        eval = float(tokens[3]) # enrichment value across this window
-        
-        
-        if last_start_site < start and last_start_site != 0:
-            print ". Warning: the BDG file may skip some sites, at site:", start, "for chrom", curr_chromname, "for BDG", bdgpath
-        last_start_site = stop
+        """Check for discontinuous data in the BDG file"""
+        if last_start_site < festart and last_start_site != 0:
+            msg = "Warning: the BDG file may skip some sites, at site: " + festart.__str__() + " for chrom " + curr_chromname.__str__() + " for BDG " + bdgpath.__str__()
+            write_log(msg)
+            print msg
+        last_start_site = festop
     
         """Can we map this enrichment site to a summit?"""        
-        summit_here = False
-        for ii in range(start, stop):
+        for fesite in range(festart, festop):
 
 #             # A test of some genes we know about:
 #             test_flag1 = False
@@ -593,39 +567,22 @@ def import_foldenrichment(bdgpath, repid, con):
 #                     print l
 #                     test_flag1 = True
 
-            
-            
             """For each site in the enrichment window, is there a known summit at this site?"""
-            if ii in chromid_summitsites[curr_chromid]:
-                summit_here = ii
-            if summit_here != False:
-                """Yes, there is one, or multiple, summit in this enrichment window."""
-                sql = "select id, score from Summits where replicate=" + repid.__str__() + " and chrom=" + curr_chromid.__str__()
-                sql += " and site=" + summit_here.__str__()
-                cur.execute(sql)
-                x = cur.fetchone()
-                if x == None:
-                    print "\n. Error, I can't find the summit at site", summit_here.__str__()," for replicate", repid.__str__(), "on chrom", curr_chromid.__str__()
-                
+            if fesite in chromid_summitsites[curr_chromid]:
+                summitid = chromid_summitsites[curr_chromid][fesite] 
                 if x != None:
                     count_found_summits += 1
                     sql = "insert into SummitsEnrichment (summit, max_enrichment) "
-                    sql += " VALUES(" + x[0].__str__() + ","
+                    sql += " VALUES(" + summitid.__str__() + ","
                     sql += eval.__str__() + ")"
                     cur.execute(sql)
                     con.commit()
-            """NOTE: if summit_here == False, then this enrichment window has no summit"""
                   
-    
-            """If the current enrichment window ('start') is beyond the intergenic region defined by the
+            """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.
             """
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-            while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < start and genes[ this_gene_pair[1] ][3] < start):
-                #
-                # this is where the problem is occurring.
-                #
-                #print "advancing the pair"
+            while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
                 pairi += 1
                 this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
                 
@@ -636,19 +593,18 @@ def import_foldenrichment(bdgpath, repid, con):
             down_ii = chromid_genepairs[curr_chromid][pairi][1]   # the ID of the upstream gene
             
             if ups_ii != None:
-                if genes[ups_ii][2] < start and genes[ups_ii][3] < start:
+                if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
                     if genes[ups_ii][5] == "-":
                         """Yes, map scores to the downstream gene."""
                         up_ok = True
             if down_ii != None:
-                if genes[down_ii][2] > start and genes[down_ii][3] > start:
+                if genes[down_ii][2] > festart and genes[down_ii][3] > festart:
                     if genes[down_ii][5] == "+":
                         """Yes, map scores to the upstream gene."""
                         down_ok = True
     
             #if test_flag1 == True:
             #    print ". 643 - ", up_ok, ups_ii, genes[ups_ii][0], down_ok, down_ii, genes[down_ii][0]
-    
     
             if up_ok:     
                 geneid = genes[ups_ii][0]
@@ -662,7 +618,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 if geneid not in geneid_maxsite:
                     geneid_maxsite[geneid] = 0
                 
-                #for jj in range(start, stop):
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
@@ -682,8 +637,7 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_max[geneid] = -1
                 if geneid not in geneid_maxsite:
                     geneid_maxsite[geneid] = 0
-                
-                #for jj in range(start, stop):
+
                 geneid_sum[geneid] += eval
                 geneid_n[geneid] += 1
                 
@@ -691,9 +645,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 if eval > geneid_max[geneid]:
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - ii
-            
-
-            
+                        
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
             #    print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
@@ -838,6 +790,43 @@ def resolve_aliasids(con):
     
     """Save the commit for the end."""
     con.commit()
+
+def get_geneorder(con, repid, chromid):
+    """Returns a list of tuples, each tuple containing two adjacent genes.
+        In each tuple, the 0th element is a 5' gene and the 1st element is a 3' gene.
+        This list of tuples can be iterated over in order to examine all intergenic regions
+        on a chromosome.
+    """
+    genes = get_genes_for_chrom(con, chromid)
+    if genes.__len__() == 0:
+        msg = "There are no genes on chromosome " + chromid.__str__()
+        write_error(msg)
+        return None
+
+    last_start_site = 0
+    print "\n\t", curr_chromname
+                    
+    """Build a list of gene pairs, corresponding to upstream-downstream neighbors
+    in the genome. We'll iterate through these pairs in order to map FE values
+    to intergenic regions."""
+    genepairs = []
+    genepairs = []
+    for ii in xrange(0, genes.__len__()):                    
+        if ii == 0:
+            pair = (None,ii)
+            genepairs.append( pair )
+        elif ii == genes.__len__()-1:
+            pair = (ii,None)
+            genepairs.append( pair )
+            pair = (ii-1,ii)
+            genepairs.append( pair )
+        else:
+            pair = (ii-1,ii)
+            genepairs.append( pair )                        
+    pairi = 0
+    
+    return genepairs
+
 
 def get_genes4site(con, repid, site, chromid, speciesid=None):
     """Given a site on a chromosome, this method finds the nearest upstream and downstream gene.

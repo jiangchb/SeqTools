@@ -221,7 +221,6 @@ def get_summits(con, repid, chromid):
          return x
 
 
-     #26
 def get_summit_scores_for_gene(geneid, repid, con):
     """Returns an array of tuples, one tuple for each summit at gene ID, with the tuples sorted in descending
     order based on their summit score."""
