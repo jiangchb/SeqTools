@@ -536,6 +536,12 @@ def import_foldenrichment(bdgpath, repid, con):
                 """Get the list of ordered gene pair tuples for this chrom."""
                 chromid_genepairs[curr_chromid] = get_geneorder(con, repid, curr_chromid)
                 pairi = 0 # reset the pair index
+                genes = get_genes_for_chrom(con, chromid)
+                if genes.__len__() == 0:
+                    msg = "There are no genes on chromosome " + chromid.__str__()
+                    print msg
+                    write_error(msg)
+                    return None
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
                 chromid_summitsites[curr_chromid] = {}
@@ -800,15 +806,13 @@ def get_geneorder(con, repid, chromid):
     genes = get_genes_for_chrom(con, chromid)
     if genes.__len__() == 0:
         msg = "There are no genes on chromosome " + chromid.__str__()
+        print msg
         write_error(msg)
         return None
-
-    last_start_site = 0
                     
     """Build a list of gene pairs, corresponding to upstream-downstream neighbors
     in the genome. We'll iterate through these pairs in order to map FE values
     to intergenic regions."""
-    genepairs = []
     genepairs = []
     for ii in xrange(0, genes.__len__()):                    
         if ii == 0:
@@ -821,9 +825,7 @@ def get_geneorder(con, repid, chromid):
             genepairs.append( pair )
         else:
             pair = (ii-1,ii)
-            genepairs.append( pair )                        
-    pairi = 0
-    
+            genepairs.append( pair )                            
     return genepairs
 
 
