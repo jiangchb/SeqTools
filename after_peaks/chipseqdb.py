@@ -724,7 +724,6 @@ def validate_summits_fe(repid, con):
     sql = "select * from Genes where "
     sql += "id in (select id from Genes where chrom in (select id from Chromosomes where species=" + speciesid.__str__() + "))"
     sql += "and id not in (select geneid from EnrichmentStats where repid=" + repid.__str__() + ") "
-    print sql
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
@@ -733,7 +732,6 @@ def validate_summits_fe(repid, con):
             msg = "I found no FE values for gene " + ii[0].__str__() + ", replicate " + repid.__str__()
             write_error(con, msg)
     
-
     #cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
     #cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)
     #EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)
