@@ -770,11 +770,10 @@ def validate_summits_fe(repid, con):
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
-        print "\n. Error: I found no FE values for", x.__len__().__str__(), "genes."
-        print ". Replicate: ", repid
+        print "\n. Warning: I found no FE values for", x.__len__().__str__(), "genes."
         for ii in x:
-            print "Gene:", ii[0].__str__()
-        exit()
+            msg = "I found no FE values for gene " + ii[0].__str__() + ", replicate " + repid.__str__()
+            write_error(msg)
     
 
     #cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")

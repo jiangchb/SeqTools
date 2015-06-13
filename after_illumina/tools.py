@@ -155,7 +155,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
             tokens = line.split()
             readname = tokens[0]
             mismatchlevel = None
-            multilocscore = None
+            multilocscore = None # the number of places this read aligns to. None if N = only one place.
             
             for t in tokens[10:]:
                 """The tokens from index 10+ contains useful information about this read."""
@@ -354,11 +354,19 @@ def run_peak_calling(con):
         cur.execute(sql)
         control_bampath = cur.fetchone()[0]
         
+        qval = get_setting("minqval", con)
+        
         macs_cmd = get_setting("macs2", con) + " callpeak "
         macs_cmd += " -t " + exp_bampath
         macs_cmd += " -c " + control_bampath
-        macs_cmd += " --gsize 1.43e+07 --nomodel --shiftsize 78 -B --SPMR "
+        macs_cmd += " --gsize 1.43e+07 -B --SPMR "
         macs_cmd += " --name " + get_name_for_macs(exp_annoid, control_annoid, con)
+        macs_cmd += " --qvalue 0.01"
+        #macs_mcd += " ----pvalue"
+        macs_cmd += " --nomodel"
+        macs_cmd += " --shiftsize 78"
+        if qval != None:
+            macs_cmd += "--qvalue " + qval.__str__() # the Q-value cutoff to call significant regions
         macs_commands.append( macs_cmd )
     
         sql = "insert or replace into MacsRun(exp_annoid, control_annoid, name) VALUES("

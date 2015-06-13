@@ -82,6 +82,11 @@ def read_cli(ap):
     x = ap.getOptionalArg("--eliminate_multialign")
     if x != False:
         ELIMINATE_MULTIALIGN = True
+        
+    QVAL = None
+    x = ap.getOptionalArg("--minqval")
+    if x != False:
+        QVAL = x
     
     """The pillars file provides alias names for orthologous genes in different species.
     For example, a pillars file for several model yeast species can be downloaded from the Candida Genome Database.
@@ -152,6 +157,9 @@ def read_cli(ap):
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('pillars_path','" + PILLARSPATH + "')"
     cur.execute(sql)
+    if QVAL != None:
+        sql = "insert or replace into Settings (keyword, value) VALUES('minqval','" + QVAL + "')"
+        cur.execute(sql)
     
     """chrom_filter will restrict the analysis to only those reads whose chromosome name contains the value of --chrom_filter"""
     chrom_filters = ap.getOptionalList("--chrom_filter")
