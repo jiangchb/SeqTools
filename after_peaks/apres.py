@@ -88,7 +88,7 @@ def import_data(con):
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
                     #validate_enrichment(bdgpath, repid, con)
-                    print "91:", speciesname, speiesid, rgroupid, repname, repid
+                    print "91:", speciesname, speciesid, rgroupid, repname, repid
                     con = import_foldenrichment(bdgpath, speciesid, con)                
                 
                 """Check that all summits have a corresponding FE value,
