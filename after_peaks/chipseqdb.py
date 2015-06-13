@@ -650,7 +650,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 """Is this fe value larger than we've seen before?"""
                 if eval > geneid_max[geneid]:
                     geneid_max[geneid] = eval
-                    geneid_maxsite[geneid] = genes[down_ii][2] - ii
+                    geneid_maxsite[geneid] = genes[down_ii][2] - fesite
                         
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
