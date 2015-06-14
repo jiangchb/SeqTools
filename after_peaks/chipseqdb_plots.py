@@ -1742,16 +1742,15 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         x = cur.fetchone()
         rep2_genfe[geneid] = x[0]
     
-    
-    
     """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
         if geneid not in rep1_genfe:
             msg = "Gene " + geneid.__str__() + "has a summit in rep 1, but no FE data."
             msg += " repgroupid=" + repids[0].__str__()
-            print geneids_rep1summits.keys()
-            print "1752:", geneid
-            msg += " summitid=" + geneids_rep1summits[geneid].__str__()
+            sql = "SELECT summit FROM GeneSummits where gene=" + geneid.__str__() + " and summit in (SELECT id from Summits where replicate=" + repids[0].__str__() + ")"
+            cur.execute(sql)
+            x = cur.fetchall()
+            msg += x.__str__()
             write_error(con, msg)
             print msg
             exit()
@@ -1759,7 +1758,10 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         if geneid not in rep2_genfe:
             msg = "Gene " + geneid.__str__() + "has a summit in rep 2, but no FE data."
             msg += " repgroupid=" + repids[1].__str__()
-            msg += " summitid=" + geneids_rep2summits[geneid].__str__()
+            sql = "SELECT summit FROM GeneSummits where gene=" + geneid.__str__() + " and summit in (SELECT id from Summits where replicate=" + repids[1].__str__() + ")"
+            cur.execute(sql)
+            x = cur.fetchall()
+            msg += x.__str__()
             write_error(con, msg)
             print msg
             exit()            
