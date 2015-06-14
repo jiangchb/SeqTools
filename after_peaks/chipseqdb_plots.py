@@ -1740,7 +1740,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         x = cur.fetchone()
         rep2_genfe[geneid] = x[0]
     
-    print "1743:", geneids_rep1summits.__len__(), genes.__len__(), rep1_genfe.__len__()
+    print "1743:", geneids_rep1summits.__len__(), geneids.__len__(), rep1_genfe.__len__()
     
     """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
