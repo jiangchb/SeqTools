@@ -562,6 +562,14 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         for fesite in range(festart, festop):
 
+            if fesite == 1720362:
+                print "566:", l
+                if fesite in chromid_summitsites[curr_chromid]:
+                    print "Summit on chrom", curr_chromid
+                    print chromid_summitsites[curr_chromid][fesite]
+                else:
+                    print "No summit on chrom", curr_chromid
+
 #             # A test of some genes we know about:
 #             test_flag1 = False
 #             if curr_chromname.__contains__( "Chr_1" ):

@@ -1530,7 +1530,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             repid_maxfe[repid].append( x[0] )
             repid_meanfe[repid].append( x[1] )
 
-            
             """N Peaks"""
             sql = "select count(id) from Summits where replicate=" + repid.__str__()
             sql += " and id in (select summit from GeneSummits where gene=" + geneid.__str__()
@@ -1599,7 +1598,6 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     if cranpath != None:
         add_repgroupfile(cranpath,rgroupid,"R script to make IDR scatterplots for replicate group " + repgroupname, con)
         add_repgroupfile(re.sub("cran", "pdf",cranpath),rgroupid,"PDF with IDR scatterplots for replicate group " + repgroupname, con)
-        
         
     """Update the IDR stats into the database"""
     for (ii,jj) in value_pairs: 
