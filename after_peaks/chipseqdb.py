@@ -585,13 +585,12 @@ def import_foldenrichment(bdgpath, repid, con):
             """For each site in the enrichment window, is there a known summit at this site?"""
             if fesite in chromid_summitsites[curr_chromid]:
                 summitid = chromid_summitsites[curr_chromid][fesite][0] 
-                if x != None:
-                    count_found_summits += 1
-                    sql = "insert into SummitsEnrichment (summit, max_enrichment) "
-                    sql += " VALUES(" + summitid.__str__() + ","
-                    sql += eval.__str__() + ")"
-                    cur.execute(sql)
-                    con.commit()
+                count_found_summits += 1
+                sql = "insert into SummitsEnrichment (summit, max_enrichment) "
+                sql += " VALUES(" + summitid.__str__() + ","
+                sql += eval.__str__() + ")"
+                cur.execute(sql)
+                con.commit()
                   
             """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.
