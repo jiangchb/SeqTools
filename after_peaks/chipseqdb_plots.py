@@ -1749,6 +1749,8 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         if geneid not in rep1_genfe:
             msg = "Gene " + geneid.__str__() + "has a summit in rep 1, but no FE data."
             msg += " repgroupid=" + repids[0].__str__()
+            print geneids_rep1summits.keys()
+            print "1752:", geneid
             msg += " summitid=" + geneids_rep1summits[geneid].__str__()
             write_error(con, msg)
             print msg
