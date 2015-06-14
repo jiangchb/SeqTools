@@ -1757,10 +1757,10 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
                 enrichment data in EnrichmentStats?""" 
             sql = "select * from GroupEnrichmentStats where geneid=" + geneid.__str__()
             cur.execute(sql)
-            print "1760:", cur.fetchall()
+            print "1760:", cur.fetchall().__str__()
             sql = "select * from EnrichmentStats where geneid=" + geneid.__str__()
             cur.execute(sql)
-            print "1763:", cur.fetchall()   
+            print "1763:", cur.fetchall().__str__()   
                 
             
             exit()
