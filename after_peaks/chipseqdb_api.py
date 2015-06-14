@@ -213,6 +213,7 @@ def get_summits(con, repid, chromid):
      is a tuple, containing all the parts of each Summit row."""
      cur = con.cursor()
      sql = "SELECT id, replicate, name, site, chrom, score, pvalue, qvalue FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
+     sql += " sort by site ASC"
      #sql = "SELECT * FROM Summits where chrom=" + chromid.__str__() + " and replicate=" + repid.__str__()
      cur.execute(sql)
      x = cur.fetchall()
