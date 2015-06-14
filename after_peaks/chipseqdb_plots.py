@@ -1747,16 +1747,20 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
         if geneid not in rep1_genfe:
-            print "\n. Gene ", geneid, "has a summit in rep 1, but no FE data."
-            print ". repgroupid=", rgroupid, repgroupname
-            geneids_rep1summits.remove( geneid )
-            #exit()
+            msg = "Gene " + geneid.__str__() + "has a summit in rep 1, but no FE data."
+            msg += " repgroupid=" + repids[0].__str__()
+            msg += " summitid=" + geneids_rep1summits[geneids].__str__()
+            write_error(con, msg)
+            print msg
+            exit()
     for geneid in geneids_rep2summits:
         if geneid not in rep2_genfe:
-            print "\n. Gene ", geneid, "has a summit in rep 2, but no FE data."
-            print ". repgroupid=", rgroupid, repgroupname
-            geneids_rep2summits.remove( geneid )
-            #exit()            
+            msg = "Gene " + geneid.__str__() + "has a summit in rep 2, but no FE data."
+            msg += " repgroupid=" + repids[1].__str__()
+            msg += " summitid=" + geneids_rep2summits[geneids].__str__()
+            write_error(con, msg)
+            print msg
+            exit()            
         
     for geneid in geneids:        
         """Does the gene have a summit in both replicates?"""
