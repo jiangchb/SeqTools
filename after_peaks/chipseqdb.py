@@ -583,12 +583,14 @@ def import_foldenrichment(bdgpath, repid, con):
 #                     test_flag1 = True
 
             """For each site in the enrichment window, is there a known summit at this site?"""
-            if fesite in chromid_summitsites[curr_chromid]:
+            if fesite in chromid_summitsites[curr_chromid]:              
                 summitid = chromid_summitsites[curr_chromid][fesite][0] 
                 count_found_summits += 1
                 sql = "insert into SummitsEnrichment (summit, max_enrichment) "
                 sql += " VALUES(" + summitid.__str__() + ","
                 sql += eval.__str__() + ")"
+                if fesite == 1720362:
+                    print "593:", sql
                 cur.execute(sql)
                 con.commit()
                   
@@ -660,6 +662,8 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - fesite
                         
+            if fesite == 1720362:
+                print "666:", up_ok, ups_ii, down_ok, down_ii
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
             #    print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
