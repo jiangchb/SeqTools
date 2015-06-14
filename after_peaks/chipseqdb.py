@@ -744,6 +744,7 @@ def validate_summits_fe(repid, con):
             msg = "I found no FE values for gene " + ii[0].__str__() + ", replicate " + repid.__str__()
             write_error(con, msg)
     
+    
     #cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
     #cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)
     #EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)

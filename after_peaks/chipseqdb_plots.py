@@ -1751,8 +1751,18 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
             cur.execute(sql)
             x = cur.fetchall()
             msg += x.__str__()
-            write_error(con, msg)
+            write_error(con, msg)           
             print msg
+            """is the problem that the gene has no FE data in GroupEnrichmentStats, but DOES have
+                enrichment data in EnrichmentStats?""" 
+            sql = "select * from GroupEnrichmentStats where geneid=" + geneid.__str__()
+            cur.execute(sql)
+            print "1760:", cur.fetchall()
+            sql = "select * from EnrichmentStats where geneid=" + geneid.__str__()
+            cur.execute(sql)
+            print "1763:", cur.fetchall()   
+                
+            
             exit()
     for geneid in geneids_rep2summits:
         if geneid not in rep2_genfe:
