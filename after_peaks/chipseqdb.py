@@ -947,10 +947,10 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             sumsite = s[3] # summit site in the genome
             score = s[5] # summit score
             
-            this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+            this_gene_pair = genepairs[pairi]
             while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
                 pairi += 1
-                this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+                this_gene_pair = genepairs[pairi]
         
             """Can we map enrichment to both upstream and downstream genes?"""
             down_ok = False # is there a downstream gene?
