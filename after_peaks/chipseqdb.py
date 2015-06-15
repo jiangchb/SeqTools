@@ -959,12 +959,12 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             down_ii = this_gene_pair[1]   # the ID of the upstream gene
             
             if ups_ii != None:
-                if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
+                if genes[ups_ii][2] < sumsite and genes[ups_ii][3] < sumsite:
                     if genes[ups_ii][5] == "-":
                         """Yes, map scores to the downstream gene."""
                         up_ok = True
             if down_ii != None:
-                if genes[down_ii][2] > festart and genes[down_ii][3] > festart:
+                if genes[down_ii][2] > sumsite and genes[down_ii][3] > sumsite:
                     if genes[down_ii][5] == "+":
                         """Yes, map scores to the upstream gene."""
                         down_ok = True
