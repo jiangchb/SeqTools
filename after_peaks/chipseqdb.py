@@ -990,9 +990,9 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                 
                 if min_up == None and min_down == None:
                     print "\n. I cannot find a nearby gene for summit", sid, "(species", speciesid, ")"
-                    print sys.exc_info()[0]
     except:
         print "\n. An error occurred (980). I'm rolling-back changes to the table GeneSummits."
+        print sys.exc_info()[0]
         con.rollback()
     con.commit()
     return con
