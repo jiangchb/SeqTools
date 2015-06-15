@@ -974,7 +974,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             if up_ok and ups_ii != None:
                 distance = abs(sumsite - genes[up_ii][2])
                 sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + genes[ups_ii][1].__str__() + "," 
+                sql += " VALUES(" + genes[ups_ii][0].__str__() + "," 
                 sql += sid.__str__() + ","
                 sql += distance.__str__() + ") "
                 print sql         
@@ -982,7 +982,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             if down_ok and down_ii != None:
                 distance = abs(genes[down_ii][2] - sumsite)
                 sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + genes[down_ii][1].__str__() + "," 
+                sql += " VALUES(" + genes[down_ii][0].__str__() + "," 
                 sql += sid.__str__() + ","
                 sql += distance.__str__() + ") "  
                 print sql           
