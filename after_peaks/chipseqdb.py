@@ -934,66 +934,66 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         chroms = get_chrom_ids(con, speciesid)
     
     count = 0    
-    try:
-        for chrid in chroms:
-            genes = get_genes_for_chrom(con, chrid)
-            summits = get_summits(con, repid, chrid)
+    #try:
+    for chrid in chroms:
+        genes = get_genes_for_chrom(con, chrid)
+        summits = get_summits(con, repid, chrid)
+        
+        genepairs = get_geneorder(con, repid, chrid)
+        pairi = 0
+        
+        for s in summits:
+            sid = s[0] # summit ID
+            sumsite = s[3] # summit site in the genome
+            score = s[5] # summit score
             
-            genepairs = get_geneorder(con, repid, chrid)
-            pairi = 0
-            
-            for s in summits:
-                sid = s[0] # summit ID
-                sumsite = s[3] # summit site in the genome
-                score = s[5] # summit score
-                
+            this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+            while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
+                pairi += 1
                 this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-                while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
-                    pairi += 1
-                    this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
+        
+            """Can we map enrichment to both upstream and downstream genes?"""
+            down_ok = False # is there a downstream gene?
+            up_ok = False   # is there an upstream gene?
+            ups_ii = this_gene_pair[0] # the ID of the downstream gene
+            down_ii = this_gene_pair[1]   # the ID of the upstream gene
             
-                """Can we map enrichment to both upstream and downstream genes?"""
-                down_ok = False # is there a downstream gene?
-                up_ok = False   # is there an upstream gene?
-                ups_ii = this_gene_pair[0] # the ID of the downstream gene
-                down_ii = this_gene_pair[1]   # the ID of the upstream gene
-                
-                if ups_ii != None:
-                    if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
-                        if genes[ups_ii][5] == "-":
-                            """Yes, map scores to the downstream gene."""
-                            up_ok = True
-                if down_ii != None:
-                    if genes[down_ii][2] > festart and genes[down_ii][3] > festart:
-                        if genes[down_ii][5] == "+":
-                            """Yes, map scores to the upstream gene."""
-                            down_ok = True
+            if ups_ii != None:
+                if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
+                    if genes[ups_ii][5] == "-":
+                        """Yes, map scores to the downstream gene."""
+                        up_ok = True
+            if down_ii != None:
+                if genes[down_ii][2] > festart and genes[down_ii][3] > festart:
+                    if genes[down_ii][5] == "+":
+                        """Yes, map scores to the upstream gene."""
+                        down_ok = True
 
-                #(closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, sumsite, chrid, speciesid=None)
-    
-                if up_ok and ups_ii != None:
-                    distance = abs(sumsite - genes[up_ii][2])
-                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                    sql += " VALUES(" + genes[ups_ii].__str__() + "," 
-                    sql += sid.__str__() + ","
-                    sql += distance.__str__() + ") "
-                    #print sql         
-                    cur.execute(sql) 
-                if down_ok and down_ii != None:
-                    distance = abs(genes[down_ii][2] - sumsite)
-                    sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                    sql += " VALUES(" + genes[down_ii].__str__() + "," 
-                    sql += sid.__str__() + ","
-                    sql += distance.__str__() + ") "  
-                    #print sql           
-                    cur.execute(sql) 
-                
-                if min_up == None and min_down == None:
-                    print "\n. I cannot find a nearby gene for summit", sid, "(species", speciesid, ")"
-    except:
-        print "\n. An error occurred (980). I'm rolling-back changes to the table GeneSummits."
-        print sys.exc_info()[0]
-        con.rollback()
+            #(closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, sumsite, chrid, speciesid=None)
+
+            if up_ok and ups_ii != None:
+                distance = abs(sumsite - genes[up_ii][2])
+                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                sql += " VALUES(" + genes[ups_ii].__str__() + "," 
+                sql += sid.__str__() + ","
+                sql += distance.__str__() + ") "
+                #print sql         
+                cur.execute(sql) 
+            if down_ok and down_ii != None:
+                distance = abs(genes[down_ii][2] - sumsite)
+                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
+                sql += " VALUES(" + genes[down_ii].__str__() + "," 
+                sql += sid.__str__() + ","
+                sql += distance.__str__() + ") "  
+                #print sql           
+                cur.execute(sql) 
+            
+            if min_up == None and min_down == None:
+                print "\n. I cannot find a nearby gene for summit", sid, "(species", speciesid, ")"
+#     except:
+#         print "\n. An error occurred (980). I'm rolling-back changes to the table GeneSummits."
+#         print sys.exc_info()[0]
+#         con.rollback()
     con.commit()
     return con
                 
