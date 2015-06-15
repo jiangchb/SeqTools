@@ -977,7 +977,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                 sql += " VALUES(" + genes[ups_ii].__str__() + "," 
                 sql += sid.__str__() + ","
                 sql += distance.__str__() + ") "
-                #print sql         
+                print sql         
                 cur.execute(sql) 
             if down_ok and down_ii != None:
                 distance = abs(genes[down_ii][2] - sumsite)
@@ -985,7 +985,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
                 sql += " VALUES(" + genes[down_ii].__str__() + "," 
                 sql += sid.__str__() + ","
                 sql += distance.__str__() + ") "  
-                #print sql           
+                print sql           
                 cur.execute(sql) 
             
             if min_up == None and min_down == None:
