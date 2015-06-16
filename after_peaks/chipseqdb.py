@@ -194,17 +194,13 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     
     count = 0
     total_count = estimate_line_count(gffpath)
-    if total_count <= 1:
-        """If the line count is 1 or 0, then try to fix the line breaks."""
-        convert_line_breaks(gffpath)
-        total_count = estimate_line_count(gffpath)
-        if total_count <= 1:          
-            """If the line count is STILL 1 or 0, then something is wrong."""
-            msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
-            msg += gffpath.__str__()
-            write_error(con, msg)
-            print msg
-            exit()
+    if total_count <= 1:          
+        """If the line count is STILL 1 or 0, then something is wrong."""
+        msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
+        msg += gffpath.__str__()
+        write_error(con, msg)
+        print msg
+        exit()
     
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
