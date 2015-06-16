@@ -197,7 +197,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     if total_count <= 1:
         msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
         msg += gffpath.__str__()
-        write_error(msg)
+        write_error(con, msg)
         print msg
         exit()
     
