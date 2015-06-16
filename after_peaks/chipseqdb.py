@@ -194,6 +194,13 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     
     count = 0
     total_count = estimate_line_count(gffpath)
+    if total_count <= 1:
+        msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
+        msg += gffpath.__str__()
+        write_error(msg)
+        print msg
+        exit()
+    
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
     curr_chromid = None # the chromosome ID (from the table Chromosomes) of the last-seen chromosome.
