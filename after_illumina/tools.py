@@ -555,7 +555,7 @@ def check_bedgraphs(con):
     return
 
 
-def bed2wig_helper(bedgraphpath, wigpath):
+def bed2wig_helper(con, bedgraphpath, wigpath):
     printspan = 100000 # print an update every N sites
     count = 0
     last_seen_chrom = None
@@ -620,7 +620,7 @@ def bed2wig(con):
         #
         #c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bedpath + "  " + wigpath
         #commands.append(c)
-        bed2wig_helper(bedpath, wigpath)
+        bed2wig_helper(con, bedpath, wigpath)
         
         sql = "insert or replace into ReadsWigFiles(annoid, wigpath) VALUES("
         sql += annoid.__str__()
@@ -643,7 +643,7 @@ def bed2wig(con):
         
         #c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bdgpath + "  " + wigpath
         #commands.append(c)
-        bed2wig_helper(bdgpath, wigpath)
+        bed2wig_helper(con, bdgpath, wigpath)
         
         sql = "insert or replace into FEWigFiles(exp_annoid, org_bdgpath, wigpath) VALUES("
         sql += annoid.__str__()
