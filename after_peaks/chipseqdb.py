@@ -286,7 +286,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 if abs(stop - start) > 15000:
                     msg = "Warning, the gene named " + gene.__str__() + " is very long: " + abs(stop-start).__str__() +  " bp."
                     write_log(con, msg)
-                    print msg
+                    print "\n", msg
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene.__str__() + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
@@ -588,13 +588,13 @@ def import_foldenrichment(bdgpath, repid, con):
         """Can we map this enrichment site to a summit?"""        
         for fesite in range(festart, festop):
 
-            if fesite == 1720362:
-                print "566:", l
-                if fesite in chromid_summitsites[curr_chromid]:
-                    print "Summit on chrom", curr_chromid
-                    print chromid_summitsites[curr_chromid][fesite]
-                else:
-                    print "No summit on chrom", curr_chromid
+#             if fesite == 1720362:
+#                 print "566:", l
+#                 if fesite in chromid_summitsites[curr_chromid]:
+#                     print "Summit on chrom", curr_chromid
+#                     print chromid_summitsites[curr_chromid][fesite]
+#                 else:
+#                     print "No summit on chrom", curr_chromid
 
 #             # A test of some genes we know about:
 #             test_flag1 = False
@@ -615,8 +615,8 @@ def import_foldenrichment(bdgpath, repid, con):
                 sql = "insert into SummitsEnrichment (summit, max_enrichment) "
                 sql += " VALUES(" + summitid.__str__() + ","
                 sql += eval.__str__() + ")"
-                if fesite == 1720362:
-                    print "593:", sql
+#                 if fesite == 1720362:
+#                     print "593:", sql
                 cur.execute(sql)
                 con.commit()
                   
@@ -688,8 +688,8 @@ def import_foldenrichment(bdgpath, repid, con):
                     geneid_max[geneid] = eval
                     geneid_maxsite[geneid] = genes[down_ii][2] - fesite
                         
-            if fesite == 1720362:
-                print "666:", up_ok, ups_ii, down_ok, down_ii
+#             if fesite == 1720362:
+#                 print "666:", up_ok, ups_ii, down_ok, down_ii
             # The following print statement is too noisy:
             #if up_ok == False and down_ok == False:
             #    print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
