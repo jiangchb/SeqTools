@@ -195,11 +195,16 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     count = 0
     total_count = estimate_line_count(gffpath)
     if total_count <= 1:
-        msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
-        msg += gffpath.__str__()
-        write_error(con, msg)
-        print msg
-        exit()
+        """If the line count is 1 or 0, then try to fix the line breaks."""
+        convert_line_breaks(gffpath)
+        total_count = estimate_line_count(gffpath)
+        if total_count <= 1:          
+            """If the line count is STILL 1 or 0, then something is wrong."""
+            msg = "Something is wrong. There appears to be " + total_count.__str__() + " line(s) in the GFF "
+            msg += gffpath.__str__()
+            write_error(con, msg)
+            print msg
+            exit()
     
     fin = open(gffpath, "r")
     curr_chromname = None # the name of the last-seen chromosome.
@@ -449,6 +454,21 @@ def estimate_line_count(filepath):
     """Returns an estimation of the number of lines in the file"""
     with open(filepath, "r") as f:
         return sum(bl.count("\n") for bl in blocks(f))
+
+def convert_line_breaks(filepath):
+    """Converts all \r linebreaks to \n linebreaks"""
+    outlines = []
+    fin = open(filepath, "r")
+    for l in fin.xreadlines():
+        ls = l.split("\r")
+        for s in ls:
+            outlines.append(s)
+    fin.close()
+    
+    fout = open(filepath, "w")
+    for l in outlines:
+        fout.write(l + "\n")
+    fout.close()
 
 def import_foldenrichment(bdgpath, repid, con):
     """Imports a BDG file with enrichment scores tracked across genome sequence sites.
