@@ -8,6 +8,7 @@ from annotation_db import *
 from config import *
 from hybrid_tools import *
 from tools import *
+from html_tools import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
@@ -161,9 +162,14 @@ if jump <= 7 and stop > 7:
     write_viz_config(con)
 #
 # launch APRES
+vizdbpath = None
 if jump <= 8 and stop > 8:
     """Launch the apres.py script."""
-    launch_viz(con)
+    vizdbpath = launch_viz(con)
+    
+if jump <= 9 and stop > 9:
+    if vizdbpath != None:
+        write_html_results(con)
 
 print "\n. ChIP-Seq distillation is complete.  Goodbye."
 exit()

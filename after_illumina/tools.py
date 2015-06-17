@@ -789,6 +789,9 @@ def write_viz_config(con):
     fout.close()
 
 def launch_viz(con):
+    """Launches the APRES visualization scripts.
+        Upon completion, returns the path to the APRES database,
+        or None if the DB wasn't created."""
     cur = con.cursor()
     pname = get_setting("project_name", con)
     vcpath = get_setting("viz_configpath", con)
@@ -808,5 +811,11 @@ def launch_viz(con):
     fout.close()
     if get_setting("practice_mode", con) == "0":
         os.system("source " + scriptpath)
+    
+    if os.path.exists(vizdbpath):
+        """If the viz DB was created, then return its path."""
+        return vizdbpath
+    else:
+        return None
     
     

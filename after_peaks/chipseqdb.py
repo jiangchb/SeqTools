@@ -50,7 +50,6 @@ def build_db(dbpath = None):
     
     # genomic regions in which peaks should be ignored, for various reasons
     cur.execute("CREATE TABLE IF NOT EXISTS RedFlagRegions(chromid INT, start INT, stop INT)")
-    
     cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
     
     # These data come from MACS2 output files
