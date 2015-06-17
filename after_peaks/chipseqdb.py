@@ -38,7 +38,7 @@ def build_db(dbpath = None):
     
     # These data come from the GFF:
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key autoincrement, species INT, filepath TEXT)")
     
@@ -50,10 +50,10 @@ def build_db(dbpath = None):
     
     # genomic regions in which peaks should be ignored, for various reasons
     cur.execute("CREATE TABLE IF NOT EXISTS RedFlagRegions(chromid INT, start INT, stop INT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key autoincrement, name TEXT unique COLLATE NOCASE, species INT)")        
+    cur.execute("CREATE TABLE IF NOT EXISTS Replicates(id INTEGER primary key, name TEXT unique COLLATE NOCASE, species INT)")        
     
     # These data come from MACS2 output files
-    cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key autoincrement, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Summits(id INTEGER primary key, replicate INT, name TEXT, site INT, chrom INT, score FLOAT, pvalue FLOAT, qvalue FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SummitsEnrichment(summit INTEGER, max_enrichment FLOAT)")
     
     """GeneSummits maps summits to the their putative target gene."""

@@ -12,6 +12,14 @@ def build_anno_db(con):
         It would be good to normalize this table, however, and assign ID integers to species, tf, conditions, etc."""
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
     
+    cur.execute("CREATE TABLE IF NOT EXISTS FastqFiles(id INTEGER primary key autoincrement, filepath TEXT unique)")    
+    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT unique)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Conditions(id INTEGER primary key autoincrement, name TEXT unique)")    # growth condition
+    #cur.execute("CREATE TABLE IF NOT EXISTS Strains(id INTEGER primary key autoincrement, name TEXT unique)")       # cell strain
+    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT unique)")         # the tagged transcription factor
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(id integer primary key autoincrement, name TEXT unique, fastqid INT, speciesid INT, conditionid INT, geneid INT)")
+    cur.execute("CREATE TABLE IT NOT EXISTS Replicates(id integer primary key autoincrement, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
+    
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesname TEXT unique, genomepath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
@@ -21,10 +29,6 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
     cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
-    
-    # A legacy hack to eliminate depricated tables (i.e. from the old schema).
-    cur.execute("drop table if exists Reads")
-    cur.execute("drop table if exists UniqueReads")
     
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
@@ -66,6 +70,65 @@ def get_setting_list(keyword, con):
         return ret_list
     else:
         return []
+
+def import_generic(colval, table, colkeyword="name", con):
+    cur = con.cursor()
+    sql = "select id, " + colkeyword + " from " + table + " where " + colkeyword + "='" + colval.__str__() + "'"
+    cur.execute(sql)
+    x = cur.fetchone()
+    if x != None:
+        return x[0]
+    sql = "insert into " + table + " (" + colkeyword + ") values('" + colval.__str__() + "')"
+    cur.execute(sql)
+    con.commit()
+    sql = "select id, " + colkeyword + " from " + table + " where " + colkeyword + "='" + colval.__str__() + "'"
+    cur.execute(sql)
+    x = cur.fetchone()
+    if x != None:
+        return x[0]
+    else:
+        msg = "An error occurred while importing into " + table + " " + colval.__str__()
+        write_error(con, msg)
+        print msg
+        exit()
+
+def import_fastq(fpath, con):
+    return import_generic(fpath, "FastqFiles", colkeyword="filepath", con)
+
+def import_species(name, con):
+    return import_generic(name, "Species", colkeyword="name", con)
+
+def import_condition(name, con):
+    return import_generic(name, "Conditions", colkeyword="name", con)
+
+# def import_strain(name, con):
+#     return import_generic(name, "Strains", colkeyword="name", con)
+
+def import_gene(name, con):
+    return import_generic(name, "Genes", colkeyword="name", con)
+
+def import_reads(name, fastqid, speciesid, conditionid, geneid, con):
+    """Returns the Read ID upon success."""
+    cur = con.cursor()
+    sql = "insert or replace into Reads (name, fastqid, speciesid, conditionid, geneid)"
+    sql += " values('" + name + "',"
+    sql += fastqid.__str__() + ","
+    sql += speciesid.__str__() + ","
+    sql += conditionid.__str__() + ","
+    sql += geneid.__str__() + ")"
+    cur.execute(sql)
+    con.commit()
+    
+    sql = "select id from Reads where name='" + name + "'"
+    cur.execute(sql)
+    x = cur.fetchone()
+    if x != None:
+        return x[0]
+    else:
+        msg = "An error occurred while importing the READ named " + name.__str__()
+        write_error(con, msg)
+        print msg
+        exit()
 
 def get_name_for_macs(exp_annoid, control_annoid, con):
     cur = con.cursor()
@@ -287,18 +350,21 @@ def import_annotations(apath, con):
 
 # the configuration file is new for June 2015
 def import_configuration(cpath, con):
-    """Each line in the configuration file contains the following columns:
-        * READS
-        * library name (unique)
+    """Each line the configuration can start with READS, PAIR, or COMPARE
+        The READS line has the following columns:
+        * library name (unique for every FASTQ)
         * fastq path -- a filepath in the directory specified by the option "--datadir"
-        * species
-        * tf
+        * species name
+        * tf name
         * condition/media
         * tagged? YES/NO
-        * replicate number
         * note (optional)
         
-        Or, a line can begin with PAIR <experimental sample name> <untagged control sample name>
+        The PAIR lines have these columns:
+            <pair name> <experimental library name> <untagged control library name>
+            
+        COMPARE <comparison name> = <ID 1> <ID 2> . . . <ID N>
+            --> IDs can be pair names or comparison names 
     """
     if False == os.path.exists(cpath):
         print "\n. Error, I can't find your configuration file at", cpath
@@ -307,7 +373,7 @@ def import_configuration(cpath, con):
     cur = con.cursor()
         
     fin = open(cpath, "r")
-    """Get the useful lines:"""
+    """Get the lines with useful content."""
     lines = []
     for l in fin.readlines():
         ls = l.split("\r")
@@ -321,109 +387,51 @@ def import_configuration(cpath, con):
                 continue
             lines.append( lt )
     
-    for l in lines:
-        tokens = l.split()
-        if tokens[0] == "READS":
-            if tokens.__len__() < 8:
-                emsg = "There is something wrong with your configuration file. I think you're missing a column on the following line:\n"
-                emsg += l
-                print emsg
-                write_error(con, l)
+    """First pass: get READS"""
+    for ll in lines:
+        if ll.startswith("READS"):
+            tokens = ll.split()
+            if tokens.__len__() < 7:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
                 exit()
-            library_name = tokens[1]
+            libname = tokens[1]
             fastqpath = tokens[2]
+            fastqid = import_fastq(fastqpath, con)
             species = tokens[3]
+            speciesid = import_species(species, con)
             tf = tokens[4]
+            tfid = import_gene(tf, con)
             condition = tokens[5]
-            tag = tokens[6]
-            if tag == "YES":
-                tag = 1
-            else:
-                tag = 0
-            replicate = tokens[7]
-            comment = ""
-            if tokens.__len__() > 8:
-                comment = " ".join( tokens[8:] )
-            
-            """Split the species token into (potentially) multiple tokens, each separated by underscores.
-            This allows for hybrid species to be separated into two annotations, one for each parent species."""
-            st = species.split("_") # st stands for species tokens
-            for species in st:
-                """If the species name is not a hybrid, then this loop will run just once."""
-
-                """Does this Annotation's settings conflict with any previously-known Annotations?"""
-                sql = "SELECT count(*) from Annotations where library_name='" + id + "' and species='" + species + "'"
-                cur.execute(sql)
-                count = cur.fetchone()[0]
-                if count == 0:
-                    """i.e. this Annotation is unique, so let's import it."""
-                    sql = "INSERT OR REPLACE INTO Annotations (library_name, fastqpath, species, tf, tag, condition, replicate, comment)"
-                    sql += " VALUES("
-                    sql += "'" + library_name + "',"
-                    sql += "'" + fastqpath + "',"
-                    sql += "'" + species + "',"
-                    sql += "'" + tf + "',"
-                    sql += tag.__str__() + ","
-                    sql += "'" + condition + "',"
-                    sql += replicate.__str__() + ","
-                    sql += "'" + comment + "'"
-                    sql += ")"
-                    #print sql
-                    cur.execute(sql)
-                    con.commit()
-                
-                """Get the annoid of the annotation we just imported."""
-                sql = "SELECT annoid from Annotations where library_name='" + library_name + "' and species='" + species + "'"
-                cur.execute(sql)
-                x = cur.fetchall()
-                annoid = x[0][0]
-                
-                """If it's a hybrid, then remember that we created TWO Annotation to represent it."""
-                if st.__len__() > 1:
-                    sql = "insert or replace into Hybrids(annoid, species1, species2) "
-                    sql += "VALUES(" + annoid.__str__() + ",'" + st[0] + "','" + st[1] + "')"
-                    cur.execute(sql)
-                    con.commit()        
-
-    """Second pass - experiment/control pairs"""
-    for l in lines:
-        tokens = l.split()
-        if tokens[0] == "PAIR":
-            exp_library_name = tokens[1]
-            control_library_name = tokens[2]
-            
-            sql = "SELECT annoid from Annotations where library_name='" + exp_library_name + "'"
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x == None:
-                emsg = "Something is wrong with a line in your configuration file:\n"
-                emsg += l + "\n"
-                emsg += "I cannot find a READS line for the library named " + exp_library_name
-                print emsg
-                write_error(emsg, con)
+            conditionid = import_condition(condition, con)
+            tagged = tokens[6]
+            if tagged not in ["YES", "NO", "yes", "no", "Y", "N", "y", "n"]:
+                msg = "There is something wrong with the 'tagged?' column in the following configuration line: " + ll
+                write_error(con, msg)
+                print msg
                 exit()
-            exp_annoid = x[0]
-
-            sql = "SELECT annoid from Annotations where library_name='" + control_library_name + "'"
-            cur.execute(sql)
-            x = cur.fetchone()
-            if x == None:
-                emsg = "Something is wrong with a line in your configuration file:\n"
-                emsg += l + "\n"
-                emsg += "I cannot find a READS line for the library named " + control_library_name
-                print emsg
-                write_error(emsg, con)
-                exit()
-            control_annoid = x[0]
+            elif tagged in ["YES", "yes", "Y", "y"]:
+                tagged = 1
+            elif tagged in ["NO", "no", "N", "n"]:
+                tagged = 0
+                
+            note = tokens[7]
             
-            pair_name = get_name_for_macs(exp_annoid, control_annoid, con)
-
-
-        sql = "insert or replace into MacsRun(exp_annoid, control_annoid, name) VALUES("
-        sql += exp_annoid.__str__() + "," + control_annoid.__str__()
-        sql += ",'" + get_name_for_macs(exp_annoid, control_annoid, con) + "')"
-        cur.execute(sql)
-        con.commit()         
+            readid = import_reads(libname, fastqid, speciesid, conditionid, tfid, con)
+            
+    
+    """Second pass: get PAIRs"""
+    for ll in lines:
+        if ll.startswith("PAIR"):
+            pass
+    
+    """Third pass: get COMPAREs"""
+    for ll in lines:
+        if ll.startswith("COMPARE"):
+            pass
+    
+        
 
 def get_hybrid_pairs(con):
     cur = con.cursor()

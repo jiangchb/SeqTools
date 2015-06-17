@@ -169,7 +169,7 @@ if jump <= 8 and stop > 8:
     
 if jump <= 9 and stop > 9:
     if vizdbpath != None:
-        write_html_results(con)
+        write_html_results(con, vizdbpath)
 
 print "\n. ChIP-Seq distillation is complete.  Goodbye."
 exit()
