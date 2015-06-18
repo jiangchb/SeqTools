@@ -18,16 +18,17 @@ def read_cli(ap):
     if x != False:
         OUTDIR = x
     
-    """Path to annotation file, describining FASTQ files."""
-    APATH = "mancera_chipseq_sample_annotation.txt"
+
+    """The annotation file is depricated. Please use configuration files now."""
+    APATH = "annotation.txt"
     x = ap.getOptionalArg("--annopath")
     if x != False:
-        APATH = x
+        APATH = x        
         
-    CPATH = "config.txt"
+    CPATH = "configuration.txt"
     x = ap.getOptionalArg("--configpath")
     if x != False:
-        APATH = x
+        CPATH = x
         
     DBPATH = ap.getOptionalArg("--dbpath")
     if DBPATH == False:
@@ -178,9 +179,10 @@ def read_cli(ap):
     cur.execute(sql)
     con.commit()
     
-    con = import_genome_list(GENOME_LIST, con)
+    # depricated
+    #con = import_genome_list(GENOME_LIST, con)
     
-    con = import_annotations(APATH, con)
+    con = import_configuration(CPATH, con)
     return con
 
 def print_settings(con):

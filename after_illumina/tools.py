@@ -9,15 +9,19 @@ def run_bowtie(con):
     con.commit()
     
     bowtie_commands = []
-    sql = "select annoid, fastqpath, species from Annotations"
+    sql = "select id, name, fastqid, speciesid, geneid from Reads"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        c = get_setting("bowtie2",con)
-        annoid = ii[0]
-        fastq = ii[1]
+        c = get_setting("bowtie2",con) # c is the command string
+        readid = ii[0]
+        fastq = ii[2]
         full_fastq_path = get_setting("datadir",con) + "/" + fastq
-        species = ii[2]
+        speciesid = ii[3]
+        sql = "select name from Species where speciesid=" + speciesid.__str__()
+        cur.execute(sql)
+        yy = cur.fetchone()
+        speciesname = yy[0]
         
         """Sanity check:"""
         if False == os.path.exists( full_fastq_path ):

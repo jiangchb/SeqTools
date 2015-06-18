@@ -39,14 +39,8 @@ splash()
 
 """read_cli reads the command-line, the annotation file, and creates a SQLite3 database."""
 con = read_cli(ap)
-
 print_settings(con)
-
-cur = con.cursor()
-sql = "select count(*) from Annotations"
-cur.execute(sql)
-count = cur.fetchone()[0]
-print "\n\t--> I found", count, "annotations in the database."
+validate_configuration_import(con)
 
 # sql = "select * from Annotations"
 # cur.execute(sql)

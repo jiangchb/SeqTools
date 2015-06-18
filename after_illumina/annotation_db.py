@@ -12,23 +12,31 @@ def build_anno_db(con):
         It would be good to normalize this table, however, and assign ID integers to species, tf, conditions, etc."""
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
     
+    """READS"""
     cur.execute("CREATE TABLE IF NOT EXISTS FastqFiles(id INTEGER primary key autoincrement, filepath TEXT unique)")    
-    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS Conditions(id INTEGER primary key autoincrement, name TEXT unique)")    # growth condition
-    #cur.execute("CREATE TABLE IF NOT EXISTS Strains(id INTEGER primary key autoincrement, name TEXT unique)")       # cell strain
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT unique)")         # the tagged transcription factor
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(id integer primary key autoincrement, name TEXT unique, fastqid INT, speciesid INT, conditionid INT, geneid INT)")
-    cur.execute("CREATE TABLE IT NOT EXISTS Replicates(id integer primary key autoincrement, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(id integer primary key autoincrement, name TEXT unique, fastqid INT, speciesid INT, conditionid INT, geneid INT, tagged INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReadComments(readid integer primary key, comment TEXT)")
     
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesname TEXT unique, genomepath TEXT)")
+    """PAIRs"""
+    cur.execute("CREATE TABLE IF NOT EXISTS Pairs(id integer primary key autoincrement, name TEXT unique, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS Comparisons(id integer primary key autoincrement, name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS PairsComparisons(compid INT, pairid INT)") # maps pairs into comparisons
+    cur.execute("CREATE TABLE IF NOT EXISTS CompareComparisons(compid INT, targetid INT)")
+    
+    """Species and Genome"""
+    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT unique)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesid TEXT unique, genomepath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid INT, gffpath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
     but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid TEXT, gffpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Hybrids(annoid INTEGER primary key, species1 TEXT, species2 TEXT)") # this means that the reads for annoid originally came from two species
-    cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(annoid1 INTEGER, annoid2 INTEGER)") # these annos came from the same hybrid species
+
+    cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(readid1 INTEGER, readid2 INTEGER)") # these readids came from the same hybrid species
     
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(annoid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(annoid INTEGER primary key, nunique INT)")
@@ -71,7 +79,7 @@ def get_setting_list(keyword, con):
     else:
         return []
 
-def import_generic(colval, table, colkeyword="name", con):
+def import_generic(con, colval, table, colkeyword="name"):
     cur = con.cursor()
     sql = "select id, " + colkeyword + " from " + table + " where " + colkeyword + "='" + colval.__str__() + "'"
     cur.execute(sql)
@@ -92,30 +100,28 @@ def import_generic(colval, table, colkeyword="name", con):
         print msg
         exit()
 
-def import_fastq(fpath, con):
-    return import_generic(fpath, "FastqFiles", colkeyword="filepath", con)
+def import_fastq(con, fpath):
+    return import_generic(con, fpath, "FastqFiles", colkeyword="filepath")
 
-def import_species(name, con):
-    return import_generic(name, "Species", colkeyword="name", con)
+def import_species(con, name):
+    return import_generic(con, name, "Species", colkeyword="name")
 
-def import_condition(name, con):
-    return import_generic(name, "Conditions", colkeyword="name", con)
+def import_condition(con, name):
+    return import_generic(con, name, "Conditions", colkeyword="name")
 
-# def import_strain(name, con):
-#     return import_generic(name, "Strains", colkeyword="name", con)
+def import_gene(con, name):
+    return import_generic(con, name, "Genes", colkeyword="name")
 
-def import_gene(name, con):
-    return import_generic(name, "Genes", colkeyword="name", con)
-
-def import_reads(name, fastqid, speciesid, conditionid, geneid, con):
+def import_reads(con, name, fastqid, speciesid, conditionid, geneid, tagged):
     """Returns the Read ID upon success."""
     cur = con.cursor()
-    sql = "insert or replace into Reads (name, fastqid, speciesid, conditionid, geneid)"
+    sql = "insert or replace into Reads (name, fastqid, speciesid, conditionid, geneid, tagged)"
     sql += " values('" + name + "',"
     sql += fastqid.__str__() + ","
     sql += speciesid.__str__() + ","
     sql += conditionid.__str__() + ","
-    sql += geneid.__str__() + ")"
+    sql += geneid.__str__() + "," 
+    sql += tagged.__str__() + ")"
     cur.execute(sql)
     con.commit()
     
@@ -208,47 +214,50 @@ def get_db(dbpath):
     build_anno_db(con)
     return con
 
-def import_genome_list(gpath, con):
-    """Reads the user-specificed genome list. Each line should contain two things:
-    1. the species identified (a short string), and
-    2. the path to the genome
-    """
-    
-    cur = con.cursor()
-    
-    sql = "delete from SpeciesGenomepath"
-    cur.execute(sql)
-    con.commit()
-    
-    if False == os.path.exists(gpath.__str__()):
-        print "\n. Error: I cannot find  your genome list file at " + gpath
-        print os.getcwd()  
-        print os.path.exists(gpath)      
-        exit()
-    
-    fin = open(gpath, "r")
-    lines = fin.readlines()
-    fin.close()
-    for l in lines:
-        if l.startswith("#") or l.__len__() < 2:
-            continue
-        tokens = l.split()
-        if tokens.__len__() < 2:
-            continue
-        speciesname = tokens[0]
-        gpath = tokens[1]
-        #if False == os.path.exists(gpath):
-        #    print "\n. Error: your genome list includes a reference that I cannot find:"
-        #    print l
-        #    exit()
-        sql = "insert into SpeciesGenomepath (speciesname, genomepath) VALUES("
-        sql += "'" + speciesname + "','" + gpath + "')"
-        cur.execute(sql)
-        con.commit()
-        
-        print ". I found a genome for species", speciesname, "at", gpath
-        
-    return con
+#
+# depricated
+#
+# def import_genome_list(gpath, con):
+#     """Reads the user-specificed genome list. Each line should contain two things:
+#     1. the species identified (a short string), and
+#     2. the path to the genome
+#     """
+#     
+#     cur = con.cursor()
+#     
+#     sql = "delete from SpeciesGenomepath"
+#     cur.execute(sql)
+#     con.commit()
+#     
+#     if False == os.path.exists(gpath.__str__()):
+#         print "\n. Error: I cannot find  your genome list file at " + gpath
+#         print os.getcwd()  
+#         print os.path.exists(gpath)      
+#         exit()
+#     
+#     fin = open(gpath, "r")
+#     lines = fin.readlines()
+#     fin.close()
+#     for l in lines:
+#         if l.startswith("#") or l.__len__() < 2:
+#             continue
+#         tokens = l.split()
+#         if tokens.__len__() < 2:
+#             continue
+#         speciesname = tokens[0]
+#         gpath = tokens[1]
+#         #if False == os.path.exists(gpath):
+#         #    print "\n. Error: your genome list includes a reference that I cannot find:"
+#         #    print l
+#         #    exit()
+#         sql = "insert into SpeciesGenomepath (speciesid, genomepath) VALUES("
+#         sql += "'" + speciesname + "','" + gpath + "')"
+#         cur.execute(sql)
+#         con.commit()
+#         
+#         print ". I found a genome for species", speciesname, "at", gpath
+#         
+#     return con
     
 def import_annotations(apath, con):    
     """Reads the annotation table and returns a Sqlite3 database object filled with data"""
@@ -356,12 +365,13 @@ def import_configuration(cpath, con):
         * fastq path -- a filepath in the directory specified by the option "--datadir"
         * species name
         * tf name
-        * condition/media
         * tagged? YES/NO
+        * condition/media
         * note (optional)
         
         The PAIR lines have these columns:
-            <pair name> <experimental library name> <untagged control library name>
+            <pair name> <experimental ID 1> <experimental ID 2>
+            --> one of the experiments must be tagged YES, and the other must be tagged NO
             
         COMPARE <comparison name> = <ID 1> <ID 2> . . . <ID N>
             --> IDs can be pair names or comparison names 
@@ -371,6 +381,20 @@ def import_configuration(cpath, con):
         exit()
     
     cur = con.cursor()
+        
+    sql = "delete from SpeciesGenomepath"
+    cur.execute(sql)
+    sql = "delete from GFF"
+    cur.execute(sql)
+    sql = "delete from PairsComparisons"
+    cur.execute(sql)
+    sql = "delete from Comparisons"
+    cur.execute(sql)
+    sql = "delete from CompareComparisons"
+    cur.execute(sql)
+    sql = "delete from HybridPairs"
+    cur.execute(sql)
+    con.commit()
         
     fin = open(cpath, "r")
     """Get the lines with useful content."""
@@ -387,6 +411,42 @@ def import_configuration(cpath, con):
                 continue
             lines.append( lt )
     
+    """Genomes"""
+    for ll in lines:
+        if ll.startswith("GENOME"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            species = tokens[1]
+            speciesid = import_species(con, species)
+            gpath = tokens[2]
+            sql = "insert or replace into SpeciesGenomepath (speciesid, genomepath) VALUES("
+            sql += "'" + speciesid.__str__() + "','" + gpath + "')"
+            cur.execute(sql)
+            con.commit()
+            print ". I found a genome for species", speciesid, "at", gpath
+    
+    """Annotations"""
+    for ll in lines:
+        if ll.startswith("GFF"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()    
+            species = tokens[1]
+            speciesid = import_species(con, species)
+            gffpath = tokens[2]
+            sql = "insert or replace into GFF (speciesid, gffpath) VALUES("
+            sql += "'" + speciesid.__str__() + "','" + gffpath + "')"
+            cur.execute(sql)
+            con.commit()
+            print ". I found an annotation for species", speciesid, "at", gffpath
+    
     """First pass: get READS"""
     for ll in lines:
         if ll.startswith("READS"):
@@ -398,14 +458,14 @@ def import_configuration(cpath, con):
                 exit()
             libname = tokens[1]
             fastqpath = tokens[2]
-            fastqid = import_fastq(fastqpath, con)
+            fastqid = import_fastq(con, fastqpath)
             species = tokens[3]
-            speciesid = import_species(species, con)
+#             st = species.split("_") # split the species name, which will deal with hybrid species.
+#             for species in st:
+            speciesid = import_species(con, species)
             tf = tokens[4]
-            tfid = import_gene(tf, con)
-            condition = tokens[5]
-            conditionid = import_condition(condition, con)
-            tagged = tokens[6]
+            tfid = import_gene(con, tf)
+            tagged = tokens[5]
             if tagged not in ["YES", "NO", "yes", "no", "Y", "N", "y", "n"]:
                 msg = "There is something wrong with the 'tagged?' column in the following configuration line: " + ll
                 write_error(con, msg)
@@ -415,23 +475,208 @@ def import_configuration(cpath, con):
                 tagged = 1
             elif tagged in ["NO", "no", "N", "n"]:
                 tagged = 0
+            condition = tokens[6]
+            conditionid = import_condition(con, condition)
+#             if st.__len__() > 1:
+#                 """Special case for hybrid"""
+#                 libname = libname + "-" + species
+                    
                 
-            note = tokens[7]
+            readid = import_reads(con, libname, fastqid, speciesid, conditionid, tfid, tagged)
             
-            readid = import_reads(libname, fastqid, speciesid, conditionid, tfid, con)
-            
-    
-    """Second pass: get PAIRs"""
+            if tokens.__len__() > 7:
+                note = tokens[7:]
+                sql = "insert or replace into ReadComments (readid, comment) values(" + readid.__str__() + ",'" + (" ".join(note)) + "')"
+                cur.execute(sql)
+                con.commit()
+                    
+    """Second pass: get experimental pairs"""
     for ll in lines:
-        if ll.startswith("PAIR"):
-            pass
-    
+        if ll.startswith("EXPERIMENT"):
+            tokens = ll.split()
+            if tokens.__len__() < 5:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            pairname = tokens[1]
+            liba = tokens[3] # the name of the first library
+            libb = tokens[4] # the name of the second library
+            ida = None # the Reads ID of the control library
+            idb = None # the Reads ID of the experiment library
+            for libname in [liba, libb]:
+                sql = "select id, tagged from Reads where name='" + libname + "'"
+                cur.execute(sql)
+                x = cur.fetchone()
+                if x == None:
+                    msg = "I cannot find the library named " + libname + " in the line: " + ll
+                    write_error(con, msg)
+                    print msg
+                    exit()
+                if x[1] == 0:
+                    ida = x[0]
+                elif x[1] == 1:
+                    idb = x[0]
+            if ida == None or idb == None:
+                msg = "Something is wrong with this PAIR line in your configuration: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            sql = "insert or replace into Pairs (name, controlid, taggedid) VALUES"
+            sql += " ('" + pairname.__str__() + "'," + ida.__str__() + "," + idb.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
+                
     """Third pass: get COMPAREs"""
     for ll in lines:
         if ll.startswith("COMPARE"):
-            pass
-    
+            tokens = ll.split()
+            if tokens.__len__() < 5:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            name = tokens[1]
+            sql = "insert or replace into Comparisons (name) values('" + name.__str__() + "')"
+            cur.execute(sql)
+            con.commit()
+            sql = "select id from Comparisons where name='" + name.__str__() + "'"
+            cur.execute(sql)
+            x = cur.fetchone()
+            if x == None:
+                msg = "An error occurred while parsing a COMPARE line in your configuration file: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            compid = x[0]
+            
+            for name in tokens[3:]:
+                """Ensure the pair ID exists."""
+                sql = "select id from Pairs where name='" + name.__str__() + "'"
+                cur.execute(sql)
+                targetid = None
+                x = cur.fetchone()
+                if x == None:
+                    """Then maybe the comparison object is another comparison?"""
+                    sql = "select id from Comparisons where name='" + name.__str__() + "'"
+                    cur.execute(sql)
+                    yy = cur.fetchall()
+                    if yy== None:
+                        msg = "There is something wrong with this COMPARE line: " + ll
+                        write_error(con, msg)
+                        print msg
+                        exit()
+                    if yy.__len__() > 3:
+                        msg = "The ChIP-Seq Distillery does not yet support comparisons with more than three object."
+                        msg += ": " + ll
+                        write_error(con, msg)
+                        print msg
+                        exit()
+                    targetid = int( yy[0][0] )
+                    sql = "insert or replace into CompareComparisons (compid, targetid)"
+                    sql += " values(" + compid.__str__() + "," + targetid.__str__() + ")"
+                    cur.execute(sql)
+                    con.commit()
+                else:
+                    targetid = int(x[0])
+                    sql = "insert or replace into PairsComparisons (compid, pairid)"
+                    sql += " values(" + compid.__str__() + "," + targetid.__str__() + ")"
+                    cur.execute(sql)
+                    con.commit()
+                    
+    """Hybrids"""
+    for ll in lines:
+        if ll.startswith("HYBRID"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            readname1 = tokens[1]
+            readname2 = tokens[2]
+            readids = []
+            for rn in [readname1, readname2]:
+                sql = "select id from Reads where name='" + rn.__str__() + "'"
+                cur.execute(sql)
+                x = cur.fetchall()
+                if x == None:
+                    msg = "The read name in this HYBRID line is causing problems:"
+                    msg += ": " + ll
+                    write_error(con, msg)
+                    print msg
+                    exit()
+                if x.__len__() > 1:
+                    msg = "The read name in this HYBRID line may not be unique, and is causing problems:"
+                    msg += ": " + ll
+                    write_error(con, msg)
+                    print msg
+                    exit()                    
+                readids.append( x[0][0].__str__() )
+            sql = "insert or replace into HybridPairs (readid1, readid2) values(" + ",".join(readids) + ")"
+            print sql
+            cur.execute(sql)
+            con.commit()
         
+    return con 
+
+def validate_configuration_import(con):
+    print "\n Analysis Summary:"
+    cur = con.cursor()
+    
+    sql = "select count(*) from Reads"
+    cur.execute(sql)
+    x = cur.fetchone()
+    print "\t", x[0], "FASTQ files."
+    
+    sql = "select count(*) from HybridPairs"
+    cur.execute(sql)
+    x = cur.fetchone()
+    print "\t", x[0], "pairs of reads from hybrid species."
+    
+    sql = "select id, name from Species"
+    cur.execute(sql)
+    count_good_species = 0
+    x = cur.fetchall()
+    for ii in x:
+        sql = "select genomepath from SpeciesGenomepath where speciesid=" + ii[0].__str__()
+        cur.execute(sql)
+        y = cur.fetchall()
+        if y == None:
+            msg = "Error, the species " + ii[1] + " doesn't have a GENOME entry."
+            write_error(con, msg)
+            print msg
+            exit()
+        if y.__len__() > 1:
+            msg = "Error, the species " + ii[1] + " has multiple GENOME entries."
+            write_error(con, msg)
+            print msg
+            exit()
+        sql = "select gffpath from GFF where speciesid=" + ii[0].__str__()
+        cur.execute(sql)
+        y = cur.fetchall()
+        if y == None:
+            msg = "The species " + ii[1] + " doesn't have a GFF entry."
+            write_error(con, msg)
+            print msg
+            exit()            
+        if y.__len__() > 1:
+            msg = "Error, the species " + ii[1] + " has multiple GFF entries."
+            write_error(con, msg)
+            print msg
+            exit()
+        count_good_species += 1
+    print "\t", count_good_species, "annotated genomes"
+    
+    sql = "select count(*) from Pairs"
+    cur.execute(sql)
+    x = cur.fetchone()
+    print "\t", x[0], "pairs of tagged/untagged experiments."
+    
+    sql = "select count(*) from Comparisons"
+    cur.execute(sql)
+    xx = cur.fetchone()
+    print "\t", xx[0], "comparisons between experiments"
 
 def get_hybrid_pairs(con):
     cur = con.cursor()
@@ -445,9 +690,7 @@ def get_hybrid_pairs(con):
     for ii in x:
         hannoids.append( ii[0] )
     seen_annoids = []
-    
-    print "285:", hannoids
-    
+        
     for annoid in hannoids:
         
         if annoid in seen_annoids:
