@@ -33,8 +33,8 @@ def build_anno_db(con):
     
     """All annotations will have an entry in BowtieOutput, 
     but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
-    cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(annoid INTEGER primary key, sampath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(annoid INTEGER primary key, sampath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(readid INTEGER primary key, sampath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(readid INTEGER primary key, sampath TEXT)")
 
     cur.execute("CREATE TABLE IF NOT EXISTS HybridPairs(readid1 INTEGER, readid2 INTEGER)") # these readids came from the same hybrid species
     
