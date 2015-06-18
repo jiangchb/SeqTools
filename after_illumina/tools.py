@@ -1,6 +1,7 @@
 import re, os, sys, time
 from annotation_db import *
 
+
 def run_bowtie(con):
     """Clear previous Bowtie output paths."""
     cur = con.cursor()
@@ -15,10 +16,20 @@ def run_bowtie(con):
     for ii in x:
         c = get_setting("bowtie2",con) # c is the command string
         readid = ii[0]
-        fastq = ii[2]
-        full_fastq_path = get_setting("datadir",con) + "/" + fastq
+        readname = ii[1]
+        fastqid = ii[2]
+        sql = "select filepath from FastqFiles where id=" + fastqid.__str__()
+        cur.execute(sql)
+        yy = cur.fetchall()
+        if yy.__len__() == 0:
+            msg = "An error occurred while writing the Bowtie script for read " + readname + " for FASTQ ID" + fastqid.__str__()
+            write_error(con, msg)
+            print msg
+            exit()
+        fastqpath = yy[0][0]
+        full_fastq_path = get_setting("datadir",con) + "/" + fastqpath
         speciesid = ii[3]
-        sql = "select name from Species where speciesid=" + speciesid.__str__()
+        sql = "select name from Species where id=" + speciesid.__str__()
         cur.execute(sql)
         yy = cur.fetchone()
         speciesname = yy[0]
@@ -30,15 +41,7 @@ def run_bowtie(con):
             exit()
         c += " -U " + full_fastq_path
         
-        """Is it a hybrid?"""
-        sql = "select count(*) from Hybrids where annoid=" + annoid.__str__()
-        cur.execute(sql)
-        count = cur.fetchone()[0]
         samoutpath = re.sub(".fastq", ".sam", fastq)
-        if count > 0:
-            """Hybrids get a special SAM path"""
-            samoutpath = re.sub(".fastq", "-" + species + ".sam", fastq)
-            samoutpath = get_setting("outdir",con) + "/" + samoutpath
         c += " -S " + samoutpath
         c += " --no-unal "
         

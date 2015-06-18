@@ -410,8 +410,8 @@ def import_configuration(cpath, con):
             if tokens.__len__() < 2:
                 continue
             lines.append( lt )
-    
-    """Genomes"""
+            
+    """Parse lines for GENOME entries"""
     for ll in lines:
         if ll.startswith("GENOME"):
             tokens = ll.split()
@@ -427,9 +427,9 @@ def import_configuration(cpath, con):
             sql += "'" + speciesid.__str__() + "','" + gpath + "')"
             cur.execute(sql)
             con.commit()
-            print ". I found a genome for species", speciesid, "at", gpath
+            #print ". I found a genome for species", speciesid, "at", gpath
     
-    """Annotations"""
+    """Parse lines for GFF entries"""
     for ll in lines:
         if ll.startswith("GFF"):
             tokens = ll.split()
@@ -445,9 +445,9 @@ def import_configuration(cpath, con):
             sql += "'" + speciesid.__str__() + "','" + gffpath + "')"
             cur.execute(sql)
             con.commit()
-            print ". I found an annotation for species", speciesid, "at", gffpath
+            #print ". I found an annotation for species", speciesid, "at", gffpath
     
-    """First pass: get READS"""
+    """Parse lines for READS entries"""
     for ll in lines:
         if ll.startswith("READS"):
             tokens = ll.split()
@@ -490,7 +490,7 @@ def import_configuration(cpath, con):
                 cur.execute(sql)
                 con.commit()
                     
-    """Second pass: get experimental pairs"""
+    """Parse lines for EXPERIMENT entries"""
     for ll in lines:
         if ll.startswith("EXPERIMENT"):
             tokens = ll.split()
@@ -527,7 +527,7 @@ def import_configuration(cpath, con):
             cur.execute(sql)
             con.commit()
                 
-    """Third pass: get COMPAREs"""
+    """Parse lines for COMPARE entries"""
     for ll in lines:
         if ll.startswith("COMPARE"):
             tokens = ll.split()
@@ -584,9 +584,10 @@ def import_configuration(cpath, con):
                     cur.execute(sql)
                     con.commit()
                     
-    """Hybrids"""
+    """Parse lines for HYBRID entries"""
     for ll in lines:
         if ll.startswith("HYBRID"):
+            print ll
             tokens = ll.split()
             if tokens.__len__() < 3:
                 msg = "This line in your configuration file doesn't have enough columns: " + ll
@@ -621,7 +622,7 @@ def import_configuration(cpath, con):
     return con 
 
 def validate_configuration_import(con):
-    print "\n Analysis Summary:"
+    print "\n. Summary of Analysis:"
     cur = con.cursor()
     
     sql = "select count(*) from Reads"
