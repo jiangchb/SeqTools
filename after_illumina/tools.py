@@ -113,7 +113,7 @@ def extract_matched_reads(readid, con, chrom_filter = None):
     cur.execute(sql)
     con.commit()
         
-    sql = "delete from Reads" + annoid.__str__()
+    sql = "delete from Reads" + readid.__str__()
     cur.execute(sql)
     con.commit()
     
