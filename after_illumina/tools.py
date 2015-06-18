@@ -119,6 +119,7 @@ def extract_matched_reads(readid, con, chrom_filter = None):
     
     sampath = None
     sql = "select sampath from BowtieOutput where readid=" + readid.__str__()
+    print sql
     cur.execute(sql)
     x = cur.fetchone()
     if x.__len__() > 0:
