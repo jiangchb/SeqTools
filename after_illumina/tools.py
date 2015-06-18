@@ -41,7 +41,7 @@ def run_bowtie(con):
             exit()
         c += " -U " + full_fastq_path
         
-        samoutpath = re.sub(".fastq", ".sam", fastq)
+        samoutpath = get_setting("outdir",con) + "/" + re.sub(".fastq", ".sam", fastqpath)
         c += " -S " + samoutpath
         c += " --no-unal "
         
