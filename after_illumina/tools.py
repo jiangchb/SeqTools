@@ -46,11 +46,11 @@ def run_bowtie(con):
         c += " --no-unal "
         
         """Path to directory with genome sequences"""
-        sql = "select genomepath from SpeciesGenomepath where speciesname='" + species + "'"
+        sql = "select genomepath from SpeciesGenomepath where speciesid=" + speciesid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
         if x.__len__() == 0:
-            print "\n. Error: I cannot find a genome file reference for the species " + species
+            print "\n. Error: I cannot find a genome file reference for the species " + speciesname
             print ". Check your genome list, specified by the --genome_list argument."
             exit()
         else:
