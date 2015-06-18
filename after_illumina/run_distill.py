@@ -76,7 +76,7 @@ if jump <= 1.1 and stop > 1.1:
 if jump <= 2 and stop > 2:
     """Extract the reads from Bowtie output."""
     cur = con.cursor()
-    sql = "SELECT readid from Reads"
+    sql = "SELECT id from Reads"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
