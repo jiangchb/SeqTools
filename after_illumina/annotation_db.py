@@ -587,7 +587,6 @@ def import_configuration(cpath, con):
     """Parse lines for HYBRID entries"""
     for ll in lines:
         if ll.startswith("HYBRID"):
-            print ll
             tokens = ll.split()
             if tokens.__len__() < 3:
                 msg = "This line in your configuration file doesn't have enough columns: " + ll
@@ -615,7 +614,6 @@ def import_configuration(cpath, con):
                     exit()                    
                 readids.append( x[0][0].__str__() )
             sql = "insert or replace into HybridPairs (readid1, readid2) values(" + ",".join(readids) + ")"
-            print sql
             cur.execute(sql)
             con.commit()
         
