@@ -82,11 +82,11 @@ def run_bowtie(con):
 
 def check_bowtie_output(con):
     cur = con.cursor()
-    sql = "select annoid, sampath from BowtieOutput"
+    sql = "select readid, sampath from BowtieOutput"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        readid = ii[0]
         sampath = ii[1]
         if False == os.path.exists( sampath ):
             print "\n. Error, I can't find your BowtieOutput file at", sampath
@@ -95,7 +95,7 @@ def check_bowtie_output(con):
     return
 
 
-def extract_matched_reads(annoid, con, chrom_filter = None):
+def extract_matched_reads(readid, con, chrom_filter = None):
     """This method parses the SAM output from Bowtie and extracts those reads that pass a gauntlet of test:
         1. Is the read's mismatch level <= the user-specified mismatch level?
         2. Is the read aligned to multiple locations in the genome? (Default: if yes, then discard the read)
@@ -108,8 +108,8 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     """
     cur = con.cursor()
     
-    sql = "create table if not exists Reads" + annoid.__str__() + " (readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)" # reads without mismatches
-    #sql = "delete from Reads where annoid=" + annoid.__str__()
+    """Create a custome table named ReadsX, where X is the readid of this READS entry."""
+    sql = "create table if not exists Reads" + readid.__str__() + " (readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)"
     cur.execute(sql)
     con.commit()
         
@@ -117,15 +117,14 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     cur.execute(sql)
     con.commit()
     
-    
     sampath = None
-    sql = "select sampath from BowtieOutput where annoid=" + annoid.__str__()
+    sql = "select sampath from BowtieOutput where readid=" + readid.__str__()
     cur.execute(sql)
     x = cur.fetchone()
     if x.__len__() > 0:
         sampath = x[0]
     else:
-        print "\n. An error occurred; I can't find a sampath for annotation", annoid
+        print "\n. An error occurred; I can't find a sampath for READ", readid
         exit()
     outsampath = re.sub(".sam", ".perfect.sam", sampath)
     
@@ -198,7 +197,7 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
             
             """The read passed all the validation checks. Let's import it."""
             inserted += 1
-            sql = "insert into Reads" + annoid.__str__() + "(readname,mismatch,order_seen) VALUES("
+            sql = "insert into Reads" + readid.__str__() + "(readname,mismatch,order_seen) VALUES("
             sql += "'" + readname + "'," + mismatchlevel.__str__() + "," + inserted.__str__() + ")"
             cur.execute(sql)
         except:
@@ -212,12 +211,12 @@ def extract_matched_reads(annoid, con, chrom_filter = None):
     print "\n\t--> I found " + inserted.__str__() + " reads out of " + total.__str__() + " reads (" + ratio.__str__() + "%) that satisfied all validation checks."  
 
     """How many reads were perfect?"""
-    sql = "select count(*) from Reads" + annoid.__str__() + " where mismatch=0"
+    sql = "select count(*) from Reads" + readid.__str__() + " where mismatch=0"
     cur.execute(sql)
     count_perfect = cur.fetchone()[0]
     
-    sql = "insert or replace into ReadStats(annoid, nperfect, ntotal) VALUES("
-    sql += annoid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
+    sql = "insert or replace into ReadStats(readid, nperfect, ntotal) VALUES("
+    sql += readid.__str__() + "," + count_perfect.__str__() + "," + total.__str__() + ")"
     cur.execute(sql)
     con.commit()
 

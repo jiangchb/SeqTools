@@ -12,7 +12,6 @@ from html_tools import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
-
 def splash():
     print "======================================================================"
     print "."
@@ -74,25 +73,17 @@ if jump <= 1 and stop > 1:
 if jump <= 1.1 and stop > 1.1:
     check_bowtie_output(con)
 
-# drop table
-
-"""Extract the reads from Bowtie output."""
 if jump <= 2 and stop > 2:
-    """There are no hybrids in this analysis, just process annotations."""
-    annoids = []
-    sql = "SELECT annoid from Annotations"
+    """Extract the reads from Bowtie output."""
+    sql = "SELECT readid from Reads"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoids.append( ii[0] )
-
-    cur.execute(sql)
-    for annoid in annoids:
-        extract_matched_reads(annoid, con)
+        extract_matched_reads(ii[0], con)
 
 """Build a map of which annotations map to which species."""
-if jump <= 2.1 and stop > 2.1:
-    get_hybrid_pairs(con)
+# if jump <= 2.1 and stop > 2.1:
+#     get_hybrid_pairs(con)
 
 """Remove hybrid reads that map to both parental genomes."""    
 if jump <= 2.3 and stop > 2.3:
