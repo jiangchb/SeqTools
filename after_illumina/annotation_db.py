@@ -86,7 +86,7 @@ def import_generic(con, colval, table, colkeyword="name"):
     x = cur.fetchone()
     if x != None:
         return x[0]
-    sql = "insert or replace into " + table + " (" + colkeyword + ") values('" + colval.__str__() + "')"
+    sql = "insert or ignore into " + table + " (" + colkeyword + ") values('" + colval.__str__() + "')"
     cur.execute(sql)
     con.commit()
     sql = "select id, " + colkeyword + " from " + table + " where " + colkeyword + "='" + colval.__str__() + "'"
@@ -115,7 +115,7 @@ def import_gene(con, name):
 def import_reads(con, name, fastqid, speciesid, conditionid, geneid, tagged):
     """Returns the Read ID upon success."""
     cur = con.cursor()
-    sql = "insert or replace into Reads (name, fastqid, speciesid, conditionid, geneid, tagged)"
+    sql = "insert or ignore into Reads (name, fastqid, speciesid, conditionid, geneid, tagged)"
     sql += " values('" + name + "',"
     sql += fastqid.__str__() + ","
     sql += speciesid.__str__() + ","
