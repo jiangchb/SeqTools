@@ -86,7 +86,7 @@ def import_generic(con, colval, table, colkeyword="name"):
     x = cur.fetchone()
     if x != None:
         return x[0]
-    sql = "insert into " + table + " (" + colkeyword + ") values('" + colval.__str__() + "')"
+    sql = "insert or replace into " + table + " (" + colkeyword + ") values('" + colval.__str__() + "')"
     cur.execute(sql)
     con.commit()
     sql = "select id, " + colkeyword + " from " + table + " where " + colkeyword + "='" + colval.__str__() + "'"
