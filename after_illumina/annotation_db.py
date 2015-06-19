@@ -13,10 +13,10 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Annotations(annoid INTEGER primary key autoincrement, sample TEXT, library_name TEXT, indexi INT, fastqpath TEXT, strain TEXT, species TEXT, tf TEXT, tag INT, media TEXT, condition TEXT, replicate INT, comment TEXT)")
     
     """READS"""
-    cur.execute("CREATE TABLE IF NOT EXISTS FastqFiles(id INTEGER primary key autoincrement, filepath TEXT unique)")    
-    cur.execute("CREATE TABLE IF NOT EXISTS Conditions(id INTEGER primary key autoincrement, name TEXT unique)")    # growth condition
-    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT unique)")         # the tagged transcription factor
-    cur.execute("CREATE TABLE IF NOT EXISTS Reads(id integer primary key autoincrement, name TEXT unique, fastqid INT, speciesid INT, conditionid INT, geneid INT, tagged INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS FastqFiles(id INTEGER primary key, filepath TEXT unique)")    
+    cur.execute("CREATE TABLE IF NOT EXISTS Conditions(id INTEGER primary key, name TEXT unique)")    # growth condition
+    cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT unique)")         # the tagged transcription factor
+    cur.execute("CREATE TABLE IF NOT EXISTS Reads(id integer primary key, name TEXT unique, fastqid INT, speciesid INT, conditionid INT, geneid INT, tagged INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS ReadComments(readid integer primary key, comment TEXT)")
     
     """PAIRs"""
