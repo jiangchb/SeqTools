@@ -40,7 +40,7 @@ def build_anno_db(con):
     
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(readid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(readid INTEGER primary key, nunique INT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(id INT primary key autoincrement, pairid INT, name TEXT unique)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(id INTEGER primary key autoincrement, pairid INT, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsPeakPaths(macsrunid INT primary key, treatment_pileup_path TEXT, control_lambda_path TEXT, peaks_path TEXT, summits_path TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(macsrunid INT primary key, bdgpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(macsrunid INT primary key, org_bdgpath TEXT, wigpath TEXT)")
