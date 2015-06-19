@@ -60,6 +60,7 @@ def run_bowtie(con):
         bowtie_commands.append(c)
         
         sql = "insert or replace into BowtieOutput (readid, sampath) VALUES(" + readid.__str__() + ",'" + samoutpath + "')"
+        print sql
         cur.execute(sql)
         con.commit()
         
