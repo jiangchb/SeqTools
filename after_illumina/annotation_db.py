@@ -32,7 +32,7 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid INT, gffpath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
-    but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
+        but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
     cur.execute("CREATE TABLE IF NOT EXISTS BowtieOutput(readid INTEGER primary key, sampath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS FilteredBowtieOutput(readid INTEGER primary key, sampath TEXT)")
 

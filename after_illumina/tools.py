@@ -123,7 +123,7 @@ def extract_matched_reads(readid, con, chrom_filter = None):
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
-        sampath = x[0]
+        sampath = x[0][0]
     else:
         print "\n. An error occurred; I can't find a sampath for READ", readid
         exit()
@@ -226,7 +226,7 @@ def write_sorted_bam(con):
     
     """Writes sorted BAM files for all SAM files.
     if delete_sam == True, then the original SAM file will be deleted."""
-    pairs = [] # pairs is a list of (annoid, sampath) pairs.
+    pairs = [] # pairs is a list of (readid, sampath) pairs.
     
     cur = con.cursor()
     sql = "delete from SortedBamFiles"
@@ -234,26 +234,26 @@ def write_sorted_bam(con):
     con.commit()
     
     """First, get the special filtered SAM files for hybrids."""
-    sql = "select annoid, sampath from FilteredBowtieOutput"
+    sql = "select readid, sampath from FilteredBowtieOutput"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        readid = ii[0]
         sampath = ii[1]
-        pairs.append( (annoid,sampath) )
+        pairs.append( (readid,sampath) )
     
     """Next, get the normal SAM files for all other annotations."""
-    sql = "select annoid, sampath from BowtieOutput where annoid not in (select annoid from FilteredBowtieOutput)"
+    sql = "select readid, sampath from BowtieOutput where readid not in (select readid from FilteredBowtieOutput)"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        readid = ii[0]
         sampath = ii[1]
-        pairs.append( (annoid,sampath) )
+        pairs.append( (readid,sampath) )
     
     samtools_commands = []
     for pair in pairs:
-        annoid = pair[0]
+        readid = pair[0]
         sampath = pair[1]
         sorted_bampath = re.sub(".sam", ".sort", sampath)
         c = get_setting("samtools",con) + " view -bS " + sampath
@@ -261,8 +261,8 @@ def write_sorted_bam(con):
         samtools_commands.append(c)
         
         """Update the DB"""
-        sql = "insert or replace into SortedBamFiles(annoid, bampath) VALUES("
-        sql += annoid.__str__() + ",'" + sorted_bampath + ".bam" + "')"
+        sql = "insert or replace into SortedBamFiles(readid, bampath) VALUES("
+        sql += readid.__str__() + ",'" + sorted_bampath + ".bam" + "')"
         cur.execute(sql)
         con.commit()
 
