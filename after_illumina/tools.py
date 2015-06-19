@@ -119,7 +119,6 @@ def extract_matched_reads(readid, con, chrom_filter = None):
     
     sampath = None
     sql = "select sampath from BowtieOutput where readid=" + readid.__str__()
-    print sql
     cur.execute(sql)
     x = cur.fetchall()
     if x.__len__() > 0:
@@ -282,15 +281,15 @@ def check_bams(con, delete_sam = True):
         then the SAM files (from which the BAMs were created) will be deleted.
         If the files aren't found, then the program will terminate."""
     cur = con.cursor()        
-    sql = "select annoid from Annotations"
+    sql = "select readid from Reads"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        sql = "select bampath from SortedBamFiles where annoid=" + ii[0].__str__()
+        sql = "select bampath from SortedBamFiles where readid=" + ii[0].__str__()
         cur.execute(sql)
         y = cur.fetchall()
         if y.__len__() < 1:
-            emsg = "Error, the table SortedBamFiles has no records for annotation #" + ii[0].__str__()
+            emsg = "Error, the table SortedBamFiles has no records for READ #" + ii[0].__str__()
             print "\n.", emsg
             write_error(con, emsg)
             exit()
@@ -330,7 +329,7 @@ def run_peak_calling(con):
     con.commit()
     
     """Verify that all the BAM files exist."""
-    sql = "select annoid, bampath from SortedBamFiles"
+    sql = "select readid, bampath from SortedBamFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
@@ -344,20 +343,21 @@ def run_peak_calling(con):
     
     macs_commands = []
     
-    macs_pairs = get_macs_pairs(con)
-    
-    print "\n. I found the following MACS pairs:"
-    print macs_pairs
-    
-    for pair in macs_pairs:       
-        exp_annoid = pair[0]
-        control_annoid = pair[1]
+    macs_pairs = {}
+    sql = "Select id, name, controlid, taggedid from Pairs"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        pairid = ii[0]
+        pairname = ii[1]     
+        control_readid = ii[2] # Read ID of the experiment
+        exp_readid = ii[3] # read ID of the control
         
-        sql = "select bampath from SortedBamFiles where annoid=" + exp_annoid.__str__()
+        sql = "select bampath from SortedBamFiles where readid=" + exp_readid.__str__()
         cur.execute(sql)
         exp_bampath = cur.fetchone()[0]
     
-        sql = "select bampath from SortedBamFiles where annoid=" + control_annoid.__str__()
+        sql = "select bampath from SortedBamFiles where readid=" + control_readid.__str__()
         cur.execute(sql)
         control_bampath = cur.fetchone()[0]
         
@@ -367,7 +367,7 @@ def run_peak_calling(con):
         macs_cmd += " -t " + exp_bampath
         macs_cmd += " -c " + control_bampath
         macs_cmd += " --gsize 1.43e+07 -B --SPMR "
-        macs_cmd += " --name " + get_name_for_macs(exp_annoid, control_annoid, con)
+        macs_cmd += " --name " + pairname
         macs_cmd += " --qvalue 0.01"
         #macs_mcd += " ----pvalue"
         macs_cmd += " --nomodel"
@@ -376,9 +376,9 @@ def run_peak_calling(con):
             macs_cmd += "--qvalue " + qval.__str__() # the Q-value cutoff to call significant regions
         macs_commands.append( macs_cmd )
     
-        sql = "insert or replace into MacsRun(exp_annoid, control_annoid, name) VALUES("
-        sql += exp_annoid.__str__() + "," + control_annoid.__str__()
-        sql += ",'" + get_name_for_macs(exp_annoid, control_annoid, con) + "')"
+        sql = "insert or ignore into MacsRun(pairid, name) VALUES("
+        sql += pairid.__str__()
+        sql += ",'" + pairname + "')"
         cur.execute(sql)
         con.commit()
     
@@ -393,7 +393,6 @@ def run_peak_calling(con):
         else:
             os.system("source macs_commands.sh")
 
-
 def check_peaks(con):
     cur = con.cursor()
     
@@ -401,15 +400,16 @@ def check_peaks(con):
     cur.execute(sql)
     con.commit()
     
-    sql = "select exp_annoid, control_annoid, name from MacsRun"
+    sql = "select id, name from MacsRun"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        exp_annoid = ii[0]
-        tbdg = ii[2] + "_treat_pileup.bdg"
-        cbdg = ii[2] + "_control_lambda.bdg"
-        peaks = ii[2] + "_peaks.bed"
-        summits = ii[2] + "_summits.bed"
+        macsrunid = ii[0]
+        macsrunname = ii[1]
+        tbdg = macsrunname + "_treat_pileup.bdg"
+        cbdg = macsrunname + "_control_lambda.bdg"
+        peaks = macsrunname + "_peaks.bed"
+        summits = macsrunname + "_summits.bed"
     
         outpaths = [tbdg, cbdg, peaks, summits]
         for f in outpaths:
@@ -418,8 +418,8 @@ def check_peaks(con):
                 exit()
                 
         """Update the SQL db."""
-        sql = "insert or replace into MacsPeakPaths(exp_annoid, treatment_pileup_path, control_lambda_path, peaks_path, summits_path) VALUES("
-        sql += exp_annoid.__str__() + ",'" + tbdg + "','" + cbdg + "','" + peaks + "','" + summits + "')"
+        sql = "insert or replace into MacsPeakPaths(macsrunid, treatment_pileup_path, control_lambda_path, peaks_path, summits_path) VALUES("
+        sql += macsrunid.__str__() + ",'" + tbdg + "','" + cbdg + "','" + peaks + "','" + summits + "')"
         cur.execute(sql)
         con.commit()
     return
@@ -431,15 +431,16 @@ def calculate_fe(con):
     cur.execute(sql)
     con.commit()
     
-    sql = "select exp_annoid, control_annoid, name from MacsRun"
+    sql = "select id, name from MacsRun"
     cur.execute(sql)
     x = cur.fetchall()
     fe_commands = []
     for ii in x:
-        exp_annoid = ii[0]
-        tbdg = ii[2] + "_treat_pileup.bdg"
-        cbdg = ii[2] + "_control_lambda.bdg"
-        outbdg = ii[2] + "_output_FE.bdg"
+        macsrunid = ii[0]
+        macsrunname = ii[1]
+        tbdg = macsrunname + "_treat_pileup.bdg"
+        cbdg = macsrunname + "_control_lambda.bdg"
+        outbdg = macsrunname + "_output_FE.bdg"
         c = get_setting("macs2", con) + " bdgcmp "
         c += " -t " + tbdg
         c += " -c " + cbdg
@@ -447,8 +448,8 @@ def calculate_fe(con):
         c += " -m FE"
         fe_commands.append( c )
         
-        sql = "insert or replace into MacsFE(exp_annoid, bdgpath) VALUES("
-        sql += exp_annoid.__str__()
+        sql = "insert or replace into MacsFE(macsrunid, bdgpath) VALUES("
+        sql += macsrunid.__str__()
         sql += ",'" + outbdg + "')"
         cur.execute(sql)
         con.commit()
@@ -468,10 +469,11 @@ def calculate_fe(con):
 
 def check_fe(con):
     cur = con.cursor()
-    sql = "select exp_annoid, bdgpath from MacsFE"
+    sql = "select macsrunid, bdgpath from MacsFE"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
+        macsrunid = ii[0]
         bdgpath = ii[1]
         if False == os.path.exists(bdgpath):
             print "\n. Error, I can't find the BDG file at", bdgpath
@@ -490,27 +492,27 @@ def bam2bedgraph(con):
     cur.execute(sql)
     con.commit()
     
-    sql = "select annoid from Annotations"
+    sql = "select id from Reads"
     cur.execute(sql)
     x = cur.fetchall()
 
-    annoid_bampath = {}
+    readid_bampath = {}
     for ii in x:
-        sql = "select annoid, bampath from SortedBamFiles where annoid=" + ii[0].__str__()
+        sql = "select readid, bampath from SortedBamFiles where annoid=" + ii[0].__str__()
         cur.execute(sql)
         y = cur.fetchall()
         if y.__len__() < 1:
-            print "\n. Error, the table SortedBamFiles has no records for annotation #", ii[0].__str__()
+            print "\n. Error, the table SortedBamFiles has no records for READ #", ii[0].__str__()
             exit()
-        annoid = y[0][0]
+        readid = y[0][0]
         bampath = y[0][1]
         if False == os.path.exists( bampath ):
             print "\n. Error, I can't find your BAM file at", bampath
             exit()
-        annoid_bampath[annoid] =  bampath
+        readid_bampath[annoid] =  bampath
     
     commands = []
-    for annoid in annoid_bampath:
+    for readid in readid_bampath:
         bedpath = re.sub( ".sort.bam", ".bed", annoid_bampath[annoid] )
         bedpath = re.sub( ".unique", "", bedpath)
         c = get_setting("gcb", con) + " -ibam " + annoid_bampath[annoid]
@@ -518,8 +520,8 @@ def bam2bedgraph(con):
         c += " > " + bedpath
         commands.append(c)
     
-        sql = "insert or replace into BedgraphFiles (annoid, bedpath) VALUES("
-        sql += annoid.__str__() + ",'" + bedpath + "')"
+        sql = "insert or replace into BedgraphFiles (readid, bedpath) VALUES("
+        sql += readid.__str__() + ",'" + bedpath + "')"
         cur.execute(sql)
         con.commit()
     
@@ -539,11 +541,11 @@ def bam2bedgraph(con):
 
 def check_bedgraphs(con):
     cur = con.cursor()
-    sql = "select annoid, bedpath from BedgraphFiles"
+    sql = "select readid, bedpath from BedgraphFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        readid = ii[0]
         bedpath = ii[1]
         if False == os.path.exists(bedpath):
             emsg = " Error, I can't find your bedgraph file at " + bedpath.__str__()
@@ -610,11 +612,11 @@ def bed2wig(con):
     #commands = []
 
     """First convert the reads wig files."""
-    sql = "select annoid, bedpath from BedgraphFiles"
+    sql = "select readid, bedpath from BedgraphFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        readid = ii[0]
         bedpath = ii[1]
         wigpath = re.sub(".bed", ".wig", bedpath)
         
@@ -622,25 +624,20 @@ def bed2wig(con):
         if wigpath == bedpath: # wtf.
             wigpath = bedpath + ".wig"
         
-        #
-        # continue here
-        #
-        #c = "python " + get_setting("seqtoolsdir", con) + "/bedgraph2wig.py " + bedpath + "  " + wigpath
-        #commands.append(c)
         bed2wig_helper(con, bedpath, wigpath)
         
-        sql = "insert or replace into ReadsWigFiles(annoid, wigpath) VALUES("
-        sql += annoid.__str__()
+        sql = "insert or replace into ReadsWigFiles(readid, wigpath) VALUES("
+        sql += readid.__str__()
         sql += ",'" + wigpath + "')"
         cur.execute(sql)
         con.commit()
     
     """Then convert the FE wig files."""
-    sql = "select exp_annoid, bdgpath from MacsFE"
+    sql = "select macsrunid, bdgpath from MacsFE"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
+        macsrunid = ii[0]
         bdgpath = ii[1]
         wigpath = re.sub(".bdg", ".wig", bdgpath)
         
@@ -652,8 +649,8 @@ def bed2wig(con):
         #commands.append(c)
         bed2wig_helper(con, bdgpath, wigpath)
         
-        sql = "insert or replace into FEWigFiles(exp_annoid, org_bdgpath, wigpath) VALUES("
-        sql += annoid.__str__()
+        sql = "insert or replace into FEWigFiles(macsrunid, org_bdgpath, wigpath) VALUES("
+        sql += macsrunid.__str__()
         sql += ",'" + bdgpath
         sql += "','" + wigpath + "')"
         cur.execute(sql)
@@ -675,23 +672,21 @@ def bed2wig(con):
 def check_wig(con):
     cur = con.cursor()
 
-    sql = "select annoid, wigpath from ReadsWigFiles"
+    sql = "select wigpath from ReadsWigFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
-        wigpath = ii[1]
+        wigpath = ii[0]
         if False == os.path.exists( wigpath ):
             print "\n. Error, I can't find your WIG file ", wigpath
             exit()
         print wigpath
 
-    sql = "select exp_annoid, wigpath from FEWigFiles"
+    sql = "select wigpath from FEWigFiles"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        annoid = ii[0]
-        wigpath = ii[1]
+        wigpath = ii[0]
         if False == os.path.exists( wigpath ):
             print "\n. Error, I can't find your WIG file ", wigpath
             exit()

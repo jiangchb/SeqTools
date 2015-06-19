@@ -40,15 +40,15 @@ def build_anno_db(con):
     
     cur.execute("CREATE TABLE IF NOT EXISTS ReadStats(readid INTEGER primary key, nperfect INT, ntotal INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UniqueReadStats(readid INTEGER primary key, nunique INT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(exp_annoid INTEGER primary key, control_annoid INTEGER, name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS MacsPeakPaths(exp_annoid INTEGER primary key, treatment_pileup_path TEXT, control_lambda_path TEXT, peaks_path TEXT, summits_path TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(exp_annoid INTEGER primary key, bdgpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(exp_annoid INTEGER primary key, org_bdgpath TEXT, wigpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsRun(id INT primary key autoincrement, pairid INT, name TEXT unique)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsPeakPaths(macsrunid INT primary key, treatment_pileup_path TEXT, control_lambda_path TEXT, peaks_path TEXT, summits_path TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS MacsFE(macsrunid INT primary key, bdgpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(macsrunid INT primary key, org_bdgpath TEXT, wigpath TEXT)")
     
     """All annotations will be given an entry in SortedBamFiles."""
-    cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(annoid INTEGER primary key, bampath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(annoid INTEGER primary key, bedpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(annoid INTEGER primary key, wigpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(readid INTEGER primary key, bampath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(readid INTEGER primary key, bedpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(readid INTEGER primary key, wigpath TEXT)")
     
     cur.execute("create table if not exists Log(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     cur.execute("create table if not exists ErrorLog(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
@@ -136,25 +136,28 @@ def import_reads(con, name, fastqid, speciesid, conditionid, geneid, tagged):
         print msg
         exit()
 
-def get_name_for_macs(exp_annoid, control_annoid, con):
-    cur = con.cursor()
-    sql = "select count(*) from HybridPairs where annoid1=" + exp_annoid.__str__() + " or annoid2=" + exp_annoid.__str__()
-    cur.execute(sql)
-    count = cur.fetchone()[0]
-    
-    name = ""
-    if count > 0:
-        """This data is hybrid"""
-        sql = "select library_name, species from Annotations where annoid=" + exp_annoid.__str__()
-        cur.execute(sql)
-        x = cur.fetchone()
-        name = x[0] + "-" + x[1]
-    else:
-        """Not a hybrid read."""
-        sql = "select library_name from Annotations where annoid=" + exp_annoid.__str__()
-        cur.execute(sql)
-        name = cur.fetchone()[0]
-    return name
+#
+# depricated
+#
+# def get_name_for_macs(exp_annoid, control_annoid, con):
+#     cur = con.cursor()
+#     sql = "select count(*) from HybridPairs where annoid1=" + exp_annoid.__str__() + " or annoid2=" + exp_annoid.__str__()
+#     cur.execute(sql)
+#     count = cur.fetchone()[0]
+#     
+#     name = ""
+#     if count > 0:
+#         """This data is hybrid"""
+#         sql = "select library_name, species from Annotations where annoid=" + exp_annoid.__str__()
+#         cur.execute(sql)
+#         x = cur.fetchone()
+#         name = x[0] + "-" + x[1]
+#     else:
+#         """Not a hybrid read."""
+#         sql = "select library_name from Annotations where annoid=" + exp_annoid.__str__()
+#         cur.execute(sql)
+#         name = cur.fetchone()[0]
+#     return name
 
 def get_macs_pairs(con):
     """Returns a list of tuples, each being (experiment,control) Annotation object ids for MACS2 peak-calling.
@@ -164,43 +167,51 @@ def get_macs_pairs(con):
     pairs = [] #(treatment Id, control ID)
     
     cur = con.cursor()
-    sql = "select distinct tf from Annotations"
+    sql = "select taggedid, controlid from Pairs"
     cur.execute(sql)
-    for dd in cur.fetchall():
-        tf = dd[0]
-        sql = "select distinct sample from Annotations where tf='" + tf.__str__() + "'"
-        cur.execute(sql)
-        for x in cur.fetchall():
-            sample = x[0]
-            sql = "select distinct replicate from Annotations where sample='" + sample + "' and tf='" + tf.__str__() + "'"
-            cur.execute(sql)
-            for y in cur.fetchall():
-                repid = y[0]     
-                sql = "Select distinct species from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "'"
-                cur.execute(sql)
-                s = cur.execute(sql)
-                for z in cur.fetchall():
-                    species = z[0]
-                    sql = "select distinct media from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "' and species='" + species.__str__() + "'"
-                    cur.execute(sql)
-                    mm = cur.fetchall()
-                    for media in mm:
-                        media = media[0]
-                        sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=1 and tf='" + tf.__str__() + "'"
-                        cur.execute(sql)
-                        treatments = cur.fetchall()
-                        sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
-                        cur.execute(sql)
-                        controls = cur.fetchall()               
-                        if controls.__len__() > 1:
-                            print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid, tf
-                            print controls
-                            exit()
-                        control = controls[0][0]
-                        for t in treatments:
-                            pairs.append( (t[0],control)  ) 
-                            print "Experiment:", t[0], "Control:", control, "Sample:", sample, "ReplicateID:",  repid, "Species:", species
+    x = cur.fetchall()
+    for ii in x:
+        pairs.append( ii[0], ii[1] )
     return pairs
+    
+#     cur = con.cursor()
+#     sql = "select distinct tf from Annotations"
+#     cur.execute(sql)
+#     for dd in cur.fetchall():
+#         tf = dd[0]
+#         sql = "select distinct sample from Annotations where tf='" + tf.__str__() + "'"
+#         cur.execute(sql)
+#         for x in cur.fetchall():
+#             sample = x[0]
+#             sql = "select distinct replicate from Annotations where sample='" + sample + "' and tf='" + tf.__str__() + "'"
+#             cur.execute(sql)
+#             for y in cur.fetchall():
+#                 repid = y[0]     
+#                 sql = "Select distinct species from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "'"
+#                 cur.execute(sql)
+#                 s = cur.execute(sql)
+#                 for z in cur.fetchall():
+#                     species = z[0]
+#                     sql = "select distinct media from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and  tf='" + tf.__str__() + "' and species='" + species.__str__() + "'"
+#                     cur.execute(sql)
+#                     mm = cur.fetchall()
+#                     for media in mm:
+#                         media = media[0]
+#                         sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=1 and tf='" + tf.__str__() + "'"
+#                         cur.execute(sql)
+#                         treatments = cur.fetchall()
+#                         sql = "select annoid from Annotations where sample='" + sample + "' and replicate=" + repid.__str__() + " and species='" + species.__str__() + "' and media='" + media.__str__() + "' and tag=0 and tf='" + tf.__str__() + "'"
+#                         cur.execute(sql)
+#                         controls = cur.fetchall()               
+#                         if controls.__len__() > 1:
+#                             print "\n. Error, I wasn't expecting to find multiple controls for", sample, species, repid, tf
+#                             print controls
+#                             exit()
+#                         control = controls[0][0]
+#                         for t in treatments:
+#                             pairs.append( (t[0],control)  ) 
+#                             print "Experiment:", t[0], "Control:", control, "Sample:", sample, "ReplicateID:",  repid, "Species:", species
+#     return pairs
 
 def get_db(dbpath):    
     if dbpath == None or dbpath == False:

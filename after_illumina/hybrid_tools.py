@@ -189,8 +189,8 @@ def print_read_histograms(con):
 
     max_mismatch = 18
 
-    annoid_totalreads = {}
-    annoid_bars = {} # key = annoid, value = list of bargraph Y values
+    readid_totalreads = {}
+    readid_bars = {} # key = annoid, value = list of bargraph Y values
     max_count = 0 # the maximum Y value
     for readid in readids:
         print "\n. Counting mismatches for READ", readid
