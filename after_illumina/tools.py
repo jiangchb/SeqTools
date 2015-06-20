@@ -513,9 +513,9 @@ def bam2bedgraph(con):
     
     commands = []
     for readid in readid_bampath:
-        bedpath = re.sub( ".sort.bam", ".bed", readid_bampath[annoid] )
+        bedpath = re.sub( ".sort.bam", ".bed", readid_bampath[readid] )
         bedpath = re.sub( ".unique", "", bedpath)
-        c = get_setting("gcb", con) + " -ibam " + readid_bampath[annoid]
+        c = get_setting("gcb", con) + " -ibam " + readid_bampath[readid]
         c += " -bga "
         c += " > " + bedpath
         commands.append(c)
