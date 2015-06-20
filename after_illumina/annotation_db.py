@@ -1,5 +1,4 @@
-"""Read an annotation Excel file
-See the NDT80 Analysis, October 2014, with Eugenio, for details."""
+"""Read an annotation Excel file"""
 
 import os, sys, re
 import sqlite3 as lite

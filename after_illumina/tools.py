@@ -711,83 +711,148 @@ def write_viz_config(con):
     sql = "insert or replace into Settings (keyword, value) VALUES('viz_configpath','" + configpath + "')"
     cur.execute(sql)
     con.commit()
-        
-    species = []
-    sql = "select distinct species from Annotations"
+                
+    speciesid_name = {}
+    sql = "select id, name from Species where id in (select distinct speciesid from Reads)"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
-        species.append( ii[0] )
-        
+        speciesid_name[ ii[0] ] = ii[1]
+
+    repgroups = {} # key = group ID, value = list with two pair IDs
+    sql = "select compid, pairid from PairsComparisons"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        compid = ii[0]
+        pairid = ii[1]
+        if compid not in repgroups:
+            repgroups[compid] = []
+        if pairid not in repgroups[compid]:
+            repgroups[compid].append( pairid )
+
     fout = open(configpath, "w")
-    
-    for s in species:
+    for sid in speciesid_name:
+        s = speciesid_name[sid]
         fout.write("SPECIES " + s + "\n")
         fout.write("NAME = " + s + "\n")
         
-        """Here are some genome feature files that are known."""
-        if s == "Cdub":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_dubliniensis_CD36_version_s01-m02-r08_features.gff\n")
-        if s == "Calb":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_albicans_SC5314_A21_current_features.gff\n")
-        if s == "Ctro":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
-        if s == "Scer":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/scer.gff\n")
-        if s == "Pstip":
-            fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/pstip.gff\n")
-        
-        repgroups = []
-        sql = "select distinct strain from Annotations where species='" + s + "'"
-        sql += " and Annotations.annoid in (select exp_annoid from MacsRun)"
-        
-        #sql = "select distinct strain from Annotations where species='" + s + "'"
+        sql = "select gffpath from GFF where speciesid=" + sid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
-        for ii in x:
-            strain = ii[0]
-            repgroups.append( strain )
-        for strain in repgroups:
-            fout.write("\tREPGROUP " + strain + "-" + s + "\n")
-            
-            replicates = []
-            sql = "select distinct replicate from Annotations where species='" + s + "' and strain='" + strain + "'"
-            cur.execute(sql)
-            x = cur.fetchall()
-            for ii in x:
-                replicates.append( ii[0] )
-            
-            for ii in range(0, replicates.__len__() ):
-                fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
-                annoids = []
-                #sql += "where "
-                sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + replicates[ii].__str__() + ")"
+        if x.__len__() == 0:
+            msg = "(732) Error, the species " + s + " has no GFF entry."
+            write_error(con, msg)
+            print msg
+            exit()
+        elif x.__len__() > 1:
+            msg = "(737) Error, the species " + s + " has multiple GFF entries."
+            write_error(con, msg)
+            print msg
+            exit()            
+        gffpath = x[0][0]
+        fout.write("GFF = " + gffpath + "\n")
+        
+#         """Here are some genome feature files that are known."""
+#         if s == "Cdub":
+#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_dubliniensis_CD36_version_s01-m02-r08_features.gff\n")
+#         if s == "Calb":
+#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_albicans_SC5314_A21_current_features.gff\n")
+#         if s == "Ctro":
+#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
+#         if s == "Scer":
+#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/scer.gff\n")
+#         if s == "Pstip":
+#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/pstip.gff\n")
+        for compid in repgroups:
+            is_correct_species = False
+            readids = []
+            for pairid in repgroups[compid]:
+                sql = "select speciesid, id, name from Reads where id in (select taggedid from Pairs where id=" + pairid.__str__() + ")"
                 cur.execute(sql)
-                x = cur.fetchall()
-                for ii in x:
-                    annoids.append( ii[0] )
+                x = cur.fetchone()
+                if x[0] == sid:
+                    is_correct_species
+                    readids.append( x[1] )
+                    continue
+            if False == is_correct_species:
+                continue
+            sql = "select name from Comparisons where id=" + compid.__str__()
+            cur.execute(sql)
+            x = cur.fetchone()
+            fout.write("\tREPGROUP " + x[0].__str__() + "\n")
+            for pairid in repgroups[compid]:
+                sql = "select name from Pairs where id=" + pairid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                fout.write("\t\tREPLICATE " + x[0].__str__() + "\n")
+            
+                sql = "select id, name from MacsRun where pairid=" + pairid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                macsrunid = x[0]
+                macsrunname = x[1]
                 
-                for id in annoids:
-                    sql = "select summits_path from MacsPeakPaths where exp_annoid=" + id.__str__()
-                    cur.execute(sql)
-                    x = cur.fetchall()
-                    if x.__len__() < 1:
-                        print "\n. An error occurred. Checkpoint 413"
-                        exit()
-                    summitpath = x[0][0]
-                    fout.write("\t\tSUMMITS = " + summitpath + "\n")
-
-                    sql = "select bdgpath from MacsFE where exp_annoid=" + id.__str__()
-                    cur.execute(sql)
-                    x = cur.fetchall()
-                    if x.__len__() < 1:
-                        print "\n. An error occurred. Checkpoint 413"
-                        exit()
-                    bdgpath = x[0][0]
-                    fout.write("\t\tENRICHMENTS = " + bdgpath + "\n")
+                sql = "select bdgpath from MacsFE where macsrunid=" + macsrunid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                fout.write("\t\tENRICHMENTS = " + x[0].__str__() + "\n")
                 
-                pass
+                sql = "select summits_path from MacsPeakPaths where macsrunid=" + macsrunid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                fout.write("\t\tSUMMITS = " + x[0].__str__() + "\n")
     fout.close()
+              
+#         sql = "select distinct strain from Annotations where species='" + s + "'"
+#         sql += " and Annotations.annoid in (select exp_annoid from MacsRun)"
+#         
+#         #sql = "select distinct strain from Annotations where species='" + s + "'"
+#         cur.execute(sql)
+#         x = cur.fetchall()
+#         for ii in x:
+#             strain = ii[0]
+#             repgroups.append( strain )
+#         for strain in repgroups:
+#             fout.write("\tREPGROUP " + strain + "-" + s + "\n")
+#             
+#             replicates = []
+#             sql = "select distinct replicate from Annotations where species='" + s + "' and strain='" + strain + "'"
+#             cur.execute(sql)
+#             x = cur.fetchall()
+#             for ii in x:
+#                 replicates.append( ii[0] )
+#             
+#             for ii in range(0, replicates.__len__() ):
+#                 fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
+#                 annoids = []
+#                 #sql += "where "
+#                 sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + replicates[ii].__str__() + ")"
+#                 cur.execute(sql)
+#                 x = cur.fetchall()
+#                 for ii in x:
+#                     annoids.append( ii[0] )
+#                 
+#                 for id in annoids:
+#                     sql = "select summits_path from MacsPeakPaths where exp_annoid=" + id.__str__()
+#                     cur.execute(sql)
+#                     x = cur.fetchall()
+#                     if x.__len__() < 1:
+#                         print "\n. An error occurred. Checkpoint 413"
+#                         exit()
+#                     summitpath = x[0][0]
+#                     fout.write("\t\tSUMMITS = " + summitpath + "\n")
+# 
+#                     sql = "select bdgpath from MacsFE where exp_annoid=" + id.__str__()
+#                     cur.execute(sql)
+#                     x = cur.fetchall()
+#                     if x.__len__() < 1:
+#                         print "\n. An error occurred. Checkpoint 413"
+#                         exit()
+#                     bdgpath = x[0][0]
+#                     fout.write("\t\tENRICHMENTS = " + bdgpath + "\n")
+#                 
+#                 pass
 
 def launch_viz(con):
     """Launches the APRES visualization scripts.
