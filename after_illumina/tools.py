@@ -509,7 +509,7 @@ def bam2bedgraph(con):
         if False == os.path.exists( bampath ):
             print "\n. Error, I can't find your BAM file at", bampath
             exit()
-        readid_bampath[annoid] =  bampath
+        readid_bampath[ readid ] =  bampath
     
     commands = []
     for readid in readid_bampath:
