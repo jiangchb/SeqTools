@@ -19,12 +19,8 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS ReadComments(readid integer primary key, comment TEXT)")
     
     """PAIRs"""
-    cur.execute("drop table if exists Pairs")
-    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS Pairs(id integer primary key, name TEXT unique, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
     
-    cur.execute("drop table if exists Comparisons")
-    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS Comparisons(id integer primary key, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS PairsComparisons(compid INT, pairid INT)") # maps pairs into comparisons
     cur.execute("CREATE TABLE IF NOT EXISTS CompareComparisons(compid INT, targetid INT)")
@@ -49,16 +45,8 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(macsrunid INT primary key, org_bdgpath TEXT, wigpath TEXT)")
     
     """All annotations will be given an entry in SortedBamFiles."""
-    cur.execute("drop table if exists SortedBamFiles")
-    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(readid INTEGER primary key, bampath TEXT)")
-    
-    cur.execute("drop table if exists BedgraphFiles")
-    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(readid INTEGER primary key, bedpath TEXT)")
-    
-    cur.execute("drop table if exists ReadsWigFiles")
-    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(readid INTEGER primary key, wigpath TEXT)")
     cur.execute("create table if not exists Log(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     cur.execute("create table if not exists ErrorLog(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
