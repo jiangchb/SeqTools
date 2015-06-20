@@ -531,6 +531,20 @@ def import_configuration(cpath, con):
                 write_error(con, msg)
                 print msg
                 exit()
+                
+            """Validate that Reads ida and Reads idb come from the same species."""
+            sql = "select speciesid from Reads where id=" + ida.__str__()
+            cur.execute(sql)
+            yy = cur.fetchone()
+            sql = "select speciesid from Reads where id=" + idb.__str__()
+            cur.execute(sql)
+            zz = cur.fetchone()
+            if yy[0] != zz[0]:
+                msg = "Error: the controlled and tagged reads came from different species."
+                print msg
+                print ll
+                exit()
+                
             sql = "insert or ignore into Pairs (name, controlid, taggedid) VALUES"
             sql += " ('" + pairname.__str__() + "'," + ida.__str__() + "," + idb.__str__() + ")"
             cur.execute(sql)
