@@ -390,7 +390,9 @@ def import_configuration(cpath, con):
         exit()
     
     cur = con.cursor()
-        
+    
+    print "\n. Reading the configuration file. . ."
+    
     sql = "delete from SpeciesGenomepath"
     cur.execute(sql)
     sql = "delete from GFF"
