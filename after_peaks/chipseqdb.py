@@ -425,6 +425,7 @@ def import_summits(summitpath, repid, con):
                     cur.execute(sql)
 
     except:
+        traceback.print_exc()
         print "\n. Error (357) Something wrong occurred while importing summits from", summitpath
         print ". I'm rolling back the changes to the tables Summits"
         con.rollback()
