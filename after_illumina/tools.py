@@ -281,7 +281,7 @@ def check_bams(con, delete_sam = True):
         then the SAM files (from which the BAMs were created) will be deleted.
         If the files aren't found, then the program will terminate."""
     cur = con.cursor()        
-    sql = "select readid from Reads"
+    sql = "select id from Reads"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
