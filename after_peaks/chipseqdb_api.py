@@ -52,6 +52,7 @@ def get_chrom_id(con, name, speciesid):
         speciesname = yy[0]
         msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname
         print "\n. " + msg
+        exit()
         return None
     else:
         return x[0]
@@ -355,7 +356,7 @@ def does_replicate_exist(repname, speciesid, con):
 
 def add_replicate(repname, speciesid, con):
     cur = con.cursor()
-    sql = "INSERT INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
+    sql = "INSERT or ignore INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
     cur.execute( sql )
     con.commit()
     

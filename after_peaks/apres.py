@@ -73,12 +73,11 @@ def import_data(con):
             rgroupid = get_repgroup_id(groupname, con)
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-                #print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
+                print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
                 ii += 1
 
                 repname = groupname + "-" + jj.__str__()
-                if False == does_replicate_exist(repname, speciesid, con):
-                    con = add_replicate(repname, speciesid, con)
+                con = add_replicate(repname, speciesid, con)
                 repid = get_repid(repname, speciesid, con)
                 con = add_rep2group(repid, rgroupid, con)
                 
