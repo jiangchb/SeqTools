@@ -202,8 +202,8 @@ def print_read_histograms(con):
             sql = "select count(*) from Reads" + readid.__str__() + " where mismatch=" + ii.__str__()
             cur.execute(sql)
             this_count = cur.fetchone()[0]
-            readid_totalreads[annoid] += this_count
-            readid_bars[annoid].append( this_count )
+            readid_totalreads[readid] += this_count
+            readid_bars[readid].append( this_count )
             
             if max_count < this_count:
                 max_count = this_count
