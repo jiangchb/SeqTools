@@ -456,7 +456,6 @@ def calculate_fe(con):
         
     fout = open("fe_commands.sh", "w")
     for c in fe_commands:
-        print c
         fout.write(c + "\n")
     fout.close()
     
