@@ -391,7 +391,7 @@ def import_configuration(cpath, con):
     
     cur = con.cursor()
     
-    print "\n. Reading the configuration file. . ."
+    print "\n. Reading the configuration file at ", cpath
     
     sql = "delete from SpeciesGenomepath"
     cur.execute(sql)

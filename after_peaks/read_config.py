@@ -63,8 +63,7 @@ def read_config(path):
             curr_rgroup = rgroup
         
         elif l.startswith("REPLICATE"):
-            repid = l.split("=")[0].split()[1]
-            repid = re.sub(" ", "", repid)
+            repid = l.split(" ")[1]
             curr_rep = repid
             if "reps" not in params["species"][curr_species]["rgroups"][curr_rgroup]:
                 params["species"][curr_species]["rgroups"][curr_rgroup]["reps"] = {}
