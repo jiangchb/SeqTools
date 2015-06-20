@@ -51,7 +51,7 @@ def get_chrom_id(con, name, speciesid):
         yy = cur.fetchone()
         speciesname = yy[0]
         msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname
-        print + "\n. " + msg
+        print "\n. " + msg
         return None
     else:
         return x[0]
