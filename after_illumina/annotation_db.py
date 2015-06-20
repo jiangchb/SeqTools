@@ -19,9 +19,13 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS ReadComments(readid integer primary key, comment TEXT)")
     
     """PAIRs"""
-    cur.execute("CREATE TABLE IF NOT EXISTS Pairs(id integer primary key autoincrement, name TEXT unique, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
+    cur.execute("drop table if exists Pairs")
+    con.commit()
+    cur.execute("CREATE TABLE IF NOT EXISTS Pairs(id integer primary key, name TEXT unique, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
     
-    cur.execute("CREATE TABLE IF NOT EXISTS Comparisons(id integer primary key autoincrement, name TEXT)")
+    cur.execute("drop table if exists Comparisons")
+    con.commit()
+    cur.execute("CREATE TABLE IF NOT EXISTS Comparisons(id integer primary key, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS PairsComparisons(compid INT, pairid INT)") # maps pairs into comparisons
     cur.execute("CREATE TABLE IF NOT EXISTS CompareComparisons(compid INT, targetid INT)")
     
@@ -539,7 +543,7 @@ def import_configuration(cpath, con):
                 write_error(con, msg)
                 print msg
                 exit()
-            sql = "insert or replace into Pairs (name, controlid, taggedid) VALUES"
+            sql = "insert or ignore into Pairs (name, controlid, taggedid) VALUES"
             sql += " ('" + pairname.__str__() + "'," + ida.__str__() + "," + idb.__str__() + ")"
             cur.execute(sql)
             con.commit()
@@ -554,7 +558,7 @@ def import_configuration(cpath, con):
                 print msg
                 exit()
             name = tokens[1]
-            sql = "insert or replace into Comparisons (name) values('" + name.__str__() + "')"
+            sql = "insert or ignore into Comparisons (name) values('" + name.__str__() + "')"
             cur.execute(sql)
             con.commit()
             sql = "select id from Comparisons where name='" + name.__str__() + "'"
