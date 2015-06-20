@@ -783,22 +783,26 @@ def write_viz_config(con):
             fout.write("\tREPGROUP " + x[0].__str__() + "\n")
             for pairid in repgroups[compid]:
                 sql = "select name from Pairs where id=" + pairid.__str__()
+                print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 fout.write("\t\tREPLICATE " + x[0].__str__() + "\n")
             
                 sql = "select id, name from MacsRun where pairid=" + pairid.__str__()
+                print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 macsrunid = x[0]
                 macsrunname = x[1]
                 
                 sql = "select bdgpath from MacsFE where macsrunid=" + macsrunid.__str__()
+                print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 fout.write("\t\tENRICHMENTS = " + x[0].__str__() + "\n")
                 
                 sql = "select summits_path from MacsPeakPaths where macsrunid=" + macsrunid.__str__()
+                print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 fout.write("\t\tSUMMITS = " + x[0].__str__() + "\n")
