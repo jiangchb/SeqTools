@@ -772,7 +772,7 @@ def write_viz_config(con):
                 cur.execute(sql)
                 x = cur.fetchone()
                 if x[0] == sid:
-                    is_correct_species
+                    is_correct_species = True
                     readids.append( x[1] )
                     continue
             if False == is_correct_species:
