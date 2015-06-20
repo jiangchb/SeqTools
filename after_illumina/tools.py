@@ -498,7 +498,7 @@ def bam2bedgraph(con):
 
     readid_bampath = {}
     for ii in x:
-        sql = "select readid, bampath from SortedBamFiles where annoid=" + ii[0].__str__()
+        sql = "select readid, bampath from SortedBamFiles where readid=" + ii[0].__str__()
         cur.execute(sql)
         y = cur.fetchall()
         if y.__len__() < 1:
