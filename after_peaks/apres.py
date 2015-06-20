@@ -42,6 +42,8 @@ def import_gffs(con):
         con = import_gff(gffpath, speciesid, con, filter_chrom=chrom_restrict_list)
 
 def import_data(con):
+    print "45:", params
+    
     """If this analysis uses pillars to translate gene names, then those values
     must be imported prior to this method."""
     cur = con.cursor()
@@ -55,7 +57,7 @@ def import_data(con):
     sql = "DELETE FROM GeneSummits"
     cur.execute(sql)
     con.commit()
-    
+        
     for sp in ap.params["species"]:
         #print "\n. Importing data for species", sp
         speciesname = ap.params["species"][sp]["name"]

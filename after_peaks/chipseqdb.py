@@ -285,7 +285,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
                 if abs(stop - start) > 15000:
                     msg = "Warning, the gene named " + gene.__str__() + " is very long: " + abs(stop-start).__str__() +  " bp."
                     write_log(con, msg)
-                    print "\n", msg
+                    print "\n\t-->", msg
                                               
                 sql = "INSERT INTO Genes (name, start, stop, chrom, strand) VALUES('" + gene.__str__() + "'," + start.__str__() + "," + stop.__str__() + "," + curr_chromid.__str__() + ",'" + strand + "')"
                 cur.execute(sql) 
