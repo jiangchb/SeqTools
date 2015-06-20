@@ -395,6 +395,7 @@ def import_summits(summitpath, repid, con):
     cur.execute(sql)
     x = cur.fetchone()
     speciesid = int( x[0] )
+    print "chipseqdb 398 - ", summitpath, repid, speciesid
     
     #
     # Build a library of summits
@@ -493,6 +494,7 @@ def import_foldenrichment(bdgpath, repid, con):
     cur.execute(sql)
     x = cur.fetchone()
     speciesid = int( x[0] )
+    print "chipseqdb.py 496 - ", repid, speciesid
     
     total_count = estimate_line_count(bdgpath)
     

@@ -74,7 +74,6 @@ def import_data(con):
             con = add_species(speciesname, con)
         speciesid = get_species_id(speciesname, con)
                         
-        ii = -1
         for groupname in ap.params["species"][sp]["rgroups"]:
             if False == does_repgroup_exist(groupname, con):
                 con = add_repgroup(groupname, con)
@@ -82,7 +81,6 @@ def import_data(con):
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
                 print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
-                ii += 1
 
                 repname = groupname + "-" + jj.__str__()
                 con = add_replicate(repname, speciesid, con)
