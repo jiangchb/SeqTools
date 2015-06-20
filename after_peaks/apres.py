@@ -41,9 +41,7 @@ def import_gffs(con):
         chrom_restrict_list = ap.getOptionalList("--skip_chroms")
         con = import_gff(gffpath, speciesid, con, filter_chrom=chrom_restrict_list)
 
-def import_data(con):
-    print "45:", ap.params
-    
+def import_data(con):    
     """If this analysis uses pillars to translate gene names, then those values
     must be imported prior to this method."""
     cur = con.cursor()

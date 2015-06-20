@@ -126,7 +126,6 @@ def read_config(path):
             for unionname in x:
                 params["unionssp"][spunionname].append( re.sub(" ", "", unionname) )
     
-    print "129:", params
     return params
 
 def validate_config(params):

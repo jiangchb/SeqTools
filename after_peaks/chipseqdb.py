@@ -551,6 +551,7 @@ def import_foldenrichment(bdgpath, repid, con):
             """We need to look up the ID for this chromosome,
                 and get this chrom's list of gene pairs and summits."""
             curr_chromname = chromname
+            print "554 - ", curr_chromname, speciesid
             chromid = get_chrom_id(con, curr_chromname, speciesid)
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""

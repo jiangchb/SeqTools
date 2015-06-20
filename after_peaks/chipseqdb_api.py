@@ -357,6 +357,7 @@ def does_replicate_exist(repname, speciesid, con):
 def add_replicate(repname, speciesid, con):
     cur = con.cursor()
     sql = "INSERT or ignore INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
+    print sql
     cur.execute( sql )
     con.commit()
     
