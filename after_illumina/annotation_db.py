@@ -46,10 +46,17 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS FEWigFiles(macsrunid INT primary key, org_bdgpath TEXT, wigpath TEXT)")
     
     """All annotations will be given an entry in SortedBamFiles."""
+    cur.execute("drop table if exists SortedBamFiles")
+    con.commit()
     cur.execute("CREATE TABLE IF NOT EXISTS SortedBamFiles(readid INTEGER primary key, bampath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(readid INTEGER primary key, bedpath TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(readid INTEGER primary key, wigpath TEXT)")
     
+    cur.execute("drop table if exists BedgraphFiles")
+    con.commit()
+    cur.execute("CREATE TABLE IF NOT EXISTS BedgraphFiles(readid INTEGER primary key, bedpath TEXT)")
+    
+    cur.execute("drop table if exists ReadsWigFiles")
+    con.commit()
+    cur.execute("CREATE TABLE IF NOT EXISTS ReadsWigFiles(readid INTEGER primary key, wigpath TEXT)")
     cur.execute("create table if not exists Log(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     cur.execute("create table if not exists ErrorLog(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     con.commit()
