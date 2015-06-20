@@ -257,7 +257,7 @@ def print_read_histograms(con):
         plt.xlabel('Mismatched Sites')
         plt.ylabel('Reads')
         plt.title('Histogram of Read Mismatches -- ' + this_library_name)
-        if annoid in annoid_countunique: # i.e., is this annotation a hybrid?
+        if readid in readid_countunique: # i.e., is this annotation a hybrid?
             plt.legend( (p1[0], p2[0]), ('Reads Mapped to ' + this_species + ' (' + readid_totalreads[readid].__str__() + ')', 'Reads Unique to ' + this_species + ' (' + readid_countunique[readid].__str__() + ')') )
         plt.tight_layout()
         pdf_pages.savefig(fig)
