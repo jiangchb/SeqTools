@@ -42,7 +42,7 @@ def import_gffs(con):
         con = import_gff(gffpath, speciesid, con, filter_chrom=chrom_restrict_list)
 
 def import_data(con):
-    print "45:", params
+    print "45:", ap.params
     
     """If this analysis uses pillars to translate gene names, then those values
     must be imported prior to this method."""
