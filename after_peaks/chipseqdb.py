@@ -618,6 +618,8 @@ def import_foldenrichment(bdgpath, repid, con):
 #                     print "593:", sql
                 cur.execute(sql)
                 con.commit()
+           
+           #361
                   
             """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.

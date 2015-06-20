@@ -36,6 +36,8 @@ def splash():
 
 splash()
 
+
+
 """read_cli reads the command-line, the annotation file, and creates a SQLite3 database."""
 con = read_cli(ap)
 print_settings(con)
