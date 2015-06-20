@@ -55,7 +55,16 @@ def import_data(con):
     sql = "DELETE FROM GeneSummits"
     cur.execute(sql)
     con.commit()
-        
+    
+    """Print the parameters before import"""
+    for sp in ap.params["species"]:
+        print ap.params["species"][sp]["name"]
+        print ap.params["species"][sp]["rgroups"]
+        for groupname in ap.params["species"][sp]["rgroups"]:
+            print groupname, ap.params["species"][sp]["rgroups"][groupname]["reps"]
+            print ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]
+            
+            
     for sp in ap.params["species"]:
         #print "\n. Importing data for species", sp
         speciesname = ap.params["species"][sp]["name"]
