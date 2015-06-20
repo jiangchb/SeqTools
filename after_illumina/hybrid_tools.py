@@ -269,12 +269,17 @@ def write_filtered_sam(con):
     equal or below the mismatch threshold,
     and (for hybrids) which are uniquely mapped to only one of the hybrid parent species."""
     cur = con.cursor()
-    sql = "select * from Hybrids"
+    sql = "select readid1, readid2 from HybridPairs"
     cur.execute(sql)
     x = cur.fetchall()
     readids = []
     for ii in x:
-        readids.append( ii[0] )
+        readid1 = ii[0]
+        readid2 = ii[1]
+        if readid1 not in readids:
+            readids.append( readid1 )
+        if readid2 not in readids:
+            readids.append( readid2 )
         
     for readid in readids:
         sql = "select name, speciesid, fastqid from Reads where readid=" + readid.__str__()
@@ -307,16 +312,14 @@ def write_filtered_sam(con):
             header_lines.append( l )
         fin.close()
          
-        """Finally, write the new SAM file."""
+        """readnames is a list of strings, each a unique name for a read."""
+        readnames = Set([])
         sys.stdout.write(".")
         sys.stdout.flush()
         sql = "select readname from Reads" + readid.__str__() + " where Reads" + readid.__str__() + ".readid in (select readid from UniqueReads" + readid.__str__() + ") order by Reads" + readid.__str__() + ".order_seen"
         cur.execute(sql)
         x = cur.fetchall()
-        
-        """readnames is a list of strings, each a unique name for a read."""
         count = 0
-        readnames = Set([])
         for ii in x:
             readnames.add( ii[0] )
             count += 1
