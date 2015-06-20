@@ -183,6 +183,8 @@ def read_cli(ap):
     #con = import_genome_list(GENOME_LIST, con)
     
     con = import_configuration(CPATH, con)
+    
+    print "187:"
     return con
 
 def print_settings(con):
