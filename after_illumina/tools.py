@@ -754,6 +754,8 @@ def write_viz_config(con):
         fout.write("GFF = " + gffpath + "\n")
         
         for compid in repgroups:
+            """Iterate through all the known replicate groups, and find those
+                that correspond to this species."""
             is_correct_species = False
             readids = []
             for pairid in repgroups[compid]:
@@ -766,10 +768,12 @@ def write_viz_config(con):
                     continue
             if False == is_correct_species:
                 continue
+            
             sql = "select name from Comparisons where id=" + compid.__str__()
             cur.execute(sql)
             x = cur.fetchone()
-            fout.write("\tREPGROUP " + x[0].__str__() + "\n")
+            repgroupname = x[0]
+            fout.write("\tREPGROUP " + repgroupname.__str__() + "\n")
                         
             for ii in range( 0, repgroups[compid].__len__() ):
                 pairid = repgroups[compid][ii]
@@ -778,7 +782,8 @@ def write_viz_config(con):
                 print sql
                 cur.execute(sql)
                 x = cur.fetchone()
-                fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
+                replicate_name = (ii+1).__str__()
+                fout.write("\t\tREPLICATE " + replicate_name.__str__() + "\n")
             
                 sql = "select id, name from MacsRun where pairid=" + pairid.__str__()
                 print sql
@@ -786,6 +791,8 @@ def write_viz_config(con):
                 x = cur.fetchone()
                 macsrunid = x[0]
                 macsrunname = x[1]
+                
+                print "Species:", sid, s, " Repgroup:", compid, repgroupname, "Replicate:", replicate_name, "MACS run", macsrunid, macsrunname
                 
                 sql = "select bdgpath from MacsFE where macsrunid=" + macsrunid.__str__()
                 print sql
