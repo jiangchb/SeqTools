@@ -719,18 +719,41 @@ def write_viz_config(con):
     for ii in x:
         speciesid_name[ ii[0] ] = ii[1]
 
-    repgroups = {} # key = group ID, value = list with two pair IDs
+    repgroupids_pairids_readids = {} # key = group ID, value = hash; key = pair ID, value = tagged Read ID
     sql = "select compid, pairid from PairsComparisons"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
         compid = ii[0]
         pairid = ii[1]
-        if compid not in repgroups:
-            repgroups[compid] = []
-        if pairid not in repgroups[compid]:
-            repgroups[compid].append( pairid )
+        if compid not in repgroupids_pairids_readids:
+            repgroupids_pairids_readids[compid] = {}
+        
+        sql = "select taggedid from Pairs where id=" + pairid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        repgroupids_pairids_readids[compid][pairid] = x[0]
 
+    compid_species = {} # key = comparison ID, value = list of species IDs relevant to this comparison
+    for compid in repgroupids_pairids_readids:
+        speciesid_in_this_comp = []
+        sql = "select pairid from PairsComparison where compid=" + compid.__str__()
+        cur.execute(sql)
+        x = cur.fetchall()
+        for ii in x:
+            sql = "select speciesid from Reads where id in (select taggedid from Pairs where Pairs.id=" + ii[0].__str__() + ")"
+            cur.execute(sql)
+            yy = cur.fetchall()
+            for jj in yy:
+                speciesid_in_this_comp.append( jj[0] )
+        
+        sql = "select name from Comparisons where id=" + compid.__str__()
+        cur.execute(sql)
+        zz = cur.fetchone()
+        print compid, zz[0], speciesid_in_this_comp
+    
+    exit()
+    
     fout = open(configpath, "w")
     for sid in speciesid_name:
         s = speciesid_name[sid]
@@ -768,6 +791,8 @@ def write_viz_config(con):
                     continue
             if False == is_correct_species:
                 continue
+            
+            
             
             sql = "select name from Comparisons where id=" + compid.__str__()
             cur.execute(sql)
