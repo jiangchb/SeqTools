@@ -779,14 +779,14 @@ def write_viz_config(con):
                 pairid = repgroups[compid][ii]
                 
                 sql = "select name from Pairs where id=" + pairid.__str__()
-                print sql
+                #print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 replicate_name = (ii+1).__str__()
                 fout.write("\t\tREPLICATE " + replicate_name.__str__() + "\n")
             
                 sql = "select id, name from MacsRun where pairid=" + pairid.__str__()
-                print sql
+                #print sql
                 cur.execute(sql)
                 x = cur.fetchone()
                 macsrunid = x[0]
@@ -795,13 +795,13 @@ def write_viz_config(con):
                 print "Species:", sid, s, " Repgroup:", compid, repgroupname, "Replicate:", replicate_name, "MACS run", macsrunid, macsrunname
                 
                 sql = "select bdgpath from MacsFE where macsrunid=" + macsrunid.__str__()
-                print sql
+                #print sql
                 cur.execute(sql)
                 fepath = cur.fetchone()[0]
                 fout.write("\t\tENRICHMENTS = " + fepath.__str__() + "\n")
                 
                 sql = "select summits_path from MacsPeakPaths where macsrunid=" + macsrunid.__str__()
-                print sql
+                #print sql
                 cur.execute(sql)
                 summitspath = cur.fetchone()[0]
                 fout.write("\t\tSUMMITS = " + summitspath.__str__() + "\n")
