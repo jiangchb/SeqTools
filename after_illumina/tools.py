@@ -720,7 +720,7 @@ def write_viz_config(con):
         speciesid_name[ ii[0] ] = ii[1]
 
     repgroupids_pairids_readids = {} # key = group ID, value = hash; key = pair ID, value = tagged Read ID
-    sql = "select compid from PairsComparisons"
+    sql = "select compid, pairid from PairsComparisons"
     cur.execute(sql)
     x = cur.fetchall()
     for ii in x:
