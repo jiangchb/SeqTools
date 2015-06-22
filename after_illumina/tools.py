@@ -706,7 +706,7 @@ def write_viz_config(con):
         concerned with comparing replicates, comparing groups of replicates, and creating visulizations."""
     
     cur = con.cursor()
-    
+        
     configpath = get_setting("outdir", con) + "/" + get_setting("project_name", con) + ".config"
     sql = "insert or replace into Settings (keyword, value) VALUES('viz_configpath','" + configpath + "')"
     cur.execute(sql)
@@ -718,6 +718,14 @@ def write_viz_config(con):
     x = cur.fetchall()
     for ii in x:
         speciesid_name[ ii[0] ] = ii[1]
+
+
+    sql = "select id, name, speciesid from Reads"
+    cur.execute(sql)
+    x = cur.fetchall()
+    for ii in x:
+        print ii
+    exit()
 
     repgroupids_pairids_readids = {} # key = group ID, value = hash; key = pair ID, value = tagged Read ID
     sql = "select compid, pairid from PairsComparisons"
@@ -741,7 +749,7 @@ def write_viz_config(con):
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
-            sql = "select speciesid from Reads where id in (select taggedid from Pairs where Pairs.id=" + ii[0].__str__() + ")"
+            sql = "select speciesid from Reads where Reads.id in (select taggedid from Pairs where Pairs.id=" + ii[0].__str__() + ")"
             cur.execute(sql)
             yy = cur.fetchall()
             for jj in yy:
