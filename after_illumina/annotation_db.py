@@ -575,6 +575,8 @@ def import_configuration(cpath, con):
                 exit()
             compid = x[0]
             
+            print "578:", ll
+            
             for name in tokens[3:]:
                 """Ensure the pair ID exists."""
                 sql = "select id from Pairs where name='" + name.__str__() + "'"
