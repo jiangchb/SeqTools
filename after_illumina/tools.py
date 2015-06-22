@@ -797,14 +797,18 @@ def write_viz_config(con):
                 sql = "select bdgpath from MacsFE where macsrunid=" + macsrunid.__str__()
                 print sql
                 cur.execute(sql)
-                x = cur.fetchone()
-                fout.write("\t\tENRICHMENTS = " + x[0].__str__() + "\n")
+                fepath = cur.fetchone()[0]
+                fout.write("\t\tENRICHMENTS = " + fepath.__str__() + "\n")
                 
                 sql = "select summits_path from MacsPeakPaths where macsrunid=" + macsrunid.__str__()
                 print sql
                 cur.execute(sql)
-                x = cur.fetchone()
-                fout.write("\t\tSUMMITS = " + x[0].__str__() + "\n")
+                summitspath = cur.fetchone()[0]
+                fout.write("\t\tSUMMITS = " + summitspath.__str__() + "\n")
+                
+                print "\t", fepath
+                print "\t", summitspath
+                
     fout.close()
               
 #         sql = "select distinct strain from Annotations where species='" + s + "'"
