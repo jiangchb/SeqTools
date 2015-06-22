@@ -753,17 +753,6 @@ def write_viz_config(con):
         gffpath = x[0][0]
         fout.write("GFF = " + gffpath + "\n")
         
-#         """Here are some genome feature files that are known."""
-#         if s == "Cdub":
-#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_dubliniensis_CD36_version_s01-m02-r08_features.gff\n")
-#         if s == "Calb":
-#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_albicans_SC5314_A21_current_features.gff\n")
-#         if s == "Ctro":
-#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/C_tropicalis_MYA-3404_features.gff\n")
-#         if s == "Scer":
-#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/scer.gff\n")
-#         if s == "Pstip":
-#             fout.write("GFF = /Network/Servers/udp015817uds.ucsf.edu/Users/Shared/sequencing_analysis/gff/pstip.gff\n")
         for compid in repgroups:
             is_correct_species = False
             readids = []
@@ -781,12 +770,15 @@ def write_viz_config(con):
             cur.execute(sql)
             x = cur.fetchone()
             fout.write("\tREPGROUP " + x[0].__str__() + "\n")
-            for pairid in repgroups[compid]:
+                        
+            for ii in range( 0, repgroups[compid].__len__() ):
+                pairid = repgroups[compid][ii]
+                
                 sql = "select name from Pairs where id=" + pairid.__str__()
                 print sql
                 cur.execute(sql)
                 x = cur.fetchone()
-                fout.write("\t\tREPLICATE " + x[0].__str__() + "\n")
+                fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
             
                 sql = "select id, name from MacsRun where pairid=" + pairid.__str__()
                 print sql
