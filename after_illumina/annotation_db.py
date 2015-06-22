@@ -549,6 +549,7 @@ def import_configuration(cpath, con):
                 
             sql = "insert or ignore into Pairs (name, controlid, taggedid) VALUES"
             sql += " ('" + pairname.__str__() + "'," + ida.__str__() + "," + idb.__str__() + ")"
+            print sql
             cur.execute(sql)
             con.commit()
                 
@@ -583,6 +584,8 @@ def import_configuration(cpath, con):
                 cur.execute(sql)
                 targetid = None
                 x = cur.fetchone()
+                print sql
+                print "588:", x
                 if x == None:
                     """Then maybe the comparison object is another comparison?"""
                     sql = "select id from Comparisons where name='" + name.__str__() + "'"
