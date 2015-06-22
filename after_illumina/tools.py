@@ -737,7 +737,7 @@ def write_viz_config(con):
     compid_species = {} # key = comparison ID, value = list of species IDs relevant to this comparison
     for compid in repgroupids_pairids_readids:
         speciesid_in_this_comp = []
-        sql = "select pairid, name from PairsComparisons where compid=" + compid.__str__()
+        sql = "select pairid from PairsComparisons where compid=" + compid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
         for ii in x:
