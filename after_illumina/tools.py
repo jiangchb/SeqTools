@@ -745,6 +745,7 @@ def write_viz_config(con):
             cur.execute(sql)
             yy = cur.fetchall()
             for jj in yy:
+                print "748: pair", ii[0], " species", jj[0]
                 speciesid_in_this_comp.append( jj[0] )
         
         sql = "select name from Comparisons where id=" + compid.__str__()
