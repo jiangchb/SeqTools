@@ -736,6 +736,9 @@ def write_viz_config(con):
 
     compid_species = {} # key = comparison ID, value = list of species IDs relevant to this comparison
     for compid in repgroupids_pairids_readids:
+        sql = "Select name from Comparisons where id=" + compid.__str__()
+        cur.execute(sql)
+        comparisonname = cur.fetchone()[0]
         speciesid_in_this_comp = []
         sql = "select pairid from PairsComparisons where compid=" + compid.__str__()
         cur.execute(sql)
@@ -747,11 +750,12 @@ def write_viz_config(con):
             for jj in yy:
                 #print "748: pair", ii[0], " species", jj[0], speciesid_name[ jj[0] ]
                 speciesid_in_this_comp.append( jj[0] )
+        if speciesid_in_this_comp.__len__() > 1:
+            msg = "The COMPARE entry includes experiments that occurred in different species."
+            
+        compid_species[compid] = speciesid_in_this_comp
         
-        sql = "select name from Comparisons where id=" + compid.__str__()
-        cur.execute(sql)
-        zz = cur.fetchone()
-        #print compid, zz[0], speciesid_in_this_comp
+        
         
     fout = open(configpath, "w")
     for sid in speciesid_name:
@@ -775,24 +779,11 @@ def write_viz_config(con):
         gffpath = x[0][0]
         fout.write("GFF = " + gffpath + "\n")
         
-        for compid in repgroups:
-            """Iterate through all the known replicate groups, and find those
-                that correspond to this species."""
-            is_correct_species = False
-            readids = []
-            for pairid in repgroups[compid]:
-                sql = "select speciesid, id, name from Reads where id in (select taggedid from Pairs where id=" + pairid.__str__() + ")"
-                cur.execute(sql)
-                x = cur.fetchone()
-                if x[0] == sid:
-                    is_correct_species = True
-                    readids.append( x[1] )
-                    continue
-            if False == is_correct_species:
+        for compid in repgroupids_pairids_readids:
+            if sid not in compid_species[compid]:
                 continue
             
-            
-            
+            """At this point, compid is in the species sid"""
             sql = "select name from Comparisons where id=" + compid.__str__()
             cur.execute(sql)
             x = cur.fetchone()
