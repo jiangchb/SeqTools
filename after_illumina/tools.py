@@ -719,14 +719,6 @@ def write_viz_config(con):
     for ii in x:
         speciesid_name[ ii[0] ] = ii[1]
 
-
-    sql = "select id, name, speciesid from Reads"
-    cur.execute(sql)
-    x = cur.fetchall()
-    for ii in x:
-        print ii
-    exit()
-
     repgroupids_pairids_readids = {} # key = group ID, value = hash; key = pair ID, value = tagged Read ID
     sql = "select compid, pairid from PairsComparisons"
     cur.execute(sql)
@@ -753,16 +745,14 @@ def write_viz_config(con):
             cur.execute(sql)
             yy = cur.fetchall()
             for jj in yy:
-                print "748: pair", ii[0], " species", jj[0], speciesid_name[ jj[0] ]
+                #print "748: pair", ii[0], " species", jj[0], speciesid_name[ jj[0] ]
                 speciesid_in_this_comp.append( jj[0] )
         
         sql = "select name from Comparisons where id=" + compid.__str__()
         cur.execute(sql)
         zz = cur.fetchone()
-        print compid, zz[0], speciesid_in_this_comp
-    
-    exit()
-    
+        #print compid, zz[0], speciesid_in_this_comp
+        
     fout = open(configpath, "w")
     for sid in speciesid_name:
         s = speciesid_name[sid]
