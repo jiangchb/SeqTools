@@ -798,7 +798,7 @@ def write_viz_config(con):
             fout.write("\tREPGROUP " + repgroupname.__str__() + "\n")
                         
             for ii in range( 0, repgroupids_pairids_readids[compid].__len__() ):
-                pairid = repgroupids_pairids_readids[compid][ii]
+                pairid = repgroupids_pairids_readids[compid].keys()[ ii ]
                 
                 sql = "select name from Pairs where id=" + pairid.__str__()
                 #print sql
