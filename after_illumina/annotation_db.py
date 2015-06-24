@@ -412,6 +412,8 @@ def import_configuration(cpath, con):
     lines = []
     for l in fin.readlines():
         ls = l.split("\r")
+        """We split again on \r because files edited in OSX TextEdit use a different line
+            break than normal Unix files."""
         for lt in ls:
             if lt.startswith("#"):
                 continue

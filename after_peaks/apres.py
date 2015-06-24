@@ -57,13 +57,13 @@ def import_data(con):
     con.commit()
     
     """Print the parameters before import"""
-    for sp in ap.params["species"]:
-        print ap.params["species"][sp]["name"]
-        print ap.params["species"][sp]["rgroups"]
-        for groupname in ap.params["species"][sp]["rgroups"]:
-            print groupname
-            for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-                print ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]
+#     for sp in ap.params["species"]:
+#         print ap.params["species"][sp]["name"]
+#         print ap.params["species"][sp]["rgroups"]
+#         for groupname in ap.params["species"][sp]["rgroups"]:
+#             print groupname
+#             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
+#                 print ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]
             
             
     for sp in ap.params["species"]:
@@ -80,7 +80,7 @@ def import_data(con):
             rgroupid = get_repgroup_id(groupname, con)
                         
             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-                print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
+                #print "Replicate:", jj, ", Species:", sp, speciesname, speciesid, ", RepGroup:", groupname, rgroupid
 
                 repname = groupname + "-" + jj.__str__()
                 con = add_replicate(repname, speciesid, con)
