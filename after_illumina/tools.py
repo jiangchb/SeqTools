@@ -56,6 +56,7 @@ def run_bowtie(con):
         else:
             gpath = x[0][0]
         c += " -x " + gpath
+        c += " 2> " + get_setting("outdir",con) + fastqpath + ".bowtie.stats"
         
         bowtie_commands.append(c)
         
