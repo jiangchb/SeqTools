@@ -1505,12 +1505,14 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     repid_npeaks = {}
     repid_maxqval = {}
     repid_dist_maxsummit = {}
+    repid_fe_maxsummit = {}
     for repid in repids:
         repid_maxfe[repid] = []
         repid_meanfe[repid] = []
         repid_npeaks[repid] = []
         repid_maxqval[repid] = []
         repid_dist_maxsummit[repid] = []
+        repid_fe_maxsummit[repid] = []
         
     """Now iterate through all genes for all replicates (in repids), and get the data to
         fill the lists that were created above."""
@@ -1542,10 +1544,11 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 """This gene in this replicate has no peaks."""
                 repid_maxqval[repid].append(None)
                 repid_dist_maxsummit[repid].append(None)
+                repid_fe_maxsummit[repid].append(None)
             elif peakcount > 0:
                 """This gene in this replicate has at least one peak."""
                 
-                """Max summit score"""
+                """Max summit"""
                 sql = "select max(score), id from Summits where replicate=" + repid.__str__()
                 sql += " and id in (select summit from GeneSummits where gene=" + geneid.__str__()
                 sql += ")"
@@ -1553,16 +1556,31 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 x = cur.fetchone()
                 s = x[0]
                 maxsummitid = x[1]
-                repid_maxqval[repid].append( s )
+                repid_maxqval[repid].append( s )                
                 
                 """TSS distance for max summit"""            
-                sql = "select min(distance), summit from GeneSummits where gene=" + geneid.__str__()
-                sql += " and summit in (select id from Summits where replicate=" + repid.__str__() + ")"
+                sql = "select distance from GeneSummits where gene=" + geneid.__str__() + " and summit=" + maxsummitid.__str__()
                 cur.execute(sql)
                 x = cur.fetchone()
-                mindistance = x[0]
-                repid_dist_maxsummit[repid].append(  mindistance )
-                #nearestsummtid = x[1]
+                if x == None:
+                    msg = "Error, the summit " + maxsummitid.__str__() + " doesn't have a distance to TSS in the database."
+                    print msg
+                    write_error(con, msg)
+                    exit()
+                distance = x[0]
+                repid_dist_maxsummit[repid].append(  distance )
+                
+                sql = "select max_enrichment from SummitsEnrichment where summit=" + maxsummitid.__str__()
+                cur.execute(sql)
+                x = cur.fetchone()
+                if x == None:
+                    msg = "Error: the summit " + maxsummitid.__str__() + " doesn't have an FE value in the database."
+                    msg += "geneid=" + geneid.__str__() + " repid=" + repid.__str__()
+                    print msg
+                    write_error(con, msg)
+                    exit()
+                summitfe = x[0]
+                repid_fe_maxsummit[repid].append( summitfe )
             
     """Plot FE versus summits"""   
     for repid in repids:            
@@ -1633,15 +1651,14 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     """Header"""
     fout.write("gene_ID\tgene_name\t")
     for repid in repids:
-        fout.write("max_FE(" + repid_repname[repid] + ")\t")
-        fout.write("mean_FE(" + repid_repname[repid] + ")\t")
+        fout.write("maxFE(" + repid_repname[repid] + ")\t")
+        fout.write("meanFE(" + repid_repname[repid] + ")\t")
 
         """ Not all genes will have summit information... """
         fout.write("NPeaks(" + repid_repname[repid].__str__() + ")\t")
-        fout.write("max_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
-        fout.write("max_summit_dist(" + repid_repname[repid].__str__() + ")\t")
-        fout.write("nearest_summit_Qval(" + repid_repname[repid].__str__() + ")\t")
-        fout.write("nearest_summit_dist(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("summit_Qval(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("summit_FE(" + repid_repname[repid].__str__() + ")\t")
+        fout.write("summit_dist(" + repid_repname[repid].__str__() + ")\t")
     fout.write("\n")
     
     """One row per gene"""
@@ -1656,16 +1673,25 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             fout.write("%.3f"%repid_maxfe[repid][gg] + "\t")
             fout.write("%.3f"%repid_meanfe[repid][gg] + "\t")
             fout.write(repid_npeaks[repid][gg].__str__() + "\t")
+            
+            """Summit Q value"""
             if repid_maxqval[repid][gg] == None:
                 fout.write("---\t")
             else:
                 fout.write("%.3f"%repid_maxqval[repid][gg] + "\t")
             
+            """Summit FE"""
+            if repid_fe_maxsummit[repid][gg] == None:
+                fout.write("---\t")
+            else:
+                fout.write("%.3f"%repid_fe_maxsummit[repid][gg] + "\t")
+            
+            """Summit distance to TSS"""
             if repid_dist_maxsummit[repid][gg] == None:
                 fout.write("---\t")
             else:
                 fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
-                        
+                                    
         fout.write("\n")
     fout.close()
 

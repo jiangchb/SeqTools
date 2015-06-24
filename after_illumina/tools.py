@@ -357,10 +357,25 @@ def run_peak_calling(con):
         sql = "select bampath from SortedBamFiles where readid=" + exp_readid.__str__()
         cur.execute(sql)
         exp_bampath = cur.fetchone()[0]
-    
+        
+        """Sanity Check"""
+        if False == os.path.exists( exp_bampath ):
+            msg = "Something is wrong, I cannot find your BAM file for the tagged reads"
+            msg += exp_bampath
+            write_error(con, exp_bampath)
+            print msg
+            exit()
+          
         sql = "select bampath from SortedBamFiles where readid=" + control_readid.__str__()
         cur.execute(sql)
         control_bampath = cur.fetchone()[0]
+      
+        if False == os.path.exists( control_bampath ):
+            msg = "Something is wrong, I cannot find your BAM file for the control reads"
+            msg += exp_bampath
+            write_error(con, control_bampath)
+            print msg  
+            exit()
         
         qval = get_setting("minqval", con)
         
