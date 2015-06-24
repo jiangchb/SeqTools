@@ -719,6 +719,8 @@ def write_viz_config(con):
     for ii in x:
         speciesid_name[ ii[0] ] = ii[1]
 
+    """The comparisons with entries in PairsComparisons become REPGROUP entries
+        for the viz. pipeline."""
     repgroupids_pairids_readids = {} # key = group ID, value = hash; key = pair ID, value = tagged Read ID
     sql = "select compid, pairid from PairsComparisons"
     cur.execute(sql)
@@ -733,7 +735,10 @@ def write_viz_config(con):
         cur.execute(sql)
         x = cur.fetchone()
         repgroupids_pairids_readids[compid][pairid] = x[0]
-
+            
+    speciesid_paircompids = {} # key = speciesid, value = list of pair-to-pair compids belonging to this species.
+    speciesid_compids = {}  # key = speciesid, value = list of inter-species compids belonging to this species.
+    
     compid_species = {} # key = comparison ID, value = list of species IDs relevant to this comparison
     for compid in repgroupids_pairids_readids:
         sql = "Select name from Comparisons where id=" + compid.__str__()
@@ -751,11 +756,17 @@ def write_viz_config(con):
                 #print "748: pair", ii[0], " species", jj[0], speciesid_name[ jj[0] ]
                 speciesid_in_this_comp.append( jj[0] )
         if speciesid_in_this_comp.__len__() > 1:
-            msg = "The COMPARE entry includes experiments that occurred in different species."
-            
+            msg = "The COMPARE entry includes two experiments that occurred in different species."
+            msg += "I'm skipping this COMPARE line for now."
+            print msg
+            print compid, "pairs:", repgroupids_pairids_readids[compid], "species:", speciesid_in_this_comp
+            exit()
         compid_species[compid] = speciesid_in_this_comp
-        
-        
+        if speciesid_in_this_comp[0] not in speciesid_paircompids:
+            speciesid_paircompids[ speciesid_in_this_comp[0] ] = []
+        speciesid_paircompids[ speciesid_in_this_comp[0] ].append( compid )
+     
+    intersectionid_
         
     fout = open(configpath, "w")
     for sid in speciesid_name:
@@ -779,10 +790,7 @@ def write_viz_config(con):
         gffpath = x[0][0]
         fout.write("GFF = " + gffpath + "\n")
         
-        for compid in repgroupids_pairids_readids:
-            if sid not in compid_species[compid]:
-                continue
-            
+        for compid in speciesid_paircompids[sid]:
             """At this point, compid is in the species sid"""
             sql = "select name from Comparisons where id=" + compid.__str__()
             cur.execute(sql)
@@ -790,8 +798,8 @@ def write_viz_config(con):
             repgroupname = x[0]
             fout.write("\tREPGROUP " + repgroupname.__str__() + "\n")
                         
-            for ii in range( 0, repgroups[compid].__len__() ):
-                pairid = repgroups[compid][ii]
+            for ii in range( 0, repgroupids_pairids_readids[compid].__len__() ):
+                pairid = repgroupids_pairids_readids[compid][ii]
                 
                 sql = "select name from Pairs where id=" + pairid.__str__()
                 #print sql

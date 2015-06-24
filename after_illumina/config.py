@@ -18,7 +18,6 @@ def read_cli(ap):
     if x != False:
         OUTDIR = x
     
-
     """The annotation file is depricated. Please use configuration files now."""
     APATH = "annotation.txt"
     x = ap.getOptionalArg("--annopath")
