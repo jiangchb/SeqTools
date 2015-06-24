@@ -757,7 +757,6 @@ def write_viz_config(con):
                 speciesid_in_this_comp.append( jj[0] )
         if speciesid_in_this_comp.__len__() > 1:
             msg = "The COMPARE entry includes two experiments that occurred in different species."
-            msg += "I'm skipping this COMPARE line for now."
             print msg
             print compid, "pairs:", repgroupids_pairids_readids[compid], "species:", speciesid_in_this_comp
             exit()
@@ -766,7 +765,6 @@ def write_viz_config(con):
             speciesid_paircompids[ speciesid_in_this_comp[0] ] = []
         speciesid_paircompids[ speciesid_in_this_comp[0] ].append( compid )
      
-    intersectionid_
         
     fout = open(configpath, "w")
     for sid in speciesid_name:

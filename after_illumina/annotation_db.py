@@ -586,7 +586,7 @@ def import_configuration(cpath, con):
                     sql = "select id from Comparisons where name='" + name.__str__() + "'"
                     cur.execute(sql)
                     yy = cur.fetchall()
-                    if yy== None:
+                    if yy.__len__() == 0:
                         msg = "There is something wrong with this COMPARE line: " + ll
                         write_error(con, msg)
                         print msg
