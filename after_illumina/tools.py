@@ -754,11 +754,12 @@ def write_viz_config(con):
             yy = cur.fetchall()
             for jj in yy:
                 #print "748: pair", ii[0], " species", jj[0], speciesid_name[ jj[0] ]
-                speciesid_in_this_comp.append( jj[0] )
+                if jj[0] not in speciesid_in_this_comp:
+                    speciesid_in_this_comp.append( jj[0] )
         if speciesid_in_this_comp.__len__() > 1:
             msg = "The COMPARE entry includes two experiments that occurred in different species."
             print msg
-            print compid, "pairs:", repgroupids_pairids_readids[compid], "species:", speciesid_in_this_comp
+            print "Comparison ID:", compid, "pairs:", repgroupids_pairids_readids[compid], "species:", speciesid_in_this_comp
             exit()
         compid_species[compid] = speciesid_in_this_comp
         if speciesid_in_this_comp[0] not in speciesid_paircompids:

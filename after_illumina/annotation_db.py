@@ -529,7 +529,7 @@ def import_configuration(cpath, con):
                 elif x[1] == 1:
                     idb = x[0]
             if ida == None or idb == None:
-                msg = "Something is wrong with this PAIR line in your configuration: " + ll
+                msg = "Something is wrong with this EXPERIMENT line in your configuration: " + ll
                 write_error(con, msg)
                 print msg
                 exit()
