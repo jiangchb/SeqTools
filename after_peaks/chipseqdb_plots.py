@@ -1741,10 +1741,10 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
     rep1_genfe = {}
     rep2_genfe = {}
     for geneid in geneids:
-        sql = "select count(*) from EnrichmentStats where repid=" + repids[0].__str__() + " and geneid=" + geneid.__str__()
-        cur.execute(sql)
-        x = cur.fetchall()
-        print "1760: geneID", geneid, "has", x, "entries in EnrichmentStats for repid", repids[0]
+        #sql = "select count(*) from EnrichmentStats where repid=" + repids[0].__str__() + " and geneid=" + geneid.__str__()
+        #cur.execute(sql)
+        #x = cur.fetchall()
+        #print "1760: geneID", geneid, "has", x, "entries in EnrichmentStats for repid", repids[0]
         
         sql = "select maxenrich from EnrichmentStats where repid=" + repids[0].__str__() + " and geneid=" + geneid.__str__()
         cur.execute(sql)
