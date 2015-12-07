@@ -1766,12 +1766,12 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
         x = cur.fetchone()
         rep2_genfe[geneid] = x[0]
     
-    print "1743:", geneids_rep1summits.__len__(), geneids.__len__(), rep1_genfe.__len__()
+    print "1743:", geneids_rep1summits.__len__(), geneids.__len__(), rep1_genfe.__len__(), rep2_genfe.__len__()
     
     """Sanity Check for summit data"""
     for geneid in geneids_rep1summits:
         if geneid not in rep1_genfe:
-            msg = "Gene " + geneid.__str__() + "has a summit in rep 1, but no FE data."
+            msg = "Error (1774) Gene " + geneid.__str__() + "has a summit in rep 1, but no FE data."
             msg += " repgroupid=" + repids[0].__str__()
             sql = "SELECT summit FROM GeneSummits where gene=" + geneid.__str__() + " and summit in (SELECT id from Summits where replicate=" + repids[0].__str__() + ")"
             cur.execute(sql)
@@ -1787,12 +1787,10 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
             sql = "select * from EnrichmentStats where geneid=" + geneid.__str__()
             cur.execute(sql)
             print "1763:", cur.fetchall().__str__()   
-                
-            
             exit()
     for geneid in geneids_rep2summits:
         if geneid not in rep2_genfe:
-            msg = "Gene " + geneid.__str__() + "has a summit in rep 2, but no FE data."
+            msg = "Error (1793) Gene " + geneid.__str__() + "has a summit in rep 2, but no FE data."
             msg += " repgroupid=" + repids[1].__str__()
             sql = "SELECT summit FROM GeneSummits where gene=" + geneid.__str__() + " and summit in (SELECT id from Summits where replicate=" + repids[1].__str__() + ")"
             cur.execute(sql)

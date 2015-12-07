@@ -39,8 +39,7 @@ class ArgParser:
 			i = self.args.index(flag)
 			return self.args[i+1]
 		else:
-			printError( argDoesNotExist )
-			printTip("argument: " + flag)
+			print "ERROR: Missing the command-line argument: ", flag
 			exit(1)
 			
 	def getOptionalArg(self, flag):
@@ -64,8 +63,7 @@ class ArgParser:
 					returnList.append( self.args[j] )
 			return returnList
 		else:
-			printError( argDoesNotExist )
-			printTip("argument: " + flag)
+			print "ERROR: Missing the command-line argument: ", flag
 			exit(1)		
 		
 	

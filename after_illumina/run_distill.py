@@ -12,6 +12,8 @@ from html_tools import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
+#no FE data
+
 def splash():
     print "======================================================================"
     print "."
@@ -112,7 +114,7 @@ if jump <= 3.1 and stop > 3.1:
     check_bams(con, delete_sam=True)
 
 if jump <= 3.2 and stop > 3.2:
-    """"Make WIGs from sorted BAMs"""
+    """"Make Bedgraphs from sorted BAMs"""
     bam2bedgraph(con)
 
 if jump <= 3.3 and stop > 3.3:
@@ -132,6 +134,8 @@ if jump <= 5 and stop > 5:
 
 if jump <= 5.1 and stop > 5.1:
     check_fe(con)
+
+#plot_fexfe_replicates
 
 """To-do: compare location of peaks between replicates (which presumably have the same genome)."""
 

@@ -182,7 +182,7 @@ def extract_matched_reads(readid, con, chrom_filter = None):
             if mismatchlevel > MTHRESH:
                 """Too many mismatches."""
                 continue
-            if get_setting("eliminate_multialign", con) != None and multilocscore != None:
+            if '1' == get_setting("eliminate_multialign", con) != None and multilocscore != None:
                 """Reads with multiple aligned locations should be skipped."""
                 continue
                  

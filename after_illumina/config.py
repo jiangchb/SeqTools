@@ -63,12 +63,12 @@ def read_cli(ap):
     
     MPIRUN = "mpirun -np " + MPINP.__str__() + " /common/bin/mpi_dispatch"
     
-    MACS2 = "/common/REPOSITORY/MACS2-2.0.10.07132012/bin/macs2"
+    MACS2 = "macs2"
     x = ap.getOptionalArg("--macs2")
     if x != False:
         MACS2 = x
 
-    GENOME_COVERAGE_BED = "/common/REPOSITORY/bedtools2/bin/genomeCoverageBed"
+    GENOME_COVERAGE_BED = "genomeCoverageBed"
     x = ap.getOptionalArg("--gcb")
     if x != False:
         GENOME_COVERAGE_BED = x
@@ -79,9 +79,9 @@ def read_cli(ap):
         SEQTOOLSDIR = x
         
     ELIMINATE_MULTIALIGN = True
-    x = ap.getOptionalArg("--eliminate_multialign")
+    x = ap.getOptionalToggle("--use_multialign")
     if x != False:
-        ELIMINATE_MULTIALIGN = True
+        ELIMINATE_MULTIALIGN = False
         
     QVAL = None
     x = ap.getOptionalArg("--minqval")
@@ -150,9 +150,12 @@ def read_cli(ap):
     for strain in restrict_to_strain:
         sql = "insert into Settings (keyword, value) VALUES('restrict_to_strain','" + strain + "')"
         cur.execute(sql)
-    if ELIMINATE_MULTIALIGN:
+    if True == ELIMINATE_MULTIALIGN:
         sql = "insert into Settings (keyword, value) VALUES('eliminate_multialign','1')"
         cur.execute(sql)        
+    if False == ELIMINATE_MULTIALIGN:
+        sql = "insert into Settings (keyword, value) VALUES('eliminate_multialign','0')"
+        cur.execute(sql) 
     sql = "insert or replace into Settings (keyword, value) VALUES('project_name','" + PROJECT_NAME + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('pillars_path','" + PILLARSPATH + "')"
