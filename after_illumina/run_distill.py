@@ -135,8 +135,6 @@ if jump <= 5 and stop > 5:
 if jump <= 5.1 and stop > 5.1:
     check_fe(con)
 
-#plot_fexfe_replicates
-
 """To-do: compare location of peaks between replicates (which presumably have the same genome)."""
 
 if jump <= 6 and stop > 6:

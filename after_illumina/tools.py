@@ -110,7 +110,7 @@ def extract_matched_reads(readid, con, chrom_filter = None):
     cur = con.cursor()
     
     """Create a custom table named ReadsX, where X is the readid of this READS entry."""
-    sql = "create table if not exists Reads" + readid.__str__() + " (readid INTEGER primary key autoincrement, readname TEXT, mismatch INT, order_seen INT)"
+    sql = "create table if not exists Reads" + readid.__str__() + " (readid INTEGER primary key, readname TEXT, mismatch INT, order_seen INT)"
     cur.execute(sql)
     con.commit()
         

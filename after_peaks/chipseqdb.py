@@ -37,10 +37,10 @@ def build_db(dbpath = None):
     cur.execute("INSERT INTO About(version) VALUES(" + VERSION.__str__() + ")")
     
     # These data come from the GFF:
-    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key autoincrement, name TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key autoincrement, species INT, filepath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key, name TEXT, species INT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key, species INT, filepath TEXT)")
     
     # This data comes from the pillars file:
     cur.execute("CREATE TABLE IF NOT EXISTS GeneAlias(realname TEXT COLLATE NOCASE, alias TEXT COLLATE NOCASE)")
@@ -69,13 +69,8 @@ def build_db(dbpath = None):
     
     # The table Files contains paths to file generated during the analysis. These files will later be tar'd into
     # a package for results.
-    cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key autoincrement, path TEXT, note TEXT)")
-    
-#     cur.execute("CREATE TABLE IF NOT EXISTS Compgroups(groupid INTEGER primary key autoincrement, name TEXT, note TEXT)")
-#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupMembership(groupid INTEGER, repgroupid INTEGER, series INTEGER)") #series is 0 or 1. 
-#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupSummits(groupid INTEGER)")
-#     cur.execute("CREATE TABLE IF NOT EXISTS CompgroupFiles(groupid INTEGER, fileid INTEGER)")
-    
+    cur.execute("CREATE TABLE IF NOT EXISTS Files(fileid INTEGER primary key, path TEXT, note TEXT)")
+        
     cur.execute("create table if not exists Log(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     cur.execute("create table if not exists ErrorLog(id INTEGER primary key, time DATETIME DEFAULT CURRENT_TIMESTAMP,  message TEXT, code INT)")
     
@@ -97,7 +92,7 @@ def clear_repgroups(con):
     
 def build_repgroups(con):
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, note TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS ReplicateGroups(id INTEGER primary key, name TEXT COLLATE NOCASE, note TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GroupReplicate(rgroup INTEGER, replicate INTEGER, id INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS RepgroupSummits(repgroupid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)") # maps summits that exist in all replicates in the group.
     cur.execute("CREATE TABLE IF NOT EXISTS GroupEnrichmentStats(rgroupid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
@@ -112,7 +107,7 @@ def clear_unions(con):
 
 def build_unions(con):
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key autoincrement, name TEXT, type TEXT)") # defines a union set, type can be 'intersection' or 'union'
+    cur.execute("CREATE TABLE IF NOT EXISTS Unions(unionid INTEGER primary key, name TEXT, type TEXT)") # defines a union set, type can be 'intersection' or 'union'
     cur.execute("CREATE TABLE IF NOT EXISTS UnionRepgroups(unionid INTEGER, repgroupid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS UnionSummits(unionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS UnionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
@@ -126,7 +121,7 @@ def build_speciesunions(con):
         the table GeneHomology to find alias gene IDs for another species."""
     
     cur = con.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key autoincrement, name TEXT)") # defines a union set
+    cur.execute("CREATE TABLE IF NOT EXISTS Speciesunions(unionid INTEGER primary key, name TEXT)") # defines a union set
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionUnions(spunionid INTEGER, memunionid INTEGER, id INTEGER)") # puts repgroups into union sets
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionSummits(spunionid INTEGER, geneid INTEGER, maxsummitid INT, nearestsummitid INT, mean_maxsummitscore FLOAT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesunionEnrichmentStats(unionid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, meanmaxenrich FLOAT, sumenrich FLOAT)")
@@ -306,9 +301,7 @@ def import_gff(gffpath, speciesid, con, restrict_to_feature = "gene", filter_chr
     sql = "insert or replace into GFFs (species, filepath) VALUES(" + speciesid.__str__() + ",'" + gffpath + "')"
     cur.execute(sql)
     con.commit() 
-    
-    #GFFs(id INTEGER primary key autoincrement, species INT, filepath TEXT)
-    
+        
     print ""
     cur.execute("SELECT id,name from Chromosomes where species=" + speciesid.__str__())
     for ii in cur.fetchall():
@@ -777,10 +770,6 @@ def validate_summits_fe(repid, con):
             msg = "I found no FE values for gene " + ii[0].__str__() + ", replicate " + repid.__str__()
             write_error(con, msg)
     
-    
-    #cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key autoincrement, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
-    #cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key autoincrement, name TEXT, species INT)
-    #EnrichmentStats(repid INTEGER, geneid INTEGER, maxenrich FLOAT, meanenrich FLOAT, sumenrich FLOAT, maxenrichsite INT)
 
 def resolve_aliasids(con):
     """This method inserts data into the table GeneHomology."""
@@ -815,8 +804,6 @@ def resolve_aliasids(con):
                 sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
                 sys.stdout.flush()
             if count%2000 == 0:
-                #sys.stdout.write(".")
-                #sys.stdout.flush()
                 """Note the commit happens here"""
                 con.commit()
             
@@ -826,7 +813,6 @@ def resolve_aliasids(con):
             """If there is an alias reference for this gene, then get the reference name for this gene."""
             realname = get_genename_for_aliasname( this_name, con )
             if realname == None:
-                #print "No pillar entry for", this_name
                 realname = this_name
                 realid = this_id
             
