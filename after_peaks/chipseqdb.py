@@ -728,6 +728,8 @@ def validate_summits_fe(repid, con):
        
     print "\n. Validating Summits and FE values for replicate", repid
     
+    fout = open("summit_validation.log", "w")
+    
     cur = con.cursor()
     speciesid = get_speciesid_for_repid(repid, con)
     if speciesid == None:
@@ -769,6 +771,8 @@ def validate_summits_fe(repid, con):
         for ii in x:
             msg = "I found no FE values for gene " + ii[0].__str__() + ", replicate " + repid.__str__()
             write_error(con, msg)
+    
+    fout.close()
     
 
 def resolve_aliasids(con):

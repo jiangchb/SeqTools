@@ -1723,23 +1723,7 @@ def plot_fexfe_replicates(rgroupid, con, repgroupname=None, repids=None):
             repid_repname[repid] = x[0]
         else:
             repid_repname[repid] = repid.__str__()
-    
-#     """Get FE data for all genes."""
-#     """rep1_genfe and rep2_genfe: hashtables, with key = geneid, value = the max FE in the upstream regulatory region of that gene."""
-#     rep1_genfe = get_maxfe_for_replicate(repids[0], con) # data from the table EnrichmentStats
-#     rep2_genfe = get_maxfe_for_replicate(repids[1], con)
-#         
-#     """Sanity Check for FE data"""
-#     if rep1_genfe.__len__() != rep2_genfe.__len__():
-#         print "\n. Error 1712: plot_fexfe_replicates: replicates 1 and 2 have different max FE vector lengths."
-#         print "\n.", rep1_genfe.__len__(), rep2_genfe.__len__()
-#         for geneid in rep1_genfe:
-#             if geneid not in rep2_genfe:
-#                 print "\n.", geneid
-#         for geneid in rep2_genfe:
-#             if geneid not in rep1_genfe:
-#                 print "\n.", geneid
-    
+        
     """Get the names of genes in the replicate group"""
     sql = "select geneid from GroupEnrichmentStats where rgroupid=" + rgroupid.__str__()
     cur.execute(sql)
