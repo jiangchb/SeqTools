@@ -911,7 +911,7 @@ def launch_viz(con):
     if os.path.exists(vizdbpath):
         os.system("rm -rf " + vizdbpath)
     
-    scriptpath = get_setting("outdir", con) + "/run_viz.sh"
+    scriptpath = get_setting("outdir", con) + "/" + pname + ".run_viz.sh"
     fout = open(scriptpath, "w")
     
     c = "python /common/REPOSITORY/SeqTools/after_peaks/apres.py "
