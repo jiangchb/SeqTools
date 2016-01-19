@@ -1642,6 +1642,9 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     except:
         con.rollback()
     con.commit()
+    
+    for gg in geneids:
+        print "debug 1647:", gg, idr_stats[gg]
 
     """Write the Excel Table"""
     xlpath = repgroupname + ".enrich.xls"
@@ -1696,7 +1699,12 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 
         """IDR"""
         if gg in idr_stats:
-            fout.write( "%.3f"%idr_stats[gg][ repids[0] ][ repids[1] ].__str__() )
+            if repids[0] in idr_stats[gg]:
+                fout.write( "%.3f"%idr_stats[gg][ repids[0] ][ repids[1] ].__str__() )
+            elif repids[1] in idr_stats[gg]:
+                fout.write( "%.3f"%idr_stats[gg][ repids[1] ][ repids[2] ].__str__() )
+            else:
+                print "I can't find IDR for reps", repids[0], "and", repids[1], "in gene", gg
         else:
             fout.write( "---" )
                                     
