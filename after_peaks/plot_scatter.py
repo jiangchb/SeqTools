@@ -370,8 +370,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         #if count >= gridsize and count%gridsize == 0:
         #    cranstr += "par(mar=c(1.8,2.8,2.8,1), oma=c(1.5,2,1,1)  );\n"
         #    cranstr += "plot.new();\n"
-        if ii == jj: # We can't do IDR on data that is exactly identical.
-            continue
+
 
         """OK, Progress bar display"""
         sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
@@ -382,6 +381,9 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         jj = value_pairs[count][1]
         values_ii = values[ii]
         values_jj = values[jj]
+
+        if ii == jj: # We can't do IDR on data that is exactly identical.
+            continue
         
         """Sanity Check:"""
         if values_ii.__len__() != values_jj.__len__():

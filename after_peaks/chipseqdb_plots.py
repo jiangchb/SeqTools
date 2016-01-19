@@ -1659,6 +1659,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         fout.write("summit_Qval(" + repid_repname[repid].__str__() + ")\t")
         fout.write("summit_FE(" + repid_repname[repid].__str__() + ")\t")
         fout.write("summit_dist(" + repid_repname[repid].__str__() + ")\t")
+        
+    fout.write("IDR(" + repid_repname[repid].__str__() + ")\t" )
     fout.write("\n")
     
     """One row per gene"""
@@ -1691,6 +1693,12 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 fout.write("---\t")
             else:
                 fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
+                
+        """IDR"""
+        if gg in idr_stats:
+            fout.write( "%.3f"%idr_stats[gg][ repids[0] ][ repids[1] ].__str__() )
+        else:
+            fout.write( "---" )
                                     
         fout.write("\n")
     fout.close()
