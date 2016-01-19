@@ -637,6 +637,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         """Write the IDR data to a text file, so that Python can import the data."""
         tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
+        print "640:", tablepath
         tablepaths[tablepath] = (ii_jj_compname[ii][jj], ii, jj)
         cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
     
