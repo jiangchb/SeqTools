@@ -1663,8 +1663,9 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         fout.write("summit_Qval(" + repid_repname[repid].__str__() + ")\t")
         fout.write("summit_FE(" + repid_repname[repid].__str__() + ")\t")
         fout.write("summit_dist(" + repid_repname[repid].__str__() + ")\t")
-        
-    fout.write("IDR(" + repid_repname[repid].__str__() + ")\t" )
+    
+    for repid in repids:    
+        fout.write("IDR(" + repid_repname[repid].__str__() + ")\t" )
     fout.write("\n")
     
     """One row per gene"""
@@ -1699,15 +1700,14 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
                 
         """IDR"""
-        if gg in idr_stats:
-            
-            if repids[0] in idr_stats[gg]:
-                fout.write( "%.3f"%(idr_stats[gg][ repids[0] ][ repids[1] ] ) )
-            elif repids[1] in idr_stats[gg]:
-                print "1707:", idr_stats[gg]
-                fout.write( "%.3f"%(idr_stats[gg][ repids[1] ][ repids[0] ] ) )
+        if gg in idr_stats:   
+            for repid in repids:         
+                if repid in idr_stats[gg]:
+                    fout.write( "%.3f"%(idr_stats[gg][ repids[0] ]) + "\t" )
+                else:
+                    fout.write("---\t")
             else:
-                print "I can't find IDR for reps", repids[0], "and", repids[1], "in gene", gg
+                print "I can't find IDR for rep", repid
         else:
             fout.write( "---" )
                                     
