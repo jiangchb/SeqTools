@@ -1476,6 +1476,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     
     if repids == None:
         repids = get_repids_in_group(rgroupid, con)
+        
+        print "1480: Plotting enrichments for replicate IDs", repids
     
     """If there's only one replicate in this group, then we're done."""
     if repids.__len__() < 2:
@@ -1701,18 +1703,27 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 
         """IDR"""
         if gg in idr_stats:   
-            print "1704:", repids
-            print "1705:", idr_stats[gg]    
-      
-            if repids[0] in idr_stats[gg]:
-                print "1706:", idr_stats[gg][repids[0]]
-                fout.write( "%.3f"%idr_stats[gg][ repids[0] ][ repids[1] ] + "\t" )
-            elif repids[1] in idr_stats[gg]:
-                print "1709:", idr_stats[gg][repids[1]]
-                fout.write( "%.3f"%idr_stats[gg][ repids[1] ][ repids[0] ] + "\t" )
-            else:
-                fout.write("---\t")
-                print "I can't find IDR for rep", repid
+            for ii in range(0, repids.__len__() ):
+                if ii in idr_stats[gg]:
+                    for jj in range(0, repids.__len__() ):
+                        if jj in idr_stats[gg][ii]:
+                            this_idr = idr_stats[gg][ii][jj]
+                            ii_repid = repids[ii]
+                            jj_repid = repids[jj]
+                            print "1713:", this_idr, ii_repid, jj_repid
+            
+#             print "1704:", repids
+#             print "1705:", idr_stats[gg]    
+#       
+#             if ii in idr_stats[gg][0]:
+#                 print "1706:", idr_stats[gg][ii]
+#                 fout.write( "%.3f"%idr_stats[gg][ ii ][ repids[1] ] + "\t" )
+#             elif repids[1] in idr_stats[gg][1]:
+#                 print "1709:", idr_stats[gg][repids[1]]
+#                 fout.write( "%.3f"%idr_stats[gg][ repids[1] ][ repids[0] ] + "\t" )
+#             else:
+#                 fout.write("---\t")
+#                 print "I can't find IDR for rep", repid
         else:
             fout.write( "---\t---\t" )
                                     
