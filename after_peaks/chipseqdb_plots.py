@@ -1701,6 +1701,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 
         """IDR"""
         if gg in idr_stats:   
+            print "1704:", repids
+            print "1705:", idr_stats[gg]    
       
             if repids[0] in idr_stats[gg]:
                 print "1706:", idr_stats[gg][repids[0]]
