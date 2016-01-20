@@ -1704,6 +1704,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
             if repids[0] in idr_stats[gg]:
                 fout.write( "%.3f"%(idr_stats[gg][ repids[0] ][ repids[1] ] ) )
             elif repids[1] in idr_stats[gg]:
+                print "1707:", idr_stats[gg]
                 fout.write( "%.3f"%(idr_stats[gg][ repids[1] ][ repids[0] ] ) )
             else:
                 print "I can't find IDR for reps", repids[0], "and", repids[1], "in gene", gg
