@@ -1701,8 +1701,10 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 
         """IDR"""
         if gg in idr_stats:   
-            for repid in repids:         
+            for ii in range(0, repids.__len__() ):
+                repid = repids[ii]         
                 if repid in idr_stats[gg]:
+                    print "1706:", idr_stats[gg][repid]
                     fout.write( "%.3f"%(idr_stats[gg][ repid ]) + "\t" )
                 else:
                     fout.write("---\t")
