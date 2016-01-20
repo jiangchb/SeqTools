@@ -1702,7 +1702,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 fout.write(repid_dist_maxsummit[repid][gg].__str__() + "\t")
                 
 #         """IDR"""
-#         if gg in idr_stats:   
+        if gg in idr_stats:
+             print "1706:", idr_stats[gg]   
 #             for ii in range(0, repids.__len__() ):
 #                 if ii in idr_stats[gg]:
 #                     for jj in range(0, repids.__len__() ):

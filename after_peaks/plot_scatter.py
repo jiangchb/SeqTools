@@ -710,7 +710,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
                     if ii not in idr_stats[genen]:
                         idr_stats[genen][ii] = {}
                     idr_stats[genen][ii][jj] = lidr
-                    print "713: tokens[0]=", tokens[0],"genen=", genen, "lidr=", lidr, "idr=", idr
+                    #print "713: tokens[0]=", tokens[0],"genen=", genen, "lidr=", lidr, "idr=", idr
         fin.close()
         os.system("rm " + tablepath)
     return idr_stats 
