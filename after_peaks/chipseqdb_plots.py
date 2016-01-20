@@ -1643,9 +1643,9 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         con.rollback()
     con.commit()
     
-    for gg in range(0, geneids.__len__() ):
-        geneid = geneids[gg] # translate the count of the gene to the geneid
-        print "debug 1647:", gg, idr_stats[gg]
+    #for gg in range(0, geneids.__len__() ):
+        #geneid = geneids[gg] # translate the count of the gene to the geneid
+        #print "debug 1647:", gg, idr_stats[gg]
 
     """Write the Excel Table"""
     xlpath = repgroupname + ".enrich.xls"
