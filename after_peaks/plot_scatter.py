@@ -684,7 +684,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
     idr_stats = {} # hash of hashes, key = gene N in values, value = hash, key = name of comparison, value = IDR for the gene
     compnames = []
     for tablepath in tablepaths:
-        #print "447:", tablepath
+        print "447: tablepath", tablepath
         if False == os.path.exists(tablepath):
             print "\n. Error in read_idr_results:"
             print ". The R output table cannot be found at", tablepath
@@ -710,6 +710,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
                     if ii not in idr_stats[genen]:
                         idr_stats[genen][ii] = {}
                     idr_stats[genen][ii][jj] = lidr
+                    print "713: tokens[0]=", tokens[0],"genen=", genen, "lidr=", lidr, "idr=", idr
         fin.close()
         os.system("rm " + tablepath)
     return idr_stats 
