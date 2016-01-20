@@ -1701,17 +1701,18 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                 
         """IDR"""
         if gg in idr_stats:   
-            for ii in range(0, repids.__len__() ):
-                repid = repids[ii]         
-                if repid in idr_stats[gg]:
-                    print "1706:", idr_stats[gg][repid]
-                    fout.write( "%.3f"%(idr_stats[gg][ repid ]) + "\t" )
-                else:
-                    fout.write("---\t")
+      
+            if repid[0] in idr_stats[gg]:
+                print "1706:", idr_stats[gg][repid[0]]
+                fout.write( "%.3f"%idr_stats[gg][ repid[0] ][ repid[1] ] + "\t" )
+            elif repid[1] in idr_stats[gg]:
+                print "1709:", idr_stats[gg][repid[1]]
+                fout.write( "%.3f"%idr_stats[gg][ repid[1] ][ repid[0] ] + "\t" )
             else:
+                fout.write("---\t")
                 print "I can't find IDR for rep", repid
         else:
-            fout.write( "---" )
+            fout.write( "---\t---\t" )
                                     
         fout.write("\n")
     fout.close()
