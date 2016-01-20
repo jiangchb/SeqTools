@@ -1477,7 +1477,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     if repids == None:
         repids = get_repids_in_group(rgroupid, con)
         
-        print "1480: Plotting enrichments for replicate IDs", repids
+    print "1480: Plotting enrichments for replicate IDs", repids
     
     """If there's only one replicate in this group, then we're done."""
     if repids.__len__() < 2:

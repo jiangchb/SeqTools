@@ -316,6 +316,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             print "\n. ERROR scatter_idr_nxm can't deal with empty value arrays, i.e., you have no data to plot."
             print "\n. Check your call of scatter_idr_nxm for " + filekeyword
             exit()
+      
+    print "plot_scatter.py 320, width=", width, "values.__len__() =", values.__len__()
         
     sinkpath = filekeyword + ".out"
     cranstr = "sink(\"" + sinkpath + "\", append=FALSE, split=FALSE);\n"
@@ -350,6 +352,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
             if ii != jj:
                 value_pairs.append( (ii,jj) )
     
+    print "355: value_pairs = ", value_pairs
+    
     ii_jj_compname = {}
     ii_jj_idmap = {}
     for (ii,jj) in value_pairs:
@@ -359,6 +363,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         if ii not in ii_jj_idmap:
             ii_jj_idmap[ii] = {}
         ii_jj_idmap[ii][jj] = {}
+    
+    print "367: ii_jj_idmap = ", ii_jj_idmap
     
     """This first loop is to determine total_count.
     total_count is used solely for displaying a progress bar,
