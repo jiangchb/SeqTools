@@ -646,7 +646,11 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     fout = open(cranpath, "w")
     fout.write( cranstr )
     fout.close()
-    os.system("r --no-save --slave --silent --quiet < " + cranpath)
+    
+    r_command = "r --no-save --slave --silent --quiet < " + cranpath
+    print "\n. Launching R with:", r_command
+    
+    os.system(r_command)
     
     #print tablepaths
     #exit()
