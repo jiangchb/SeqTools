@@ -338,7 +338,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     
     
     """value_pairs is a list of pairs (ii,jj) where ii and jj are indices into values.
-    The idea is that the values for each pair should be compared."""
+    The idea is that the values[ii] should be compared to values[jj]."""
     value_pairs = [] 
     for ii in range(0, width):
         mod = 0
