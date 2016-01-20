@@ -401,6 +401,8 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         r_ids2erg = {}
         #genen_rn = {} # key = gene index in the R script, gene index in the values
 
+        """ii_jj_idmap[ index into 'values' ][ another index into 'values'][ gene count ] = index into values[ii]"""
+
         """x and y"""
         genecount = 0
         xcranstr = "x<-c("
@@ -415,6 +417,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
                 This translation will be useful later,
                 when we read IDR values from the R output."""
                 ii_jj_idmap[ii][jj][genecount] = xx
+                
                 genecount += 1
         xcranstr = re.sub(",$", "", xcranstr)
         xcranstr += ");\n"
@@ -660,6 +663,7 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
     #print tablepaths
     #exit()
     
+    print "666: tablepaths=", tablepaths
     idr_stats = read_idr_results(tablepaths, ii_jj_idmap)
     if idr_stats == False:
         print "\n. Error: the scatterplot with IDR data could not be created."
