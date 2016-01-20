@@ -637,7 +637,6 @@ def scatter_idr_nxm(width, height, values, names, filekeyword, title="", xlab=""
         
         """Write the IDR data to a text file, so that Python can import the data."""
         tablepath = filekeyword + ".ii=" + ii.__str__() + ".jj=" + jj.__str__() + ".tmp"
-        print "640:", tablepath
         tablepaths[tablepath] = (ii_jj_compname[ii][jj], ii, jj)
         cranstr += "write.table( data.frame(idr.out$idr, idr.out$IDR), \"" + tablepath + "\", sep=\"\t\");\n"
     
@@ -667,6 +666,8 @@ def read_idr_results(tablepaths, ii_jj_idmap):
     
     Returns idr_stats:
         idr_stats[gene number][ii][jj] = local IDR
+        ...where gene number is the COUNT of the gene in the geneIDs.
+        Note that this ID will need to be translated to a gene ID post-hoc.
         
     Return False if any errors occur.
     """
@@ -690,7 +691,7 @@ def read_idr_results(tablepaths, ii_jj_idmap):
             if line.__len__() > 2:
                 tokens = line.split()
                 if tokens.__len__() == 3:
-                    genen = int( re.sub("\"", "", tokens[0]) ) - 1
+                    genen = int( re.sub("\"", "", tokens[0]) ) - 1 # genen is the zero-based COUNT of the gene
                     genen = idmap[ genen ]
                     lidr = float(tokens[1])
                     idr = float(tokens[2])

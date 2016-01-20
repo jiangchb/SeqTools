@@ -1624,8 +1624,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         con.commit()
     try:
         for gg in range(0, geneids.__len__() ):
-            geneid = geneids[gg]
-            if gg in idr_stats:
+            geneid = geneids[gg] # gene ID corresponds to a key from the database
+            if gg in idr_stats: # gg is the count of the gene from the IDR table
                 for ii in range(0, repids.__len__() ):
                     if ii in idr_stats[gg]:
                         for jj in range(0, repids.__len__() ):
@@ -1643,7 +1643,8 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
         con.rollback()
     con.commit()
     
-    for gg in geneids:
+    for gg in range(0, geneids.__len__() ):
+        geneid = geneids[gg] # translate the count of the gene to the geneid
         print "debug 1647:", gg, idr_stats[gg]
 
     """Write the Excel Table"""
