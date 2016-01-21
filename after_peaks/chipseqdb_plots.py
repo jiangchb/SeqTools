@@ -1668,6 +1668,13 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
     
     #for repid in repids:    
     #    fout.write("IDR(" + repid_repname[repid].__str__() + ")\t" )
+    firstgeneinidr = idr_stats.keys()[0]
+    for ii in range(0, repids.__len__() ):
+        if ii in idr_stats[ firstgeneinidr ]:
+            for jj in range(0, repids.__len__()):
+                if jj in idr_stats[ firstgeneinidr ][ii]:
+                    fout.write("IDR(" + repids[ii].__str__() + " vs. " + repids[jj].__str__() + ")\t")
+
     fout.write("\n")
     
     """One row per gene"""
@@ -1710,6 +1717,7 @@ def plot_enrichments_for_reps_in_group(rgroupid, con, repgroupname=None, repids=
                          if jj in idr_stats[gg][ii]:
                              this_idr = idr_stats[gg][ii][jj]
                              print "1711:", ii, "(rep ID", repids[ii], ")", jj, "(rep id", repids[jj], ")", this_idr  
+                             fout.write("%.4f"%this_idr + "\t")
 #             for ii in range(0, repids.__len__() ):
 #                 if ii in idr_stats[gg]:
 #                     for jj in range(0, repids.__len__() ):
