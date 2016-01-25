@@ -95,7 +95,7 @@ vcon = build_db(dbpath=vizdbpath)
 vcur = vcon.cursor()
 
 """Import motifs"""
-build_motif_table(vcon)
+build_motif_tables(vcon)
 gene_motif = build_motif_dbtables(motifpath)
 for genename in gene_motif:
     sql = "select id from Motifs where name='" + genename + "'"
