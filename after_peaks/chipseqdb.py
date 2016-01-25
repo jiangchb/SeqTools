@@ -938,7 +938,7 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
         exit()
     return (None, None, None, None)
     
-def map_intergenic_regions(con, repid, speciesid, chroms=None):
+def map_intergenic_regions(con, speciesid, chroms=None):
     """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
     cur = con.cursor()
              
