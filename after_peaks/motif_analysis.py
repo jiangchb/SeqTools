@@ -64,6 +64,7 @@ def build_motif_dbtables(con):
     sql = "create table if not exists Summits2MotifScores(summitid INTEGER, motifid INTEGER, maxmotifscore FLOAT, maxmotifsite INT)"
     cur.execute(sql)
     con.commit()
+    return con
     
 def build_motif_table(con, motifid, motifdata):
     """motifdata is a list of lists. motifdata[site-1] = (wa,wc,wg,wt)"""
@@ -95,7 +96,7 @@ vcon = build_db(dbpath=vizdbpath)
 vcur = vcon.cursor()
 
 """Import motifs"""
-build_motif_dbtables(vcon)
+vcon = build_motif_dbtables(vcon)
 gene_motif = read_motifs(motifpath)
 for genename in gene_motif:
     sql = "select id from Motifs where name='" + genename + "'"
