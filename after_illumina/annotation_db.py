@@ -396,6 +396,8 @@ def import_configuration(cpath, con):
     
     sql = "delete from SpeciesBowtieindex"
     cur.execute(sql)
+    sql = "delete from SpeciesGenomepath"
+    cur.execute(sql)
     sql = "delete from GFF"
     cur.execute(sql)
     sql = "delete from PairsComparisons"
