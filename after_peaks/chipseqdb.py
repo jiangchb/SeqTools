@@ -945,7 +945,12 @@ def map_intergenic_regions(con, speciesid, chroms=None):
     if chroms == None:
         chroms = get_chrom_ids(con, speciesid)
     count = 0    
-    
+
+    for chrid in chroms:
+        sql = "delete from Intergenics where chromid=" + chrid.__str__()
+        cur.execute(sql)
+        con.commit()
+        
     print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con)
     
     for chrid in chroms:
