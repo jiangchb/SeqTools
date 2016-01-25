@@ -323,6 +323,9 @@ if False == ap.getOptionalToggle("--skip_plots"):
 #
 #test_species_overlap(con)
 
+if False == ap.getOptionalToggle("--skip_motif_analysis"):
+    pass
+
 #
 # PACKAGE the results    
 #

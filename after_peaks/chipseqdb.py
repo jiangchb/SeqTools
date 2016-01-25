@@ -11,6 +11,8 @@ import traceback
 
 from chipseqdb_api import *
 
+#pillars
+
 def print_db_stats(con):
     species = get_species(con)
     if species.__len__() > 0:
@@ -39,6 +41,7 @@ def build_db(dbpath = None):
     # These data come from the GFF:
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
+    cur.execute("create table if not exists IntergenicRegions(id INTEGER primary key, downstreamgeneid INTEGER, chromid INT, start INT, stop INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key, name TEXT, species INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key, species INT, filepath TEXT)")
     
