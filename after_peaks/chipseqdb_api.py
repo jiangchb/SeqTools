@@ -19,7 +19,6 @@ def get_speciesid_for_rep(repid, con):
 def get_chrom_ids(con, speciesid):
     cur = con.cursor()
     sql = "SELECT id FROM Chromosomes where species=" + speciesid.__str__()
-    print "api 22:", sql
     cur.execute(sql)
     x = cur.fetchall()
     if x == None:
