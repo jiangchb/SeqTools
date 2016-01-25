@@ -145,6 +145,7 @@ for ii in rcur.fetchall():
 """Parse each genome."""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
+    print "Opening", genomepath
     handle = open(genomepath, "rU")
     for record in SeqIO.parse(handle, "fasta") :
         print speciesid, record.name
