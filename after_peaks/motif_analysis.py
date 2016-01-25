@@ -61,6 +61,7 @@ def read_motifs(motif_path):
 def build_motif_dbtables(con):
     cur = con.cursor()
     sql = "create table if not exists Motifs(id INTEGER primary key, name TEXT)"    
+    cur.execute(sql)
     sql = "create table if not exists Summits2MotifScores(summitid INTEGER, motifid INTEGER, maxmotifscore FLOAT, maxmotifsite INT)"
     cur.execute(sql)
     con.commit()
@@ -93,9 +94,11 @@ rcon = lite.connect(readsdbpath, timeout=1)
 
 vizdbpath = ap.getArg("--vizdbpath")
 vcon = build_db(dbpath=vizdbpath)
+vcon = build_motif_dbtables(vcon)
+
+print "98:", vcon, vizdbpath
 
 """Import motifs"""
-vcon = build_motif_dbtables(vcon)
 vcur = vcon.cursor()
 gene_motif = read_motifs(motifpath)
 for genename in gene_motif:
