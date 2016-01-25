@@ -133,6 +133,15 @@ for ii in rcur.fetchall():
     speciesid_genomepath[id] = genomepath
     print id, genomepath
 
+speciesid_indexpath = {}
+sql = "select speciesid, indexpath from SpeciesBowtieindex"
+rcur.execute(sql)
+for ii in rcur.fetchall():
+    id = ii[0]
+    indexpath = ii[1]
+    speciesid_indexpath[id] = indexpath
+    print id, indexpath
+
 """Parse each genome."""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
