@@ -418,7 +418,7 @@ def calculate_gamma_rank(replicate_gene_rank, genes):
 #
 # main
 chr_gene_sites = read_gff(gffpath)
-map_intergenic_regions(chr_gene_sites)
+#map_intergenic_regions(chr_gene_sites)
 replicate_sm2gn = {}
 replicate_gn2sm = {}
 for ii in range(0, summitpaths.__len__() ):

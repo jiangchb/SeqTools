@@ -942,7 +942,7 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
     """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
     cur = con.cursor()
         
-    print "\n. Mapping intergenic regions. . ."
+    print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con)
         
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
@@ -988,7 +988,7 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
         sql = "select count(*) from Intergenics where chromid=" + chrid.__str__()
         cur.execute(sql)
         count_inserted = cur.fetchone()[0]
-        print ". Found", count_inserted, "in chromosome ID", chrid
+        print ". Found", count_inserted, "in chromosome", get_chrom_name(con, chrid)
             
             
 def map_summits2genes(con, repid, speciesid=None, chroms=None):
