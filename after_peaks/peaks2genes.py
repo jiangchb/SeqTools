@@ -417,6 +417,9 @@ def calculate_gamma_rank(replicate_gene_rank, genes):
 ####################
 #
 # main
+
+print "\n. In peaks2genes.py"
+
 chr_gene_sites = read_gff(gffpath)
 #map_intergenic_regions(chr_gene_sites)
 replicate_sm2gn = {}
