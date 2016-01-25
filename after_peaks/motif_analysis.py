@@ -81,7 +81,13 @@ def read_genome(genome_path):
         print record.id
     handle.close()
     
-    
+def score_motif_sequence(motif, seq, startsite):
+    """Motif is list of lists, motif[site-1] = (wa,wc,wg,wt)
+        seq is a string of nts
+        startsite is the site number of the first character in seq."""
+        
+    return 10.0    
+
 ##############################
 #
 # main
@@ -178,13 +184,6 @@ for speciesid in speciesid_genomepath:
                 score = score_motif_sequence(gene_motif[motifname], summitseq)
                 print "161:", speciesid, chromid, summitid, motifname, score
 
-
-def score_motif_sequence(motif, seq, startsite):
-    """Motif is list of lists, motif[site-1] = (wa,wc,wg,wt)
-        seq is a string of nts
-        startsite is the site number of the first character in seq."""
-        
-    return 10.0
 
     
 
