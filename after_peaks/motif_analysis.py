@@ -142,8 +142,6 @@ for ii in rcur.fetchall():
     speciesid_indexpath[id] = indexpath
     print "143", id, indexpath
 
-print "145:", speciesid_genomepath
-
 """Parse each genome."""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
@@ -153,7 +151,7 @@ for speciesid in speciesid_genomepath:
         print speciesid, record.name
         
         """Check that this chromosom exists in the viz DB"""
-        sql = "select id from Chromosomes where name='" + chromname + "' and species=" + speciesid.__str__()
+        sql = "select id from Chromosomes where name='" + record.name + "' and species=" + speciesid.__str__()
         vcur.execute(sql)
         if vcur == None:
             continue
