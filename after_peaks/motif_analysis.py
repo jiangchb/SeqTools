@@ -85,8 +85,25 @@ def score_motif_sequence(motif, seq, startsite):
     """Motif is list of lists, motif[site-1] = (wa,wc,wg,wt)
         seq is a string of nts
         startsite is the site number of the first character in seq."""
-        
-    return 10.0    
+    maxsum = 0.0
+    maxsumsite = None
+    motiflength = motif.__len__()
+    for ii in xrange(0, seq.__len__()-motiflength ):
+        sum = 0.0
+        thisseq = seq[ ii: ii+motiflength ]
+        for jj in xrange(0, thisseq._len__() ):
+            if seq[jj] == "A":
+                sum += motif[jj][0]
+            elif seq[jj] == "C":
+                sum += motif[jj][1]
+            elif seq[jj] == "G":
+                sum += motif[jj][2]
+            elif seq[jj] == "T":
+                sum += motif[jj][3]
+        if sum > maxsum:
+            maxsum = sum
+            maxsumsite = ii
+    return (maxsum, maxsumsite + startsite)
 
 ##############################
 #
@@ -182,8 +199,8 @@ for speciesid in speciesid_genomepath:
             print speciesid, record.name, summitid, summitsite
             
             for motifname in gene_motif:            
-                score = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                #print "161:", speciesid, chromid, summitid, motifname, score
+                (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
+                print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
 
 
     
