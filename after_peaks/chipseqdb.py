@@ -941,9 +941,7 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
 def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
     """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
     cur = con.cursor()
-        
-    print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con)
-        
+             
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
         cur.execute(sql)
@@ -955,7 +953,9 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
     if chroms == None:
         chroms = get_chrom_ids(con, speciesid)
     count = 0    
-    #try:
+    
+    print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con)
+    
     for chrid in chroms:
         genes = get_genes_for_chrom(con, chrid) #genes is a list = id, name, start, stop, chrom, strand
         genepairs = get_geneorder(con, repid, chrid)
