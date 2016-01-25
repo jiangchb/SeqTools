@@ -103,6 +103,11 @@ def import_data(con):
                 validate_summits_fe(repid, con)     
     return con
 
+def import_intergenic_regions(con):
+    repids = get_all_repids(con)
+    for repid in repids:
+        map_intergenic_regions(con, repid, speciesid=None, chroms=None)
+
 def setup_unions(con):    
     clear_unions(con)
     build_unions(con)
@@ -279,6 +284,8 @@ if configpath != False:
     
     if False == ap.getOptionalToggle("--skip_import"):
         con = import_data(con)
+
+import_intergenic_regions(con)
 
 #
 # ANALYSIS

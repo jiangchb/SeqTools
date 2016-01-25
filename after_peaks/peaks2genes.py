@@ -32,7 +32,7 @@ runid = ap.getArg("--runid") # A unique name for the output
 
 def splash():
     print "============================================"
-    print "  summits2genes.py"
+    print "  peaks2genes.py"
     print "  Victor Hanson-Smith, 2014"
     print "  victor.hanson-smith@ucsf.edu"
     print "============================================"
@@ -71,11 +71,13 @@ def read_gff(gffpath):
     
     return chr_gene_sites
     
+
+    
+        
 def build_sm2gn(summitpath, chr_gene_sites):
     """Returns chr_sumsite_stats."""
-    #
-    # Build a library of summits
-    #
+
+    """Parse the summits file, map to chromosomes."""
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
     for l in fin.xreadlines():
@@ -111,11 +113,7 @@ def build_sm2gn(summitpath, chr_gene_sites):
                 start = chr_gene_sites[chr][gene][0]
                 stop = chr_gene_sites[chr][gene][1]
                 d = start - sumsite
-                
-                #
-                # to-do: there is a bug here. See notes from Eugenio July 2014
-                #
-                
+                                
                 """Sense direction, and upstream"""
                 if start < stop and start >= sumsite:
                     if min_up == None:
@@ -420,6 +418,7 @@ def calculate_gamma_rank(replicate_gene_rank, genes):
 #
 # main
 chr_gene_sites = read_gff(gffpath)
+map_intergenic_regions(chr_gene_sites)
 replicate_sm2gn = {}
 replicate_gn2sm = {}
 for ii in range(0, summitpaths.__len__() ):

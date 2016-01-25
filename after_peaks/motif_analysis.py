@@ -165,7 +165,8 @@ for ii in rcur.fetchall():
     speciesid_indexpath[id] = indexpath
     #print "143", id, indexpath
 
-"""Parse each genome."""
+"""Parse each genome, examine all the known peaks in each chromosome,
+    and then score motifs under those peaks"""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
     print "Opening", genomepath
@@ -209,7 +210,13 @@ for speciesid in speciesid_genomepath:
                 vcur.execute(sql)
             vcon.commit()
 
-    
+"""Write a table with four columns
+<peak ID> 
+<position of best-matching motif under peak> <best-matching motif score under peak> 
+<position of best-matching motif in peakÕs intergenic region> 
+<best-matching motif score in intergenic region>
+"""
+
 
 
     

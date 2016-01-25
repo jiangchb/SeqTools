@@ -839,6 +839,8 @@ def get_geneorder(con, repid, chromid):
         In each tuple, the 0th element is a 5' gene and the 1st element is a 3' gene.
         This list of tuples can be iterated over in order to examine all intergenic regions
         on a chromosome.
+        The genes on the ends of the chromosome are paired with None, i.e. (None, gene) for the 5'
+        and (gene, None) for the 3'.
     """
     genes = get_genes_for_chrom(con, chromid)
     if genes.__len__() == 0:
@@ -936,7 +938,31 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
         exit()
     return (None, None, None, None)
     
+def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
+    """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INTEGER, chromid INT, start INT, stop INT)
     
+    if speciesid == None:
+        sql = "select species from Replicates where id=" + repid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x == None:
+            print "\n. Error 857: there is no species defined for replicate ID", repid
+            exit()
+        speciesid = int( x[0] )
+    if chroms == None:
+        chroms = get_chrom_ids(con, speciesid)
+    count = 0    
+    #try:
+    for chrid in chroms:
+        genes = get_genes_for_chrom(con, chrid) #genes is a list = id, name, start, stop, chrom, strand
+        genepairs = get_geneorder(con, repid, chrid)
+        for count, pair in enumerate(genepairs):
+            leftgene = pair[0]
+            rightgene = pair[1]
+            if leftgene != None and rightgene != None:
+                print "962:", speciesid, chrid, "leftgene:", leftgene, genes[leftgene]
+            
+            
 def map_summits2genes(con, repid, speciesid=None, chroms=None):
     """This methods puts values into the table GeneSummits.
         speciesid can be the integer ID of a species whose genome will be used to map summits.
