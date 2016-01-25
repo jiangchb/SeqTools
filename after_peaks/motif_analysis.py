@@ -202,6 +202,12 @@ for speciesid in speciesid_genomepath:
                 (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
                 print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
 
+                sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
+                sql += " values(" + summitid.__str__() + "," + motifid.__str__()
+                sql += "," + score.__str__() + "," + maxscoresite.__str__()
+                sql += ")"
+                vcur.execute(sql)
+            vcon.commit()
 
     
 
