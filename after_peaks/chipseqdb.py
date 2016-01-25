@@ -940,7 +940,7 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
     
 def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
     """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INTEGER, chromid INT, start INT, stop INT)
-    
+    cur = con.cursor()
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
         cur.execute(sql)
