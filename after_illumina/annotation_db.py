@@ -459,7 +459,7 @@ def import_configuration(cpath, con):
             sql += "'" + speciesid.__str__() + "','" + ipath + "')"
             cur.execute(sql)
             con.commit()
-            print ". I found a Bowtie index for species", speciesid, "at", gpath
+            print ". I found a Bowtie index for species", speciesid, "at", ipath
     
     """Parse lines for GFF entries"""
     for ll in lines:
