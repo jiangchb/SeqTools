@@ -962,16 +962,17 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
             rightgeneid = pair[1]
             downstreamgeneid = "'NULL'"
             upstreamgeneid = "'NULL'"
-            start = max( leftgene[2], leftgene[3])
-            stop = max(rightgene[2], rightgene[3])
-            stop = None
+            start = 1
+            stop = "'NULL'"
             if leftgeneid != None:
                 leftgene = genes[leftgeneid]
+                start = max( leftgene[2], leftgene[3])
                 if leftgene[5] == "-" and leftgene[2] < leftgene[3]:
                     downstreamgeneid = leftgeneid.__str__()
                 
             if rightgeneid != None:
                 rightgene = genes[rightgeneid]
+                stop = max(rightgene[2], rightgene[3])
                 if rightgene[5] == "+" and rightgene[3] > rightgene[2]:
                     upstreamgeneid = rightgeneid.__str__()
                 
