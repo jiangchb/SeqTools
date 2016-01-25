@@ -154,7 +154,6 @@ for speciesid in speciesid_genomepath:
     print "Opening", genomepath
     handle = open(genomepath, "rU")
     for record in SeqIO.parse(handle, "fasta") :
-        print speciesid, record.name
         
         """Check that this chromosom exists in the viz DB"""
         sql = "select id from Chromosomes where name='" + record.name + "' and species=" + speciesid.__str__()
@@ -180,9 +179,11 @@ for speciesid in speciesid_genomepath:
                 uppersummitsite = maxchromsite
             summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
             
+            print speciesid, record.name, summitid, summitsite
+            
             for motifname in gene_motif:            
                 score = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                print "161:", speciesid, chromid, summitid, motifname, score
+                #print "161:", speciesid, chromid, summitid, motifname, score
 
 
     
