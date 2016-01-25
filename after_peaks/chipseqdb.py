@@ -41,7 +41,7 @@ def build_db(dbpath = None):
     # These data come from the GFF:
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
-    cur.execute("create table if not exists IntergenicRegions(id INTEGER primary key, downstreamgeneid INTEGER, chromid INT, start INT, stop INT)")
+    cur.execute("create table if not exists Intergenics(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key, name TEXT, species INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key, species INT, filepath TEXT)")
     
@@ -939,8 +939,9 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
     return (None, None, None, None)
     
 def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
-    """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INTEGER, chromid INT, start INT, stop INT)
+    """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
     cur = con.cursor()
+        
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
         cur.execute(sql)
@@ -957,10 +958,29 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
         genes = get_genes_for_chrom(con, chrid) #genes is a list = id, name, start, stop, chrom, strand
         genepairs = get_geneorder(con, repid, chrid)
         for count, pair in enumerate(genepairs):
-            leftgene = pair[0]
-            rightgene = pair[1]
-            if leftgene != None and rightgene != None:
-                print "962:", speciesid, chrid, "leftgene:", leftgene, genes[leftgene]
+            leftgeneid = pair[0]
+            rightgeneid = pair[1]
+            downstreamgeneid = "'NULL'"
+            upstreamgeneid = "'NULL'"
+            start = max( leftgene[2], leftgene[3])
+            stop = max(rightgene[2], rightgene[3])
+            stop = None
+            if leftgeneid != None:
+                leftgene = genes[leftgeneid]
+                if leftgene[5] == "-" and leftgene[2] < leftgene[3]:
+                    downstreamgeneid = leftgeneid.__str__()
+                
+            if rightgeneid != None:
+                rightgene = genes[rightgeneid]
+                if rightgene[5] == "+" and rightgene[3] > rightgene[2]:
+                    upstreamgeneid = rightgeneid.__str__()
+                
+            sql = "insert or replace into Intergenics (downstreamgeneid, upstreamgeneid, chromid, start, stop)"
+            sql += " values(" + downstreamgeneid + "," + upstreamgeneid + ","
+            sql += chrid.__str__() + "," + start.__str__() + "," + stop.__str__()
+            sql += ")"
+            cur.execute(sql)
+        con.commit()
             
             
 def map_summits2genes(con, repid, speciesid=None, chroms=None):
