@@ -86,10 +86,11 @@ def read_genome(genome_path):
 #
 
 motifpath = ap.getArg("--motifpath")
+
 readsdbpath = ap.getArg("--readdbpath")
 rcon = lite.connect(readsdbpath, timeout=1)
 
-vizdbpath = ap.getArg("-vizdbpath")
+vizdbpath = ap.getArg("--vizdbpath")
 vcon = build_db(dbpath=vizdbpath)
 vcur = vcon.cursor()
 
