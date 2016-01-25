@@ -147,6 +147,8 @@ for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
     handle = open(genomepath, "rU")
     for record in SeqIO.parse(handle, "fasta") :
+        print speciesid, record.name
+        
         """Check that this chromosom exists in the viz DB"""
         sql = "select id from Chromosomes where name='" + chromname + "' and species=" + speciesid.__str__()
         vcur.execute(sql)
