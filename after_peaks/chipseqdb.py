@@ -562,7 +562,7 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromid = chromid
             if curr_chromid not in chromid_genepairs:
                 """Get the list of ordered gene pair tuples for this chrom."""
-                chromid_genepairs[curr_chromid] = get_geneorder(con, repid, curr_chromid)
+                chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
                 if genes.__len__() == 0:
@@ -834,7 +834,7 @@ def resolve_aliasids(con):
     """Save the commit for the end."""
     con.commit()
 
-def get_geneorder(con, repid, chromid):
+def get_geneorder(con, chromid):
     """Returns a list of tuples, each tuple containing two adjacent genes.
         In each tuple, the 0th element is a 5' gene and the 1st element is a 3' gene.
         This list of tuples can be iterated over in order to examine all intergenic regions
@@ -938,18 +938,10 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
         exit()
     return (None, None, None, None)
     
-def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
+def map_intergenic_regions(con, repid, speciesid, chroms=None):
     """This methods fills the DB table IntergenicRegions""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
     cur = con.cursor()
              
-    if speciesid == None:
-        sql = "select species from Replicates where id=" + repid.__str__()
-        cur.execute(sql)
-        x = cur.fetchone()
-        if x == None:
-            print "\n. Error 857: there is no species defined for replicate ID", repid
-            exit()
-        speciesid = int( x[0] )
     if chroms == None:
         chroms = get_chrom_ids(con, speciesid)
     count = 0    
@@ -958,7 +950,7 @@ def map_intergenic_regions(con, repid, speciesid=None, chroms=None):
     
     for chrid in chroms:
         genes = get_genes_for_chrom(con, chrid) #genes is a list = id, name, start, stop, chrom, strand
-        genepairs = get_geneorder(con, repid, chrid)
+        genepairs = get_geneorder(con, chrid)
         for count, pair in enumerate(genepairs):
             leftgeneid = pair[0]
             rightgeneid = pair[1]
@@ -1019,7 +1011,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         genes = get_genes_for_chrom(con, chrid)
         summits = get_summits(con, repid, chrid)
         
-        genepairs = get_geneorder(con, repid, chrid)
+        genepairs = get_geneorder(con, chrid)
         pairi = 0
         
         for s in summits:

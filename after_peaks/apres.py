@@ -104,9 +104,8 @@ def import_data(con):
     return con
 
 def import_intergenic_regions(con):
-    repids = get_all_repids(con)
-    for repid in repids:
-        map_intergenic_regions(con, repid, speciesid=None, chroms=None)
+    for speciesid in get_species_ids(con):
+        map_intergenic_regions(con, repid, speciesid)
 
 def setup_unions(con):    
     clear_unions(con)
