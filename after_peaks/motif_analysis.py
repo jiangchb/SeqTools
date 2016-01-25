@@ -181,7 +181,7 @@ for speciesid in speciesid_genomepath:
             summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
             
             for motifname in gene_motif:            
-                score = score_motif_sequence(gene_motif[motifname], summitseq)
+                score = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
                 print "161:", speciesid, chromid, summitid, motifname, score
 
 
