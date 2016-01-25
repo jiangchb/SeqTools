@@ -91,7 +91,7 @@ def score_motif_sequence(motif, seq, startsite):
     for ii in xrange(0, seq.__len__()-motiflength ):
         sum = 0.0
         thisseq = seq[ ii: ii+motiflength ]
-        for jj in xrange(0, thisseq._len__() ):
+        for jj in xrange(0, thisseq.__len__() ):
             if seq[jj] == "A":
                 sum += motif[jj][0]
             elif seq[jj] == "C":
