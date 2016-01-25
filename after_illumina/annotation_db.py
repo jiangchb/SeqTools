@@ -27,7 +27,8 @@ def build_anno_db(con):
     
     """Species and Genome"""
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT unique)")
-    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesid TEXT unique, genomepath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesid INT unique, genomepath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesBowtieindex(speciesid TEXT unique, indexpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid INT, gffpath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
@@ -393,7 +394,7 @@ def import_configuration(cpath, con):
     
     print "\n. Reading the configuration file at ", cpath
     
-    sql = "delete from SpeciesGenomepath"
+    sql = "delete from SpeciesBowtieindex"
     cur.execute(sql)
     sql = "delete from GFF"
     cur.execute(sql)
@@ -424,9 +425,9 @@ def import_configuration(cpath, con):
                 continue
             lines.append( lt )
             
-    """Parse lines for GENOME entries"""
+    """Parse lines for GENOMEPATH entries"""
     for ll in lines:
-        if ll.startswith("GENOME"):
+        if ll.startswith("GENOMEPATH"):
             tokens = ll.split()
             if tokens.__len__() < 3:
                 msg = "This line in your configuration file doesn't have enough columns: " + ll
@@ -438,6 +439,24 @@ def import_configuration(cpath, con):
             gpath = tokens[2]
             sql = "insert or replace into SpeciesGenomepath (speciesid, genomepath) VALUES("
             sql += "'" + speciesid.__str__() + "','" + gpath + "')"
+            cur.execute(sql)
+            con.commit()
+            #print ". I found a genome for species", speciesid, "at", gpath
+
+    """Parse lines for BOWTIEINDEX entries"""
+    for ll in lines:
+        if ll.startswith("BOWTIEINDEX"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            species = tokens[1]
+            speciesid = import_species(con, species)
+            ipath = tokens[2]
+            sql = "insert or replace into SpeciesBowtieindex (speciesid, indexpath) VALUES("
+            sql += "'" + speciesid.__str__() + "','" + ipath + "')"
             cur.execute(sql)
             con.commit()
             #print ". I found a genome for species", speciesid, "at", gpath
@@ -678,6 +697,22 @@ def validate_configuration_import(con):
             write_error(con, msg)
             print msg
             exit()
+            
+        sql = "select indexpath from SpeciesBowtieindex where speciesid=" + ii[0].__str__()
+        cur.execute(sql)
+        y = cur.fetchall()
+        if y == None:
+            msg = "Error, the species " + ii[1] + " doesn't have a BOWTIEINDEX entry."
+            write_error(con, msg)
+            print msg
+            exit()
+        if y.__len__() > 1:
+            msg = "Error, the species " + ii[1] + " has multiple BOWTIEINDEX entries."
+            write_error(con, msg)
+            print msg
+            exit()
+        
+        
         sql = "select gffpath from GFF where speciesid=" + ii[0].__str__()
         cur.execute(sql)
         y = cur.fetchall()

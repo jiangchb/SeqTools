@@ -131,6 +131,7 @@ for ii in rcur.fetchall():
     id = ii[0]
     genomepath = ii[1]
     speciesid_genomepath[id] = genomepath
+    print id, genomepath
 
 """Parse each genome."""
 for speciesid in speciesid_genomepath:
