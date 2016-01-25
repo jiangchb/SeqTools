@@ -86,7 +86,7 @@ def score_motif_sequence(motif, seq, startsite):
         seq is a string of nts
         startsite is the site number of the first character in seq."""
     maxsum = 0.0
-    maxsumsite = None
+    maxsumsite = 0
     motiflength = motif.__len__()
     for ii in xrange(0, seq.__len__()-motiflength ):
         sum = 0.0
