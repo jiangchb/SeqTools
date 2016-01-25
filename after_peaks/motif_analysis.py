@@ -161,7 +161,7 @@ for speciesid in speciesid_genomepath:
         maxchromsite = record.seq.__len__()
             
         """ Get a hold of peaks """
-        sql = "select id, site from Summits where chrom=" + record.name.__str__() + " order by site ASC"
+        sql = "select id, site from Summits where chrom=" + chromid.__str__() + " order by site ASC"
         vcur.execute(sql)
         for ii in vcur.fetchall():
             summitid = ii[0]
