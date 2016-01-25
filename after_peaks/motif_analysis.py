@@ -93,10 +93,10 @@ rcon = lite.connect(readsdbpath, timeout=1)
 
 vizdbpath = ap.getArg("--vizdbpath")
 vcon = build_db(dbpath=vizdbpath)
-vcur = vcon.cursor()
 
 """Import motifs"""
 vcon = build_motif_dbtables(vcon)
+vcur = vcon.cursor()
 gene_motif = read_motifs(motifpath)
 for genename in gene_motif:
     sql = "select id from Motifs where name='" + genename + "'"
