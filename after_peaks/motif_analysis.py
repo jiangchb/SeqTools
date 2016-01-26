@@ -126,12 +126,14 @@ def build_summits2summits(con):
     
     cur = con.cursor()
     repgroupids = get_repgroup_ids(con)
-    chromids = get_chrom_ids(con, speciesid)
-    for chromid in chromids:
-        for rgroupid in repgroupids:
-            
+
+    for rgroupid in repgroupids:
+        repids = get_repids_in_group(rgroupid, con)
+        speciesid = get_speciesid_for_repid(repids[0], con)
+        chromids = get_chrom_ids(con, speciesid)
+        for chromid in chromids:    
             repid_summits = {}
-            repids = get_repids_in_group(rgroupid, con)
+
             for repid in repids:
                 
                 print "134:", chromid, repid
