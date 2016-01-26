@@ -132,8 +132,8 @@ def build_summits2summits(con):
     repgroupids = get_repgroup_ids(con)
 
     for rgroupid in repgroupids:
-        groupname = get_repgroup_name(rgroupid, con)
         rgroupid = rgroupid[0]
+        groupname = get_repgroup_name(rgroupid, con)
         repids = get_repids_in_group(rgroupid, con)
         speciesid = get_speciesid_for_repid(repids[0], con)
         chromids = get_chrom_ids(con, speciesid)
