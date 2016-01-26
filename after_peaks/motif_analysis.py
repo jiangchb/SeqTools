@@ -186,6 +186,9 @@ for genename in gene_motif:
         motifname_id[genename] = motifid
         build_motif_table(con, motifid, gene_motif[genename])
 
+print motifname_id[motifname]
+exit()
+
 rcur = rcon.cursor()
 speciesid_name = {}
 sql = "select id, name from Species"
