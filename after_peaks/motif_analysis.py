@@ -174,7 +174,6 @@ def write_peak_motif_table(con):
     for ii in cur.fetchall():
         motifid_name[ ii[0] ] = ii[1]
     
- 
     repgroupids = get_repgroup_ids(con) 
     for rgroupid in repgroupids:
         rgroupid = rgroupid[0]
@@ -190,7 +189,8 @@ def write_peak_motif_table(con):
         for repid in repids:
             repname = get_repname(repid, con)
             header += "MaxScore(" + repname.__str__() + ")\t"
-        
+            header += "MaxSite(" + repname.__str__() + ")\t"
+            
         fout.write(header + "\n")
                               
         speciesid = get_speciesid_for_rep(repids[0], con)
@@ -199,8 +199,6 @@ def write_peak_motif_table(con):
             chromname = get_chrom_name(con, chromid)
             for mid in motifid_name: 
                 summitid_data = {}
-                summitid_summitid = {}
-                
                 sql = "select summitid, maxmotifscore, maxmotifsite from Summits2MotifScores where motifid=" + mid.__str__()
                 sql += " and summitid in "
                 sql += "(SELECT id FROM Summits where chrom=" + chromid.__str__() 
@@ -209,7 +207,6 @@ def write_peak_motif_table(con):
                 #sql += ") " 
                 sql += " and replicate=" + repids[0].__str__()
                 sql += " and (id in (select summitid1 from Summits2Summits) or id in (select summitid2 from Summits2Summits) )"
-                
                 sql += " order by site ASC)"
                 cur.execute(sql)
                 xx = cur.fetchall()
@@ -217,12 +214,32 @@ def write_peak_motif_table(con):
                     print "ERROR: I found no motif scores for sites with repgroup", groupname, "on chromosome", chromid, "for motif", mid
                     exit()
                 for ii in xx:
-                    line = ii[0].__str__() + "\t"
-                    line += motifid_name[ mid ] + "\t"
-                    line += None
+                    summitid = ii[0]
+                    summitid_data[ summitid ] = ii
+                    
+                line = "summit name\t"
+                line += mid.__str__() + "\t"
+                    
+                summitid_summitid = {}                    
+                for summitida in summtid_data:
+                    sql = "select summitid2 from Summits2Summits where summitid1=" + summitida.__str__()
+                    cur.execute(sql)
+                    xx = cur.fetchall()
+                    if xx != None:
+                        summitidb = xx[0]
+                        summitid_summitid[ summitida ] = summitidb
                 
+                for summitida in summitid_summitid:
+                    line += summitid_data[summitida][1].__str__() + "\t"
+                    line += summitid_data[summitida][2].__str__() + "\t" 
+                    
+                    for summitidb in summitid_summitid[ summitida ]:
+                        line = summitid_data[summitidb][1].__str__() + "\t"
+                        line += summitid_data[summitidb][2].__str__() + "\t"                         
                 
-                fout.write(row)
+                line += line + "\n"
+                
+                fout.write(line)
         fout.close()
 
 ##############################
