@@ -184,7 +184,7 @@ for genename in gene_motif:
     vcur.execute(sql)
     motifid = vcur.fetchone()[0]
     motifname_id[genename] = motifid
-    build_motif_table(con, motifid, gene_motif[genename])
+    build_motif_table(vcon, motifid, gene_motif[genename])
 
 print motifname_id
 exit()
