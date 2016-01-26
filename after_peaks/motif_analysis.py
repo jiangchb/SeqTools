@@ -217,9 +217,6 @@ def write_peak_motif_table(con):
                     summitid = ii[0]
                     summitid_data[ summitid ] = ii
                     
-                line = summitid.__str__() + "\t"
-                line += motifid_name[mid].__str__() + "\t"
-                line += chromname + "\t"
                     
                 summitid_summitid = {}                    
                 for summitida in summitid_data:
@@ -239,6 +236,9 @@ def write_peak_motif_table(con):
                             summitid_summitid[ summitida ] = summitidb
                 
                 for summitida in summitid_summitid:
+                    line = summitid.__str__() + "\t"
+                    line += motifid_name[mid].__str__() + "\t"
+                    line += chromname + "\t"
                     line += summitid_data[summitida][1].__str__() + "\t"
                     line += summitid_data[summitida][2].__str__() + "\t" 
                     
