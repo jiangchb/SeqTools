@@ -130,6 +130,9 @@ def build_summits2summits(con):
             repid_summits = {}
             repids = get_repids_in_group(rgroupid, con)
             for repid in repids:
+                
+                print "134:", chromid, repid
+                
                 sql = get_summits(con, repid, chromid) # id, replicate, name, site, chrom, score, pvalue, qvalue
                 cur.execute(sql)
                 repid_summits[repid] = cur.fetchall()
