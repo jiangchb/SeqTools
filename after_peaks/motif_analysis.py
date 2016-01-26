@@ -181,6 +181,7 @@ for genename in gene_motif:
         vcur.execute(sql)
         vcon.commit()
     sql = "select id from Motifs where name='" + genename + "'"
+    print sql
     vcur.execute(sql)
     motifid = vcur.fetchone()[0]
     motifname_id[genename] = motifid
