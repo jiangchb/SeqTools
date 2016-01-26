@@ -247,9 +247,8 @@ def write_peak_motif_table(con):
                             line += summitid_data[summitidb][1].__str__() + "\t"
                             line += summitid_data[summitidb][2].__str__() + "\t"                         
                 
-                line += line + "\n"
-                
-                fout.write(line)
+                    line += line + "\n"
+                    fout.write(line)
         fout.close()
 
 ##############################
