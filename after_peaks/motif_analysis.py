@@ -226,8 +226,9 @@ def write_peak_motif_table(con):
                     cur.execute(sql)
                     xx = cur.fetchall()
                     if xx != None:
-                        summitidb = xx[0]
-                        summitid_summitid[ summitida ] = summitidb
+                        for ii in xx:
+                            summitidb = xx[0]
+                            summitid_summitid[ summitida ] = summitidb
                 
                 for summitida in summitid_summitid:
                     line += summitid_data[summitida][1].__str__() + "\t"
