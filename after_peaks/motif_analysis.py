@@ -257,7 +257,7 @@ for speciesid in speciesid_genomepath:
                 vcur.execute(sql)
             vcon.commit()
 
-write_peak_motif_table(con)
+write_peak_motif_table(vcon)
     
 
 
