@@ -215,7 +215,7 @@ for ii in rcur.fetchall():
     and then score motifs under those peaks"""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
-    print "Processing peaks in", get_species_name(speciesid, vcon) 
+    print "\n. Scoring motifs under peaks in", get_species_name(speciesid, vcon) 
     handle = open(genomepath, "rU")
     for record in SeqIO.parse(handle, "fasta") :
         
