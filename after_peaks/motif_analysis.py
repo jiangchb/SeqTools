@@ -129,7 +129,7 @@ def write_peak_motif_table(con):
         
         header = "Summit ID \t Motif \t"
         for repid in repids:
-            repname = get_repname(repid, speciesid, con)
+            repname = get_repname(repid, con)
             header += "MaxScore(" + repname.__str__() + ")\t"
         
         fout.write(header + "\n")
@@ -245,7 +245,7 @@ for speciesid in speciesid_genomepath:
                 uppersummitsite = maxchromsite
             summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
             
-            print speciesid, record.name, summitid, summitsite
+            #print speciesid, record.name, summitid, summitsite
             
             for motifname in gene_motif:            
                 (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
