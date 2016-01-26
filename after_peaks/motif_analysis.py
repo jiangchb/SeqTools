@@ -138,10 +138,8 @@ def build_summits2summits(con):
             for repid in repids:
                 
                 print "134:", chromid, repid
-                
-                sql = get_summits(con, repid, chromid) # id, replicate, name, site, chrom, score, pvalue, qvalue
-                cur.execute(sql)
-                repid_summits[repid] = cur.fetchall()
+
+                repid_summits[repid] = get_summits(con, repid, chromid)
             
             for repida in repids:
                 for summita in repid_summits[ repida ]:
