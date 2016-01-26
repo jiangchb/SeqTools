@@ -6,6 +6,8 @@ from chipseqdb_api import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
+from plot_scatter import *
+
 """Jump allows for some steps to be skipped."""
 jump = ap.getOptionalArg("--jump")
 stop = ap.getOptionalArg("--stop")
@@ -197,6 +199,9 @@ def write_peak_motif_table(con):
                 header += "MaxEnrichAtSummit(" + repname.__str__() + ")\t"
                 
             fout.write(header + "\n")
+            
+            xvalues = [] # for the scatterplot
+            yvalues = [] # for the scatterplot
                                   
             speciesid = get_speciesid_for_rep(repids[0], con)
             chromids = get_chrom_ids(con, speciesid)
@@ -251,6 +256,9 @@ def write_peak_motif_table(con):
                     eval = cur.fetchone()[0]
                     line += eval.__str__() + "\t"
                     
+                    xvalues.append( summitid_data[summitida][1] )
+                    yvalues.append( eval )
+                    
                     if summitida in summitid_summitid:
                         for summitidb in summitid_summitid[ summitida ]:
                             line += summitid_data[summitidb][1].__str__() + "\t"
@@ -262,6 +270,7 @@ def write_peak_motif_table(con):
                 
                     fout.write(line + "\n")
             fout.close()
+            scatter_nxm(2, 2, [xvalues,yvalues], ["max motif score","fold-enrichment"], groupname + ".motifs_vs_fe." + motifid_name[ mid ], title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None)
 
 ##############################
 #
