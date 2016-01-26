@@ -324,7 +324,7 @@ if jump <= 1 and stop > 1:
                     vcur.execute(sql)
                 vcon.commit()
 
-if jump < 1.5 and stop > 1.5:
+if jump <= 1.5 and stop > 1.5:
     build_summits2summits(con)
 
 if jump <= 2 and stop > 2:
