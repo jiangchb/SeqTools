@@ -121,6 +121,9 @@ def build_summits2summits(con):
     """This method fills the DB table Summits2Summits.
     It matches the location of summits across replciates, and determines which
     summits were replicated."""
+    
+    print "\n. Mapping summits to summits across replicates. . ."
+    
     cur = con.cursor()
     repgroupids = get_repgroup_ids(con)
     chromids = get_chrom_ids(con, speciesid)
