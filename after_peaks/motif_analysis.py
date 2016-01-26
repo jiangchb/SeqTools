@@ -160,11 +160,9 @@ def build_summits2summits(con):
                                 sql += "," + (summita[3] - summitb[3]).__str__() + ")"
                                 cur.execute(sql)
                                 count_inserted += 1
-            print ". Found", count_inserted, "matches for", chromname, groupname
+            print ". Found", count_inserted, "matched summits for", chromname, groupname
             con.commit()
                     
-                        
-
 def write_peak_motif_table(con):
     cur = con.cursor()
     
@@ -214,7 +212,7 @@ def write_peak_motif_table(con):
                 
                 sql += " order by site ASC)"
                 cur.execute(sql)
-                xx = cur.xfetchall()
+                xx = cur.fetchall()
                 if xx == None:
                     print "ERROR: I found no motif scores for sites with repgroup", groupname, "on chromosome", chromid, "for motif", mid
                     exit()
