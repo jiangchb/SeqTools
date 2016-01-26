@@ -177,7 +177,7 @@ for genename in gene_motif:
     vcur.execute(sql)
     xx = vcur.fetchall()
     if xx == None:
-        sql = "insert into Motifs (name) values(" + genename + ")"
+        sql = "insert into Motifs (name) values('" + genename + "')"
         vcur.execute(sql)
         vcon.commit()
         sql = "select id from Motifs where name='" + genename + "'"
