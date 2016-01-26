@@ -221,7 +221,7 @@ def write_peak_motif_table(con):
                 line += mid.__str__() + "\t"
                     
                 summitid_summitid = {}                    
-                for summitida in summtid_data:
+                for summitida in summitid_data:
                     sql = "select summitid2 from Summits2Summits where summitid1=" + summitida.__str__()
                     cur.execute(sql)
                     xx = cur.fetchall()
