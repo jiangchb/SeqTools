@@ -125,20 +125,25 @@ def build_summits2summits(con):
     print "\n. Mapping summits to summits across replicates. . ."
     
     cur = con.cursor()
+    sql = "delete from Summits2Summits"
+    cur.execute(sql)
+    con.commit()
+    
     repgroupids = get_repgroup_ids(con)
 
     for rgroupid in repgroupids:
+        groupname = get_repgroup_name(rgroupid, con)
         rgroupid = rgroupid[0]
         repids = get_repids_in_group(rgroupid, con)
         speciesid = get_speciesid_for_repid(repids[0], con)
         chromids = get_chrom_ids(con, speciesid)
-        for chromid in chromids:    
+        for chromid in chromids:   
+            chromname = get_chrom_name(con, chromid) 
             repid_summits = {}
+            
+            count_inserted = 0
 
             for repid in repids:
-                
-                print "134:", chromid, repid
-
                 repid_summits[repid] = get_summits(con, repid, chromid)
             
             for repida in repids:
@@ -149,11 +154,13 @@ def build_summits2summits(con):
                         for summitb in repid_summits[ repidb ]:
                             if abs(summita[3] - summitb[3]) < 30:
                                 # we found two replicated summits
-                                print "found overlapping summits", summita[0], summitb[0]
-                                sql = "insert into Summits2Summits (summitid1, summitid2, distance)"
+                                #print "found overlapping summits", summita[0], summitb[0]
+                                sql = "insert or replace into Summits2Summits (summitid1, summitid2, distance)"
                                 sql += " values(" + summita[0].__str__() + "," + summitb[0].__str__()
                                 sql += "," + (summita[3] - summitb[3]).__str__() + ")"
                                 cur.execute(sql)
+                                count_inserted += 1
+            print ". Found", count_inserted, "matches for", chromname, groupname
             con.commit()
                     
                         
@@ -191,6 +198,7 @@ def write_peak_motif_table(con):
         speciesid = get_speciesid_for_rep(repids[0], con)
         chromids = get_chrom_ids(con, speciesid)
         for chromid in chromids:
+            chromname = get_chrom_name(con, chromid)
             for mid in motifid_name: 
                 summitid_data = {}
                 summitid_summitid = {}
