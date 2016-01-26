@@ -119,6 +119,7 @@ def write_peak_motif_table(con):
  
     repgroupids = get_repgroup_ids(con) 
     for rgroupid in repgroupids:
+        rgroupid = rgroupid[0]
         groupname = get_repgroup_name(rgroupid, con)
         repids = get_repids_in_group(rgroupid, con)
         repids.sort()
@@ -248,7 +249,7 @@ for speciesid in speciesid_genomepath:
             
             for motifname in gene_motif:            
                 (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
+                #print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
 
                 sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
                 sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
