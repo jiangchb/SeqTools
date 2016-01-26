@@ -206,7 +206,7 @@ def write_peak_motif_table(con):
                 #sql += "SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__()
                 #sql += ") " 
                 sql += " and replicate=" + repids[0].__str__()
-                sql += " and (id in (select summitid1 from Summits2Summits) or id in (select summitid2 from Summits2Summits) )"
+                #sql += " and (id in (select summitid1 from Summits2Summits) or id in (select summitid2 from Summits2Summits) )"
                 sql += " order by site ASC)"
                 cur.execute(sql)
                 xx = cur.fetchall()
@@ -233,9 +233,10 @@ def write_peak_motif_table(con):
                     line += summitid_data[summitida][1].__str__() + "\t"
                     line += summitid_data[summitida][2].__str__() + "\t" 
                     
-                    for summitidb in summitid_summitid[ summitida ]:
-                        line = summitid_data[summitidb][1].__str__() + "\t"
-                        line += summitid_data[summitidb][2].__str__() + "\t"                         
+                    if summitida in summitid_summitid:
+                        for summitidb in summitid_summitid[ summitida ]:
+                            line = summitid_data[summitidb][1].__str__() + "\t"
+                            line += summitid_data[summitidb][2].__str__() + "\t"                         
                 
                 line += line + "\n"
                 
