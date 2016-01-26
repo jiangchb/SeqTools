@@ -184,24 +184,25 @@ def write_peak_motif_table(con):
         print ". . .", groupname
         repids = get_repids_in_group(rgroupid, con)
         repids.sort()
-                
-        outpath = groupname + ".motifs_in_peaks.xls"
-        fout = open(outpath, "w")
-        
-        header = "Summit ID \t Motif \t Chom. \t"
-        for repid in repids:
-            repname = get_repname(repid, con)
-            header += "MaxScore(" + repname.__str__() + ")\t"
-            header += "MaxSite(" + repname.__str__() + ")\t"
-            header += "MaxEnrichAtSummit(" + repname.__str__() + ")\t"
+
+        for mid in motifid_name:  
+            outpath = groupname + ".motifs_in_peaks." + motifid_name[ mid ] + ".xls"
+            fout = open(outpath, "w")
             
-        fout.write(header + "\n")
-                              
-        speciesid = get_speciesid_for_rep(repids[0], con)
-        chromids = get_chrom_ids(con, speciesid)
-        for chromid in chromids:
-            chromname = get_chrom_name(con, chromid)
-            for mid in motifid_name: 
+            header = "Summit ID \t Motif \t Chom. \t"
+            for repid in repids:
+                repname = get_repname(repid, con)
+                header += "MaxScore(" + repname.__str__() + ")\t"
+                header += "MaxSite(" + repname.__str__() + ")\t"
+                header += "MaxEnrichAtSummit(" + repname.__str__() + ")\t"
+                
+            fout.write(header + "\n")
+                                  
+            speciesid = get_speciesid_for_rep(repids[0], con)
+            chromids = get_chrom_ids(con, speciesid)
+            for chromid in chromids:
+                chromname = get_chrom_name(con, chromid)
+
                 summitid_data = {}
                 sql = "select summitid, maxmotifscore, maxmotifsite from Summits2MotifScores where motifid=" + mid.__str__()
                 sql += " and summitid in "
@@ -260,7 +261,7 @@ def write_peak_motif_table(con):
                             line += eval.__str__() + "\t"                    
                 
                     fout.write(line + "\n")
-        fout.close()
+            fout.close()
 
 ##############################
 #
