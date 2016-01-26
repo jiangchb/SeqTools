@@ -190,6 +190,7 @@ def write_peak_motif_table(con):
             repname = get_repname(repid, con)
             header += "MaxScore(" + repname.__str__() + ")\t"
             header += "MaxSite(" + repname.__str__() + ")\t"
+            header += "MaxEnrichAtSummit(" + repname.__str__() + ")\t"
             
         fout.write(header + "\n")
                               
@@ -241,11 +242,19 @@ def write_peak_motif_table(con):
                     line += chromname + "\t"
                     line += summitid_data[summitida][1].__str__() + "\t"
                     line += summitid_data[summitida][2].__str__() + "\t" 
+                    sql = "select max_enrichment from SummitsEnrichment where summit=" + summitida.__str__()
+                    cur.execute(sql)
+                    eval = cur.fetchone()[0]
+                    line += eval.__str__() + "\t"
                     
                     if summitida in summitid_summitid:
                         for summitidb in summitid_summitid[ summitida ]:
                             line += summitid_data[summitidb][1].__str__() + "\t"
-                            line += summitid_data[summitidb][2].__str__() + "\t"                         
+                            line += summitid_data[summitidb][2].__str__() + "\t"  
+                            sql = "select max_enrichment from SummitsEnrichment where summit=" + summitidb.__str__()
+                            cur.execute(sql)
+                            eval = cur.fetchone()[0]   
+                            line += eval.__str__() + "\t"                    
                 
                     fout.write(line + "\n")
         fout.close()
