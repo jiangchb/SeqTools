@@ -307,7 +307,6 @@ if False == ap.getOptionalToggle("--skip_analysis"):
         correlate_species(con)    
 
 #IDR
-write_peak_motif_table(con)
 #
 # continue here:
 # plot FE versus summit score.

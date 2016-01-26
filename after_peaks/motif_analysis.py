@@ -105,6 +105,52 @@ def score_motif_sequence(motif, seq, startsite):
             maxsumsite = ii
     return (maxsum, maxsumsite + startsite)
 
+def write_peak_motif_table(con):
+    cur = con.cursor()
+    
+    print "\n. Writing a tables 'motifs_in_peaks.xls' for every group of replicates..."
+    
+    motifid_name = {}
+    sql = "select id, name from Motifs"
+    cur.execute(sql)
+    for ii in cur.fetchall():
+        motifid_name[ ii[0] ] = ii[1]
+    
+ 
+    repgroupids = get_repgroup_ids(con) 
+    for rgroupid in repgroupids:
+        groupname = get_repgroup_name(rgroupid, con)
+        repids = get_repids_in_group(rgroupid, con)
+        repids.sort()
+                
+        outpath = groupname + ".motifs_in_peaks.xls"
+        fout = open(outpath, "w")
+        
+        header = "Summit ID \t Motif \t"
+        for repid in repids:
+            repname = get_repname(repid, speciesid, con)
+            header += "MaxScore(" + repname.__str__() + ")\t"
+        
+        fout.write(header + "\n")
+                      
+        repid_summits = {}
+        #for repid in repids:
+        #    summits = get_summits(con, repid, chromid)
+                            
+        for repid in repids:           
+            speciesid = get_speciesid_for_rep(repid, con)
+            chromids = get_chrom_ids(con, speciesid)
+            for chromid in chromids:
+                summits = get_summits(con, repid, chromid)
+                for s in summits:
+                    for mid in motifid_name: 
+                        row = s.__str__() + "\t" + mid.__str__()
+                        sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s.__str__() + " and motifid=" + mid.__str__()
+                        cur.execute(sql)
+                        xx = fetchone()[0]
+                        row += xx[0].__str__()
+                        fout.write(row)
+
 ##############################
 #
 # main
@@ -210,58 +256,8 @@ for speciesid in speciesid_genomepath:
                 vcur.execute(sql)
             vcon.commit()
 
-def write_peak_motif_table(con):
-    cur = con.cursor()
+write_peak_motif_table(con)
     
-    print "\n. Writing a tables 'motifs_in_peaks.xls' for every group of replicates..."
-    
-    motifid_name = {}
-    sql = "select id, name from Motifs"
-    cur.execute(sql)
-    for ii in cur.fetchall():
-        motifid_name[ ii[0] ] = ii[1]
-    
- 
-    repgroupids = get_repgroup_ids(con) 
-    for rgroupid in repgroupids:
-        groupname = get_repgroup_name(rgroupid, con)
-        repids = get_repids_in_group(rgroupid, con)
-        repids.sort()
-                
-        outpath = groupname + ".motifs_in_peaks.xls"
-        fout = open(outpath, "w")
-        
-        header = "Summit ID \t Motif \t"
-        for repid in repids:
-            repname = get_repname(repid, speciesid, con)
-            header += "MaxScore(" + repname.__str__() + ")\t"
-        
-        fout.write(header + "\n")
-                      
-        repid_summits = {}
-        #for repid in repids:
-        #    summits = get_summits(con, repid, chromid)
-                            
-        for repid in repids:           
-            speciesid = get_speciesid_for_rep(repid, con)
-            chromids = get_chrom_ids(con, speciesid)
-            for chromid in chromids:
-                summits = get_summits(con, repid, chromid)
-                for s in summits:
-                    for mid in motifid_name: 
-                        row = s.__str__() + "\t" + mid.__str__()
-                        sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s.__str__() + " and motifid=" + mid.__str__()
-                        cur.execute(sql)
-                        xx = fetchone()[0]
-                        row += xx[0].__str__()
-                        fout.write(row)
-    
-"""Write a table with four columns
-<peak ID> 
-<position of best-matching motif under peak> <best-matching motif score under peak> 
-<position of best-matching motif in peakÕs intergenic region> 
-<best-matching motif score in intergenic region>
-"""
 
 
 
