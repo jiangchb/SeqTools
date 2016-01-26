@@ -85,6 +85,11 @@ def get_repid(repname, speciesid, con):
     cur.execute("SELECT id from Replicates where name='" + repname.__str__() + "' and species=" + speciesid.__str__())
     return cur.fetchone()[0]
 
+def get_repname(repid, speciesid, con):    
+    cur = con.cursor()
+    cur.execute("SELECT name from Replicates where id=" + repid.__str__() + " and species=" + speciesid.__str__())
+    return cur.fetchone()[0]
+
 def get_repgroup_ids(con):
     cur = con.cursor()
     cur.execute("SELECT id from ReplicateGroups")
