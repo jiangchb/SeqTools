@@ -6,6 +6,19 @@ from chipseqdb_api import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
+"""Jump allows for some steps to be skipped."""
+jump = ap.getOptionalArg("--jump")
+stop = ap.getOptionalArg("--stop")
+if jump == False:
+    jump = 0
+else:
+    jump = float(jump)
+    
+if stop == False:
+    stop = 10000000
+else:
+    stop = float(stop)
+
 def read_motifs(motif_path):
     """Reads PSWM data from a text file.
     Motifs are expected to look like this:
@@ -148,7 +161,10 @@ def write_peak_motif_table(con):
                         row = s.__str__() + "\t" + mid.__str__()
                         sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s[0].__str__() + " and motifid=" + mid.__str__()
                         cur.execute(sql)
-                        xx = fetchone()[0]
+                        xx = cur.fetchone()
+                        if xx == None:
+                            print "ERROR: I found no motif scores for sites under the peak ID", s[0], "for motif ID", mid
+                            exit()
                         row += xx[0].__str__()
                         fout.write(row)
 
@@ -211,52 +227,55 @@ for ii in rcur.fetchall():
     speciesid_indexpath[id] = indexpath
     #print "143", id, indexpath
 
-"""Parse each genome, examine all the known peaks in each chromosome,
-    and then score motifs under those peaks"""
-for speciesid in speciesid_genomepath:
-    genomepath = speciesid_genomepath[speciesid]
-    print "\n. Scoring motifs under peaks in", get_species_name(speciesid, vcon) 
-    handle = open(genomepath, "rU")
-    for record in SeqIO.parse(handle, "fasta") :
-        
-        """Check that this chromosom exists in the viz DB"""
-        sql = "select id from Chromosomes where name='" + record.name + "' and species=" + speciesid.__str__()
-        vcur.execute(sql)
-        if vcur == None:
-            continue
-        else:
-            chromid = vcur.fetchone()[0]
+if jump <= 1 and stop > 1:
+    
+    """Parse each genome, examine all the known peaks in each chromosome,
+        and then score motifs under those peaks"""
+    for speciesid in speciesid_genomepath:
+        genomepath = speciesid_genomepath[speciesid]
+        print "\n. Scoring motifs under peaks in species", get_species_name(speciesid, vcon) 
+        handle = open(genomepath, "rU")
+        for record in SeqIO.parse(handle, "fasta") :
             
-        maxchromsite = record.seq.__len__()
-            
-        """ Get a hold of peaks """
-        sql = "select id, site from Summits where chrom=" + chromid.__str__() + " order by site ASC"
-        vcur.execute(sql)
-        for ii in vcur.fetchall():
-            summitid = ii[0]
-            summitsite = ii[1]
-            lowersummitsite = summitsite - 50
-            uppersummitsite = summitsite + 50
-            if lowersummitsite < 50:
-                lowersummitsite = 1
-            if uppersummitsite > maxchromsite:
-                uppersummitsite = maxchromsite
-            summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
-            
-            #print speciesid, record.name, summitid, summitsite
-            
-            for motifname in gene_motif:            
-                (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                #print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
+            """Check that this chromosom exists in the viz DB"""
+            sql = "select id from Chromosomes where name='" + record.name + "' and species=" + speciesid.__str__()
+            vcur.execute(sql)
+            if vcur == None:
+                continue
+            else:
+                chromid = vcur.fetchone()[0]
+                
+            maxchromsite = record.seq.__len__()
+                
+            """ Get a hold of peaks """
+            sql = "select id, site from Summits where chrom=" + chromid.__str__() + " order by site ASC"
+            vcur.execute(sql)
+            for ii in vcur.fetchall():
+                summitid = ii[0]
+                summitsite = ii[1]
+                lowersummitsite = summitsite - 50
+                uppersummitsite = summitsite + 50
+                if lowersummitsite < 50:
+                    lowersummitsite = 1
+                if uppersummitsite > maxchromsite:
+                    uppersummitsite = maxchromsite
+                summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
+                
+                #print speciesid, record.name, summitid, summitsite
+                
+                for motifname in gene_motif:            
+                    (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
+                    #print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
+    
+                    sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
+                    sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
+                    sql += "," + score.__str__() + "," + maxscoresite.__str__()
+                    sql += ")"
+                    vcur.execute(sql)
+                vcon.commit()
 
-                sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
-                sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
-                sql += "," + score.__str__() + "," + maxscoresite.__str__()
-                sql += ")"
-                vcur.execute(sql)
-            vcon.commit()
-
-write_peak_motif_table(vcon)
+if jump <= 2 and stop > 2:
+    write_peak_motif_table(vcon)
     
 
 
