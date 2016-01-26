@@ -325,7 +325,7 @@ if jump <= 1 and stop > 1:
                 vcon.commit()
 
 if jump <= 1.5 and stop > 1.5:
-    build_summits2summits(con)
+    build_summits2summits(vcon)
 
 if jump <= 2 and stop > 2:
     write_peak_motif_table(vcon)
