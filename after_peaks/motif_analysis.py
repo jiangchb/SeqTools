@@ -112,6 +112,9 @@ def score_motif_sequence(motif, seq, startsite):
                 sum += motif[jj][2]
             elif seq[jj] == "T":
                 sum += motif[jj][3]
+        print thisseq, sum
+        print motif
+        exit()
         if sum > maxsum:
             maxsum = sum
             maxsumsite = ii
