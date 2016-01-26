@@ -186,7 +186,7 @@ for genename in gene_motif:
         motifname_id[genename] = motifid
         build_motif_table(con, motifid, gene_motif[genename])
 
-print motifname_id[motifname]
+print motifname_id
 exit()
 
 rcur = rcon.cursor()
