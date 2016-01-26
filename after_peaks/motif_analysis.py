@@ -180,13 +180,7 @@ def write_peak_motif_table(con):
             header += "MaxScore(" + repname.__str__() + ")\t"
         
         fout.write(header + "\n")
-                      
-        repid_summits = {}
-        for repid in repids:
-            repid_summits[repid] = get_summits(con, repid, chromid)
-        
-        
-        
+                              
         speciesid = get_speciesid_for_rep(repids[0], con)
         chromids = get_chrom_ids(con, speciesid)
         for chromid in chromids:
