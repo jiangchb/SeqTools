@@ -180,8 +180,8 @@ for genename in gene_motif:
         sql = "insert into Motifs (name) values('" + genename + "')"
         vcur.execute(sql)
         vcon.commit()
-        sql = "select id from Motifs where name='" + genename + "'"
-        vcur.execute(sql)
+    sql = "select id from Motifs where name='" + genename + "'"
+    vcur.execute(sql)
     motifid = vcur.fetchone()[0]
     motifname_id[genename] = motifid
     build_motif_table(con, motifid, gene_motif[genename])
