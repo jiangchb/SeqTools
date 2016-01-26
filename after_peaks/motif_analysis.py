@@ -170,6 +170,7 @@ print "98:", vcon, vizdbpath
 """Import motifs"""
 vcur = vcon.cursor()
 gene_motif = read_motifs(motifpath)
+motifname_id = {}
 for genename in gene_motif:
     sql = "select id from Motifs where name='" + genename + "'"
     vcur.execute(sql)
@@ -182,6 +183,7 @@ for genename in gene_motif:
         vcur.execute(sql)
     for ii in vcur.fetchall():
         motifid = ii[0]
+        motifname_id[genename] = motifid
         build_motif_table(con, motifid, gene_motif[genename])
 
 rcur = rcon.cursor()
@@ -250,7 +252,7 @@ for speciesid in speciesid_genomepath:
                 print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
 
                 sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
-                sql += " values(" + summitid.__str__() + "," + motifid.__str__()
+                sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
                 sql += "," + score.__str__() + "," + maxscoresite.__str__()
                 sql += ")"
                 vcur.execute(sql)
