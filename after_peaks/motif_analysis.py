@@ -37,7 +37,6 @@ def read_motifs(motif_path):
         if line.startswith("/NAME"):
             tokens = line.split()
             gene = tokens[1]
-            print "found gene:", gene
             if curr_gene != None:
                 gene_motif[ curr_gene ] = curr_motif
             curr_gene = gene
@@ -144,9 +143,10 @@ def write_peak_motif_table(con):
             for chromid in chromids:
                 summits = get_summits(con, repid, chromid)
                 for s in summits:
+                    sid = s[0]
                     for mid in motifid_name: 
                         row = s.__str__() + "\t" + mid.__str__()
-                        sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s.__str__() + " and motifid=" + mid.__str__()
+                        sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s[0].__str__() + " and motifid=" + mid.__str__()
                         cur.execute(sql)
                         xx = fetchone()[0]
                         row += xx[0].__str__()
@@ -165,8 +165,6 @@ rcon = lite.connect(readsdbpath, timeout=1)
 vizdbpath = ap.getArg("--vizdbpath")
 vcon = build_db(dbpath=vizdbpath)
 vcon = build_motif_dbtables(vcon)
-
-print "98:", vcon, vizdbpath
 
 """Import motifs"""
 vcur = vcon.cursor()
@@ -217,7 +215,7 @@ for ii in rcur.fetchall():
     and then score motifs under those peaks"""
 for speciesid in speciesid_genomepath:
     genomepath = speciesid_genomepath[speciesid]
-    print "Opening", genomepath
+    print "Processing peaks in", get_species_name(speciesid, vcon) 
     handle = open(genomepath, "rU")
     for record in SeqIO.parse(handle, "fasta") :
         
