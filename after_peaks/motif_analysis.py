@@ -172,6 +172,7 @@ vcur = vcon.cursor()
 gene_motif = read_motifs(motifpath)
 motifname_id = {}
 for genename in gene_motif:
+    print "175:", genename
     sql = "select id from Motifs where name='" + genename + "'"
     vcur.execute(sql)
     xx = vcur.fetchall()
