@@ -172,7 +172,6 @@ vcur = vcon.cursor()
 gene_motif = read_motifs(motifpath)
 motifname_id = {}
 for genename in gene_motif:
-    print "175:", genename
     sql = "select id from Motifs where name='" + genename + "'"
     vcur.execute(sql)
     if vcur.fetchone() == None:
@@ -180,14 +179,11 @@ for genename in gene_motif:
         vcur.execute(sql)
         vcon.commit()
     sql = "select id from Motifs where name='" + genename + "'"
-    print sql
     vcur.execute(sql)
     motifid = vcur.fetchone()[0]
     motifname_id[genename] = motifid
     build_motif_table(vcon, motifid, gene_motif[genename])
 
-print motifname_id
-exit()
 
 rcur = rcon.cursor()
 speciesid_name = {}
