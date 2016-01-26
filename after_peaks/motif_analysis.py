@@ -202,10 +202,10 @@ def write_peak_motif_table(con):
                 sql = "select summitid, maxmotifscore, maxmotifsite from Summits2MotifScores where motifid=" + mid.__str__()
                 sql += " and summitid in "
                 sql += "(SELECT id FROM Summits where chrom=" + chromid.__str__() 
-                #sql += " and replicate in ("
-                #sql += "SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__()
-                #sql += ") " 
-                sql += " and replicate=" + repids[0].__str__()
+                sql += " and replicate in ("
+                sql += "SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__()
+                sql += ") " 
+                #sql += " and replicate=" + repids[0].__str__()
                 #sql += " and (id in (select summitid1 from Summits2Summits) or id in (select summitid2 from Summits2Summits) )"
                 sql += " order by site ASC)"
                 cur.execute(sql)
