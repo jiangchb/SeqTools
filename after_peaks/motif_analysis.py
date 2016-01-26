@@ -185,7 +185,7 @@ def write_peak_motif_table(con):
         outpath = groupname + ".motifs_in_peaks.xls"
         fout = open(outpath, "w")
         
-        header = "Summit ID \t Motif \t"
+        header = "Summit ID \t Motif \t Chom. \t"
         for repid in repids:
             repname = get_repname(repid, con)
             header += "MaxScore(" + repname.__str__() + ")\t"
@@ -217,12 +217,20 @@ def write_peak_motif_table(con):
                     summitid = ii[0]
                     summitid_data[ summitid ] = ii
                     
-                line = "summit name\t"
-                line += mid.__str__() + "\t"
+                line = summitid.__str__() + "\t"
+                line += motifid_name[mid].__str__() + "\t"
+                line += chromname + "\t"
                     
                 summitid_summitid = {}                    
                 for summitida in summitid_data:
                     sql = "select summitid2 from Summits2Summits where summitid1=" + summitida.__str__()
+                    cur.execute(sql)
+                    xx = cur.fetchall()
+                    if xx != None:
+                        for ii in xx:
+                            summitidb = xx[0]
+                            summitid_summitid[ summitida ] = summitidb
+                    sql = "select summitid1 from Summits2Summits where summitid2=" + summitida.__str__()
                     cur.execute(sql)
                     xx = cur.fetchall()
                     if xx != None:
@@ -236,7 +244,7 @@ def write_peak_motif_table(con):
                     
                     if summitida in summitid_summitid:
                         for summitidb in summitid_summitid[ summitida ]:
-                            line = summitid_data[summitidb][1].__str__() + "\t"
+                            line += summitid_data[summitidb][1].__str__() + "\t"
                             line += summitid_data[summitidb][2].__str__() + "\t"                         
                 
                 line += line + "\n"
