@@ -117,6 +117,40 @@ def score_motif_sequence(motif, seq, startsite):
             maxsumsite = ii
     return (maxsum, maxsumsite + startsite)
 
+def build_summits2summits(con):
+    """This method fills the DB table Summits2Summits.
+    It matches the location of summits across replciates, and determines which
+    summits were replicated."""
+    cur = con.cursor()
+    repgroupids = get_repgroup_ids(con)
+    chromids = get_chrom_ids(con, speciesid)
+    for chromid in chromids:
+        for rgroupid in repgroupids:
+            
+            repid_summits = {}
+            repids = get_repids_in_group(rgroupid, con)
+            for repid in repids:
+                sql = get_summits(con, repid, chromid) # id, replicate, name, site, chrom, score, pvalue, qvalue
+                cur.execute(sql)
+                repid_summits[repid] = cur.fetchall()
+            
+            for repida in repids:
+                for summita in repid_summits[ repida ]:
+                    for repidb in repids:
+                        if repida == repidb:
+                            continue
+                        for summitb in repid_summits[ repidb ]:
+                            if abs(summita[3] - summitb[3]) < 30:
+                                # we found two replicated summits
+                                print "found overlapping summits", summita[0], summitb[0]
+                                sql = "insert into Summits2Summits (summitid1, summitid2, distance)"
+                                sql += " values(" + summita[0].__str__() + "," + summitb[0].__str__()
+                                sql += "," + (summita[3] - summitb[3]).__str__() + ")"
+                                cur.execute(sql)
+            con.commit()
+                    
+                        
+
 def write_peak_motif_table(con):
     cur = con.cursor()
     
@@ -133,6 +167,7 @@ def write_peak_motif_table(con):
     for rgroupid in repgroupids:
         rgroupid = rgroupid[0]
         groupname = get_repgroup_name(rgroupid, con)
+        print ". . .", groupname
         repids = get_repids_in_group(rgroupid, con)
         repids.sort()
                 
@@ -147,26 +182,41 @@ def write_peak_motif_table(con):
         fout.write(header + "\n")
                       
         repid_summits = {}
-        #for repid in repids:
-        #    summits = get_summits(con, repid, chromid)
-                            
-        for repid in repids:           
-            speciesid = get_speciesid_for_rep(repid, con)
-            chromids = get_chrom_ids(con, speciesid)
-            for chromid in chromids:
-                summits = get_summits(con, repid, chromid)
-                for s in summits:
-                    sid = s[0]
-                    for mid in motifid_name: 
-                        row = s.__str__() + "\t" + mid.__str__()
-                        sql = "select maxmotifscore, maxmotifsite from Summits2MotifScores where summitid=" + s[0].__str__() + " and motifid=" + mid.__str__()
-                        cur.execute(sql)
-                        xx = cur.fetchone()
-                        if xx == None:
-                            print "ERROR: I found no motif scores for sites under the peak ID", s[0], "for motif ID", mid
-                            exit()
-                        row += xx[0].__str__()
-                        fout.write(row)
+        for repid in repids:
+            repid_summits[repid] = get_summits(con, repid, chromid)
+        
+        
+        
+        speciesid = get_speciesid_for_rep(repids[0], con)
+        chromids = get_chrom_ids(con, speciesid)
+        for chromid in chromids:
+            for mid in motifid_name: 
+                summitid_data = {}
+                summitid_summitid = {}
+                
+                sql = "select summitid, maxmotifscore, maxmotifsite from Summits2MotifScores where motifid=" + mid.__str__()
+                sql += " and summitid in "
+                sql += "(SELECT id FROM Summits where chrom=" + chromid.__str__() 
+                #sql += " and replicate in ("
+                #sql += "SELECT replicate from GroupReplicate where rgroup=" + rgroupid.__str__()
+                #sql += ") " 
+                sql += " and replicate=" + repids[0].__str__()
+                sql += " and (id in (select summitid1 from Summits2Summits) or id in (select summitid2 from Summits2Summits) )"
+                
+                sql += " order by site ASC)"
+                cur.execute(sql)
+                xx = cur.xfetchall()
+                if xx == None:
+                    print "ERROR: I found no motif scores for sites with repgroup", groupname, "on chromosome", chromid, "for motif", mid
+                    exit()
+                for ii in xx:
+                    line = ii[0].__str__() + "\t"
+                    line += motifid_name[ mid ] + "\t"
+                    line += None
+                
+                
+                fout.write(row)
+        fout.close()
 
 ##############################
 #
@@ -273,6 +323,9 @@ if jump <= 1 and stop > 1:
                     sql += ")"
                     vcur.execute(sql)
                 vcon.commit()
+
+if jump < 1.5 and stop > 1.5:
+    build_summits2summits(con)
 
 if jump <= 2 and stop > 2:
     write_peak_motif_table(vcon)
