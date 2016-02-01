@@ -56,7 +56,6 @@ def get_chrom_id(con, name, speciesid, make_if_missing = False):
         print "\n. " + msg
         
         if make_if_missing == False:
-            exit()
             return None
         
         """Make if missing"""
