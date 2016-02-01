@@ -573,8 +573,8 @@ def import_foldenrichment(bdgpath, repid, con):
                 chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
-                if genes.__len__() == 0:
-                    continue
+                #if genes.__len__() == 0:
+                #    continue
             
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
