@@ -269,6 +269,8 @@ def write_peak_motif_table(con):
             fout.close()
             scatter_nxm(2, 2, [xvalues,yvalues], ["max motif score","fold-enrichment"], groupname + ".motifs_vs_fe." + motifid_name[ mid ], title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None)
 
+
+
 ##############################
 #
 # main

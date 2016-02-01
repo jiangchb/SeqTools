@@ -391,7 +391,7 @@ def import_summits(summitpath, repid, con):
     cur.execute(sql)
     x = cur.fetchone()
     speciesid = int( x[0] )
-    print "chipseqdb 398 - ", summitpath, repid, speciesid
+    #print "chipseqdb 398 - ", summitpath, repid, speciesid
     
     #
     # Build a library of summits
@@ -415,6 +415,12 @@ def import_summits(summitpath, repid, con):
                 site = int( tokens[1] )
                 name = tokens[3]
                 score = float( tokens[4] )
+                
+                #
+                #
+                # continue here, the chr named "Supercontig_3.16_C_tropicalis_MYA-3404" doesn't seem to exist
+                #
+                
                 chrid = get_chrom_id(con, chr, speciesid)
                 
                 if chrid != None:                    
@@ -490,7 +496,7 @@ def import_foldenrichment(bdgpath, repid, con):
     cur.execute(sql)
     x = cur.fetchone()
     speciesid = int( x[0] )
-    print "chipseqdb.py 496 - ", repid, speciesid
+    #print "chipseqdb.py 496 - ", repid, speciesid
     
     total_count = estimate_line_count(bdgpath)
     
@@ -549,15 +555,15 @@ def import_foldenrichment(bdgpath, repid, con):
             """We need to look up the ID for this chromosome,
                 and get this chrom's list of gene pairs and summits."""
             curr_chromname = chromname
-            print "554 - ", curr_chromname, speciesid
+            #print "554 - ", curr_chromname, speciesid
             chromid = get_chrom_id(con, curr_chromname, speciesid)
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 msg = "The chromosome named " + curr_chromname.__str__() + " exists in your FE file, but not in your GFF."
                 write_error(con, msg)
                 print msg
-                print "559:", curr_chromname, speciesid
-                print l
+                #print "559:", curr_chromname, speciesid
+                #print l
                 continue
             curr_chromid = chromid
             if curr_chromid not in chromid_genepairs:

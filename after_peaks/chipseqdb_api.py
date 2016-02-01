@@ -28,7 +28,7 @@ def get_chrom_ids(con, speciesid):
         chromids.append( ii[0] )
     return chromids
 
-def get_chrom_id(con, name, speciesid):
+def get_chrom_id(con, name, speciesid, make_if_missing = False):
     """Returns the chormosome ID for the chromosome with 'name'"""
     cur = con.cursor()
     sql = "SELECT id FROM Chromosomes WHERE name='" + name + "' and species=" + speciesid.__str__()                
@@ -53,8 +53,18 @@ def get_chrom_id(con, name, speciesid):
         speciesname = yy[0]
         msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname
         print "\n. " + msg
-        exit()
-        return None
+        
+        if make_if_missing == False:
+            exit()
+            return None
+        
+        """Make if missing"""
+        sql = "insert into Chromosome (name, species) values('" + name.__str__() 
+        sql += "'," + speciesid.__str__() + ")"
+        cur.execute(sql)
+        con.commit()
+        return get_chrom_id(con, name, speciesid, make_if_missing = False)
+        
     else:
         return x[0]
     
@@ -363,7 +373,7 @@ def does_replicate_exist(repname, speciesid, con):
 def add_replicate(repname, speciesid, con):
     cur = con.cursor()
     sql = "INSERT or ignore INTO Replicates (name,species) VALUES('" + repname.__str__() + "'," + speciesid.__str__() + ")"
-    print sql
+    #print sql
     cur.execute( sql )
     con.commit()
     
