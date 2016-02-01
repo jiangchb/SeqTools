@@ -1024,7 +1024,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         
         genepairs = get_geneorder(con, chrid)
         
-        if genepairs.__len__() < 1:
+        if genepairs.__len__() < 1 or genes.__len__() == 0:
             write_log(con, "There are no genes on chromosome ID " + chrid.__str__() + ".", code=None)
             continue
         
@@ -1036,10 +1036,13 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             score = s[5] # summit score
             
             this_gene_pair = genepairs[pairi]
-            while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
+            while (pairi < chromid_genepairs[ curr_chromid ].__len__()-1) and this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
                 pairi += 1
                 this_gene_pair = genepairs[pairi]
-        
+            
+            if pairi > chromid_genepairs[ curr_chromid ].__len__()-1:
+                continue
+                
             """Can we map enrichment to both upstream and downstream genes?"""
             down_ok = False # is there a downstream gene?
             up_ok = False   # is there an upstream gene?
