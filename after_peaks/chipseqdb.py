@@ -557,8 +557,8 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromname = chromname
             chromid = get_chrom_id(con, curr_chromname, speciesid, make_if_missing = True)
             
-            if chromid == 89:
-                print "561:", chromid, l
+            #if chromid == 89:
+                #print "561:", chromid, l
             
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
@@ -614,6 +614,8 @@ def import_foldenrichment(bdgpath, repid, con):
             """
             if chromid_genepairs[ curr_chromid ].__len__() == 0:
                 continue 
+
+            print "618:", curr_chromid, chromid_genepairs[ curr_chromid ]
             
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
