@@ -586,8 +586,8 @@ def import_foldenrichment(bdgpath, repid, con):
             last_start_site = 0
             print "\n\t", curr_chromname
         
-        if chromid_genepairs[curr_chromid].__len__() == 0:
-            continue
+        #if chromid_genepairs[curr_chromid].__len__() == 0:
+        #    continue
         
         """Check for discontinuous data in the BDG file"""
         if last_start_site < festart and last_start_site != 0:
@@ -611,7 +611,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 cur.execute(sql)
                 con.commit()
 
-                  
             """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.
             """
@@ -626,7 +625,7 @@ def import_foldenrichment(bdgpath, repid, con):
             
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             
-            print "629:", this_gene_pair
+            #print "629:", this_gene_pair
             
             while (pairi < chromid_genepairs[ curr_chromid ].__len__()-1) and this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
                 pairi += 1
@@ -636,9 +635,9 @@ def import_foldenrichment(bdgpath, repid, con):
                 #    print "632:", genes
                 this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             
-            print "639:"
+            #print "639:"
             if pairi > chromid_genepairs[ curr_chromid ].__len__()-1:
-                print "641"
+                #print "641"
                 continue
              
             """Can we map enrichment to both upstream and downstream genes?"""
