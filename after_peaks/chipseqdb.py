@@ -585,7 +585,10 @@ def import_foldenrichment(bdgpath, repid, con):
             
             last_start_site = 0
             print "\n\t", curr_chromname
-                                         
+        
+        if chromid_genepairs[curr_chromid].__len__() == 0:
+            continue
+        
         """Check for discontinuous data in the BDG file"""
         if last_start_site < festart and last_start_site != 0:
             msg = "Warning: the BDG file may skip some sites, at site: " + festart.__str__() + " for chrom " + curr_chromname.__str__() + " for BDG " + bdgpath.__str__()
