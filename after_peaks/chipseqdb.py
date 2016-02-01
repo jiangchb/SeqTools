@@ -615,7 +615,8 @@ def import_foldenrichment(bdgpath, repid, con):
             if chromid_genepairs[ curr_chromid ].__len__() == 0:
                 continue 
 
-            print "618:", curr_chromid, chromid_genepairs[ curr_chromid ]
+            if curr_chromid == 89:
+                print "618:", curr_chromid, chromid_genepairs[ curr_chromid ]
             
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
