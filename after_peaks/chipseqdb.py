@@ -617,6 +617,9 @@ def import_foldenrichment(bdgpath, repid, con):
             """
             if chromid_genepairs[ curr_chromid ].__len__() == 0:
                 continue 
+            
+            if genes.__len__() == 0:
+                continue
 
             if pairi > chromid_genepairs[ curr_chromid ].__len__():
                 continue
@@ -629,8 +632,8 @@ def import_foldenrichment(bdgpath, repid, con):
             """Can we map enrichment to both upstream and downstream genes?"""
             down_ok = False # is there a downstream gene?
             up_ok = False   # is there an upstream gene?
-            ups_ii = chromid_genepairs[curr_chromid][pairi][0] # the ID of the downstream gene
-            down_ii = chromid_genepairs[curr_chromid][pairi][1]   # the ID of the upstream gene
+            ups_ii = this_gene_pair[0] # the ID of the downstream gene
+            down_ii = this_gene_pair[1]   # the ID of the upstream gene
             
             if ups_ii != None:
                 if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
