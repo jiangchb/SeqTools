@@ -555,15 +555,19 @@ def import_foldenrichment(bdgpath, repid, con):
             """We need to look up the ID for this chromosome,
                 and get this chrom's list of gene pairs and summits."""
             curr_chromname = chromname
-            #print "554 - ", curr_chromname, speciesid
-            chromid = get_chrom_id(con, curr_chromname, speciesid)
+            chromid = get_chrom_id(con, curr_chromname, speciesid, make_if_missing = True)
+            
+            if chromid == 89:
+                print "561:", chromid, l
+            
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 msg = "The chromosome named " + curr_chromname.__str__() + " exists in your FE file, but not in your GFF."
                 write_error(con, msg)
-                #print msg
                 continue
+            
             curr_chromid = chromid
+            
             if curr_chromid not in chromid_genepairs:
                 """Get the list of ordered gene pair tuples for this chrom."""
                 chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
@@ -578,6 +582,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 summits = get_summits(con, repid, chromid)
                 for ss in summits:
                     chromid_summitsites[curr_chromid][ ss[3] ] = ss
+            
             last_start_site = 0
             print "\n\t", curr_chromname
                                          
