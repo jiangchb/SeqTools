@@ -421,7 +421,7 @@ def import_summits(summitpath, repid, con):
                 # continue here, the chr named "Supercontig_3.16_C_tropicalis_MYA-3404" doesn't seem to exist
                 #
                 
-                chrid = get_chrom_id(con, chr, speciesid)
+                chrid = get_chrom_id(con, chr, speciesid, make_if_missing=True)
                 
                 if chrid != None:                    
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
