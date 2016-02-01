@@ -572,10 +572,11 @@ def import_foldenrichment(bdgpath, repid, con):
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
                 if genes.__len__() == 0:
-                    msg = "There are no genes on chromosome " + chromid.__str__()
-                    print msg
-                    write_error(msg)
-                    return None
+                    #msg = "There are no genes on chromosome " + chromid.__str__()
+                    #print msg
+                    #write_error(con, msg)
+                    #return None
+                    continue
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
                 chromid_summitsites[curr_chromid] = {}
