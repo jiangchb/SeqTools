@@ -561,9 +561,7 @@ def import_foldenrichment(bdgpath, repid, con):
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 msg = "The chromosome named " + curr_chromname.__str__() + " exists in your FE file, but not in your GFF."
                 write_error(con, msg)
-                print msg
-                #print "559:", curr_chromname, speciesid
-                #print l
+                #print msg
                 continue
             curr_chromid = chromid
             if curr_chromid not in chromid_genepairs:
@@ -572,10 +570,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
                 if genes.__len__() == 0:
-                    #msg = "There are no genes on chromosome " + chromid.__str__()
-                    #print msg
-                    #write_error(con, msg)
-                    #return None
                     continue
             
             if curr_chromid not in chromid_summitsites:
