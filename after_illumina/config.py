@@ -33,10 +33,10 @@ def read_cli(ap):
     if DBPATH == False:
         DBPATH = APATH + ".db"
 
-    GENOME_LIST = "genome_list.txt"
-    x = ap.getOptionalArg("--genome_list")
-    if x != False:
-        GENOME_LIST = x
+    #GENOME_LIST = "genome_list.txt"
+    #x = ap.getOptionalArg("--genome_list")
+    #if x != False:
+    #    GENOME_LIST = x
         
     PROJECT_NAME = ap.getArg("--project_name")
     
