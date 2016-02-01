@@ -571,12 +571,12 @@ def import_foldenrichment(bdgpath, repid, con):
                 chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
-                #if genes.__len__() == 0:
+                if genes.__len__() == 0:
                     #msg = "There are no genes on chromosome " + chromid.__str__()
                     #print msg
                     #write_error(con, msg)
                     #return None
-                    #continue
+                    continue
             
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
@@ -596,27 +596,7 @@ def import_foldenrichment(bdgpath, repid, con):
     
         """Can we map this enrichment site to a summit?"""        
         for fesite in range(festart, festop):
-
-#             if fesite == 1720362:
-#                 print "566:", l
-#                 if fesite in chromid_summitsites[curr_chromid]:
-#                     print "Summit on chrom", curr_chromid
-#                     print chromid_summitsites[curr_chromid][fesite]
-#                 else:
-#                     print "No summit on chrom", curr_chromid
-
-#             # A test of some genes we know about:
-#             test_flag1 = False
-#             if curr_chromname.__contains__( "Chr_1" ):
-#                 if ii < 221489 and ii >= 221489 - 30:
-#                     #81|PICST_37571|221489|223006|1|+
-#                     print l
-#                     test_flag1 = True
-#                 elif ii < 1101228 and ii >= 1101228 - 30:
-#                     #409|PICST_28392|1101228|1103089|1|+
-#                     print l
-#                     test_flag1 = True
-
+            
             """For each site in the enrichment window, is there a known summit at this site?"""
             if fesite in chromid_summitsites[curr_chromid]:              
                 summitid = chromid_summitsites[curr_chromid][fesite][0] 
@@ -628,8 +608,7 @@ def import_foldenrichment(bdgpath, repid, con):
 #                     print "593:", sql
                 cur.execute(sql)
                 con.commit()
-           
-           #361
+
                   
             """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.
