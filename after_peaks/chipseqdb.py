@@ -612,6 +612,9 @@ def import_foldenrichment(bdgpath, repid, con):
             """If the current enrichment window ('festart') is outside the intergenic region defined by the
                 current gene pair, then we need to advance to the next gene pair.
             """
+            if chromid_genepairs[ curr_chromid ].__len__() == 0:
+                continue 
+            
             this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
             while this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
                 pairi += 1
