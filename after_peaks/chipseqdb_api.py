@@ -46,6 +46,7 @@ def get_chrom_id(con, name, speciesid, make_if_missing = False):
 #         x = cur.fetchone() 
 #         if x == None:
         #print sql
+
         #print "\n. 361 - Chromosome", name, "doesn't exist." 
         sql = "select name from Species where id=" + speciesid.__str__()
         cur.execute(sql)

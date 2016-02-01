@@ -852,8 +852,8 @@ def get_geneorder(con, chromid):
     if genes.__len__() == 0:
         msg = "There are no genes on chromosome " + chromid.__str__()
         print msg
-        write_error(msg)
-        return None
+        #write_error(msg)
+        return []
                     
     """Build a list of gene pairs, corresponding to upstream-downstream neighbors
     in the genome. We'll iterate through these pairs in order to map FE values
