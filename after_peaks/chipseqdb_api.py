@@ -59,7 +59,7 @@ def get_chrom_id(con, name, speciesid, make_if_missing = False):
             return None
         
         """Make if missing"""
-        sql = "insert into Chromosome (name, species) values('" + name.__str__() 
+        sql = "insert into Chromosomes (name, species) values('" + name.__str__() 
         sql += "'," + speciesid.__str__() + ")"
         cur.execute(sql)
         con.commit()
