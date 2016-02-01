@@ -853,9 +853,6 @@ def get_geneorder(con, chromid):
     """
     genes = get_genes_for_chrom(con, chromid)
     if genes.__len__() == 0:
-        msg = "There are no genes on chromosome " + chromid.__str__()
-        print msg
-        #write_error(msg)
         return []
                     
     """Build a list of gene pairs, corresponding to upstream-downstream neighbors
