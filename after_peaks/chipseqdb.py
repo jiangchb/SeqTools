@@ -1023,6 +1023,11 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         summits = get_summits(con, repid, chrid)
         
         genepairs = get_geneorder(con, chrid)
+        
+        if genepairs.__len__() < 1:
+            write_log(con, "There are no genes on chromosome ID " + chrid.__str__() + ".", code=None)
+            continue
+        
         pairi = 0
         
         for s in summits:
