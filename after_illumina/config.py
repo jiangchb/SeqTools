@@ -136,8 +136,8 @@ def read_cli(ap):
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('seqtoolsdir','" + SEQTOOLSDIR + "')"
     cur.execute(sql)
-    sql = "insert or replace into Settings (keyword, value) VALUES('genome_list','" + GENOME_LIST + "')"
-    cur.execute(sql)
+    #sql = "insert or replace into Settings (keyword, value) VALUES('genome_list','" + GENOME_LIST + "')"
+    #cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('use_mpi','" + USE_MPI.__str__() + "')"
     cur.execute(sql)
     sql = "insert or replace into Settings (keyword, value) VALUES('mpirun','" + MPIRUN + "')"
