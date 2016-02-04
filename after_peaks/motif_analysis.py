@@ -308,7 +308,8 @@ for genename in gene_motif:
     motifid = vcur.fetchone()[0]
     motifname_id[genename] = motifid
     build_motif_table(vcon, motifid, gene_motif[genename])
-
+    
+print "312:", gene_motif
 
 rcur = rcon.cursor()
 speciesid_name = {}
@@ -371,7 +372,7 @@ if jump <= 1 and stop > 1:
                     uppersummitsite = maxchromsite
                 summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
                 
-                #print speciesid, record.name, summitid, summitsite
+                print "374:", speciesid, record.name, summitid, summitsite
                 
                 for motifname in gene_motif:            
                     (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
