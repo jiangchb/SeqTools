@@ -41,9 +41,13 @@ def import_gffs(con):
         chrom_restrict_list = ap.getOptionalList("--skip_chroms")
         con = import_gff(gffpath, speciesid, con, filter_chrom=chrom_restrict_list)
 
-def import_data(con):    
-    """If this analysis uses pillars to translate gene names, then those values
-    must be imported prior to this method."""
+def import_data(con): 
+    """import_data opens, parses, and imports the summits and the fold-enrichment data."""
+       
+    """NOTE:
+        1. This method assumes that pillars have already been imported.
+        2. This method assumes that redflag regions have already been imported.
+    """
     cur = con.cursor()
     
     """Remove any output files, because they are now stale."""
@@ -55,17 +59,7 @@ def import_data(con):
     sql = "DELETE FROM GeneSummits"
     cur.execute(sql)
     con.commit()
-    
-    """Print the parameters before import"""
-#     for sp in ap.params["species"]:
-#         print ap.params["species"][sp]["name"]
-#         print ap.params["species"][sp]["rgroups"]
-#         for groupname in ap.params["species"][sp]["rgroups"]:
-#             print groupname
-#             for jj in ap.params["species"][sp]["rgroups"][groupname]["reps"]:
-#                 print ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]
-            
-            
+                
     for sp in ap.params["species"]:
         #print "\n. Importing data for species", sp
         speciesname = ap.params["species"][sp]["name"]
@@ -94,8 +88,6 @@ def import_data(con):
                 
                 if "bdgpath" in ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]:
                     bdgpath = ap.params["species"][sp]["rgroups"][groupname]["reps"][jj]["bdgpath"]
-                    #validate_enrichment(bdgpath, repid, con)
-                    #print "91:", speciesname, speciesid, rgroupid, repname, repid
                     con = import_foldenrichment(bdgpath, repid, con)                
                 
                 """Check that all summits have a corresponding FE value,
@@ -106,6 +98,90 @@ def import_data(con):
 def import_intergenic_regions(con):
     for speciesid in get_species_ids(con):
         map_intergenic_regions(con, speciesid[0])
+        
+        
+def import_redflagregions(con, ap):
+    redflagpath = ap.getOptionalArg( "--redflagpath" )
+    if redflagpath == False:
+        """There's no red flag regions to import."""
+        return
+    
+    if False == os.path.exists(redflagpath):
+        print "I cannot find your red flag file at ", redflagpath
+        exit()
+    
+    """ 
+        Pass 1 -- read the data into the hashtable chromname_tuples
+    """
+    chromname_tuples = {} # key = chrom name, value = list of tuples (start site, stop site)
+    fin = open(redflagpath, "r")
+    for l in fin.xreadlines():
+        if l.startswith("#"):
+            continue
+        elif l.__len__() < 3:
+            continue
+        l = l.strip()
+        tokens = l.split()
+        if tokens.__len__() < 3:
+            print "-->WARNING: Something is wrong with this line in your red flag region file:"
+            print l
+        chromname = tokens[0]
+        try:
+            startsite = int(tokens[1])
+            stopsite = int(tokens[2])
+        except ValueError:
+            print "--> WARNING: Something is wrong with a line in your red flag region file."
+            print "    I think something is wrong with the start and/or stop site values in the"
+            print "    second and third column. . ."
+            print l
+            continue
+        
+        if chromname not in chromname_tuples:
+            chromname_tuples[chromname] = []
+        chromname_tuples[chromname].append( (startsite, stopsite) )
+    
+    """
+        Pass 2 -- collapse redundant sites
+    """
+    for chromname in chromname_tuples:
+        """Sort the tuples by start site:"""
+        tuples = sorted(chromname_tuples[chromname], key=lambda x: x[0])
+        clean_tuples = []
+        open_tuple = (tuples[0][0],tuples[0][1]) # the current working tuple
+        for ii in xrange(1, tuples.__len__()):
+            thistuple = tuple[ii]
+            lasttuple = tuple[ii-1]
+            nexttuple = None
+            if ii < tuples.__len__()-1:
+                nexttuple = tuples[ii+1]                
+            
+            """If this tuple's start is < the prior tuple's stop..."""
+            if  lasttuple[1] > thistuple[0]:
+                """Extend the open tuple to span thistuple"""
+                open_tuple[1] = thistuple[1]
+            else:
+                open_tuple[0] = thistuple[0]
+                        
+            if nexttuple != None:
+                """If the next tuple doesn't overlap with this tuple"""
+                if nexttuple[0] > thistuple[1]:
+                    open_tuple[1] = thistuple[1]
+                    clean_tuples.append( open_tuple )
+                
+                else:
+                    open_tuple[1] = nexttuple[1]
+            else:
+                """The last tuple in the list:"""
+                open_tuple[1] = thistuple[1]
+                clean_tuples.append( open_tuple )
+    
+    """
+        Pass 3 --  import red flag regions into the DB table...
+    """
+    print "181:", tuples.__len__(), clean_tuples.__len__()
+    exit()
+        
+    
 
 def setup_unions(con):    
     clear_unions(con)
@@ -245,11 +321,8 @@ if configpath != False:
 least need a dbpath (to load a prior database)."""
 dbpath = ap.getOptionalArg("--dbpath")
 
-if configpath == False and dbpath == False:
-    print "\n. Error, you need to specify either:"
-    print "1. a configuration path, using --configpath, that describes data that will be imported into the DB."
-    print "2. an existing database, using --dbpath, whose contents will be read and imported."
-    print ""
+if configpath == False:
+    print "\n. Error, you need to specify a configuration path, using --configpath"
     exit()
 
 """Regardless of which options are being executed, the DB gets
@@ -276,13 +349,15 @@ else:
     print "\n. I'm skipping pillars import. I will use the existing pillars in the database."
 print_pillarsstats(con)
 
-if configpath != False:
-    if False == ap.getOptionalToggle("--skip_gff") and False == ap.getOptionalToggle("--skip_import"):
-        import_gffs(con)
-        resolve_aliasids(con)
-    
-    if False == ap.getOptionalToggle("--skip_import"):
-        con = import_data(con)
+if False == ap.getOptionalToggle("--skip_gff") and False == ap.getOptionalToggle("--skip_import"):
+    import_gffs(con)
+    resolve_aliasids(con)
+
+import_redflagregions(con, ap)
+exit()
+
+if False == ap.getOptionalToggle("--skip_import"):
+    con = import_data(con)
 
 import_intergenic_regions(con)
 

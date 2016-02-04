@@ -914,10 +914,14 @@ def launch_viz(con):
     scriptpath = get_setting("outdir", con) + "/" + pname + ".run_viz.sh"
     fout = open(scriptpath, "w")
     
+    redflagpath = get_setting("redflagpath", con)
+    
     c = "python /common/REPOSITORY/SeqTools/after_peaks/apres.py "
     c += "--dbpath " + vizdbpath
     c += " --pillarspath " + get_setting("pillars_path", con)
     c += " --configpath " + vcpath
+    if redflagpath:
+        c += " --redflagpath " + redflagpath
     fout.write(c + "\n")
     fout.close()
     if get_setting("practice_mode", con) == "0":
