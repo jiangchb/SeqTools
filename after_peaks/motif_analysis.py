@@ -162,7 +162,7 @@ def build_summits2summits(con):
                                 sql += "," + (summita[3] - summitb[3]).__str__() + ")"
                                 cur.execute(sql)
                                 count_inserted += 1
-            print ". Found", count_inserted, "matched summits for", chromname, groupname
+            print ". Found", count_inserted, "matched summits on chrom.", chromname, "in experiment", groupname
             con.commit()
                     
 def write_peak_motif_table(con):
@@ -267,7 +267,13 @@ def write_peak_motif_table(con):
                 
                     fout.write(line + "\n")
             fout.close()
-            scatter_nxm(2, 2, [xvalues,yvalues], ["max motif score","fold-enrichment"], groupname + ".motifs_vs_fe." + motifid_name[ mid ], title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None)
+            
+            if xvalues.__len__() != yvalues.__len__():
+                print "ERROR 272: An error occurred while writing the write_peak_motif_table."
+                exit()
+            
+            if xvalues.__len__() > 0 and yvalues.__len__() > 0:
+                scatter_nxm(2, 2, [xvalues,yvalues], ["max motif score","fold-enrichment"], groupname + ".motifs_vs_fe." + motifid_name[ mid ], title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None)
 
 
 
