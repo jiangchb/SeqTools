@@ -349,10 +349,12 @@ if jump <= 1 and stop > 1:
             """Check that this chromosom exists in the viz DB"""
             sql = "select id from Chromosomes where name='" + record.name + "' and species=" + speciesid.__str__()
             vcur.execute(sql)
-            if vcur == None:
+            fetch = vcur.fetchone()
+            if fetch == None:
+                print "\n. Skipping ", record.name
                 continue
             else:
-                chromid = vcur.fetchone()[0]
+                chromid = fetch[0]
                 
             maxchromsite = record.seq.__len__()
                 
