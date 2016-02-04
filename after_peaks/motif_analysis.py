@@ -164,6 +164,7 @@ def build_summits2summits(con):
                                 count_inserted += 1
             print ". Found", count_inserted, "matched summits on chrom.", chromname, "in experiment", groupname
             con.commit()
+                 
                     
 def write_peak_motif_table(con):
     cur = con.cursor()
@@ -374,7 +375,7 @@ if jump <= 1 and stop > 1:
                 
                 for motifname in gene_motif:            
                     (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                    #print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
+                    print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
     
                     sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
                     sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
