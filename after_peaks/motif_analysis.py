@@ -370,11 +370,11 @@ if jump <= 1 and stop > 1:
                     uppersummitsite = maxchromsite
                 summitseq = record.seq[lowersummitsite-1:uppersummitsite-1]
                 
-                print "374:", speciesid, record.name, summitid, summitsite
+                #print "374:", speciesid, record.name, summitid, summitsite
                 
                 for motifname in gene_motif:            
                     (score, maxscoresite) = score_motif_sequence(gene_motif[motifname], summitseq, lowersummitsite)
-                    print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
+                    #print "161:", speciesid, chromid, summitid, motifname, score, maxscoresite
     
                     sql = "insert or replace into Summits2MotifScores(summitid, motifid, maxmotifscore, maxmotifsite)"
                     sql += " values(" + summitid.__str__() + "," + motifname_id[motifname].__str__()
