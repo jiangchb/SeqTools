@@ -343,6 +343,7 @@ if jump <= 1 and stop > 1:
     for speciesid in speciesid_genomepath:
         genomepath = speciesid_genomepath[speciesid]
         print "\n. Scoring motifs under peaks in species", get_species_name(speciesid, vcon) 
+        print "\n. Reading", genomepath
         handle = open(genomepath, "rU")
         for record in SeqIO.parse(handle, "fasta") :
             
