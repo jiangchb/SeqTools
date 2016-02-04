@@ -157,9 +157,9 @@ if jump <= 8 and stop > 8:
     """Launch the apres.py script."""
     vizdbpath = launch_viz(con)
     
-if jump <= 9 and stop > 9:
-    if vizdbpath != None:
-        write_html_results(con, vizdbpath)
+#if jump <= 9 and stop > 9:
+#    if vizdbpath != None:
+#        write_html_results(con, vizdbpath)
 
 print "\n. ChIP-Seq distillation is complete.  Goodbye."
 exit()
