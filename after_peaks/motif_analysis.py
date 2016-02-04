@@ -328,10 +328,10 @@ for ii in rcur.fetchall():
     genomepath = ii[1]
     sql = "select id from Species where name='" + speciesid_name[id] + "'"
     vcur.execute(sql)
-    vspeciesid = vcur.fetchone()[0]
-    
-    speciesid_genomepath[vspeciesid] = genomepath
-    print id, genomepath, speciesid_name[id]
+    vspeciesid = vcur.fetchone()
+    if vspeciesid != None:    
+        speciesid_genomepath[ vspeciesid[0] ] = genomepath
+        print id, genomepath, speciesid_name[id]
 
 if jump <= 1 and stop > 1:
     
