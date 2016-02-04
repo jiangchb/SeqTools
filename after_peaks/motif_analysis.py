@@ -326,16 +326,12 @@ rcur.execute(sql)
 for ii in rcur.fetchall():
     id = ii[0]
     genomepath = ii[1]
-    speciesid_genomepath[id] = genomepath
+    sql = "select id from Species where name='" + speciesid_name[id] + "'"
+    vcur.execute(sql)
+    vspeciesid = vcur.fetchone()[0]
+    
+    speciesid_genomepath[vspeciesid] = genomepath
     print id, genomepath, speciesid_name[id]
-
-speciesid_indexpath = {}
-sql = "select speciesid, indexpath from SpeciesBowtieindex"
-rcur.execute(sql)
-for ii in rcur.fetchall():
-    id = ii[0]
-    indexpath = ii[1]
-    speciesid_indexpath[id] = indexpath
 
 if jump <= 1 and stop > 1:
     
