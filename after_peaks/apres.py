@@ -134,6 +134,7 @@ def import_redflagregions(con, ap):
             print "    I think something is wrong with the start and/or stop site values in the"
             print "    second and third column. . ."
             print l
+            print tokens
             continue
         
         if chromname not in chromname_tuples:
