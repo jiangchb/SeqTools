@@ -560,15 +560,6 @@ def import_foldenrichment(bdgpath, repid, con):
         festop = int(tokens[2])  # stop site of this enrichment window
         eval = float(tokens[3])  # enrichment value across this window
         
-        """Verify if this fold-enrichment data is in a red-flag region."""
-        sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
-        sql += " and ( (start < " + festart.__str__() + " and stop > " + festart.__str__() + ")"
-        sql += "      or (start < " + festop.__str__() + " and stop > " + festop.__str__() + ") )"
-        cur.execute(sql)
-        countrf = cur.fetchone()[0]
-        if countrf > 0:
-            print "Skipping FE data inside a red flag region:", chromname, festart, festop
-            continue
         
         """Is the chromosome in this line the same chromosome from the previous line?
             If not, then we need to retrieve information about this chromosome, including
@@ -607,7 +598,17 @@ def import_foldenrichment(bdgpath, repid, con):
             
             last_start_site = 0
             print "\n\t", curr_chromname
-                
+
+        """Verify if this fold-enrichment data is in a red-flag region."""
+        sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
+        sql += " and ( (start < " + festart.__str__() + " and stop > " + festart.__str__() + ")"
+        sql += "      or (start < " + festop.__str__() + " and stop > " + festop.__str__() + ") )"
+        cur.execute(sql)
+        countrf = cur.fetchone()[0]
+        if countrf > 0:
+            print "Skipping FE data inside a red flag region:", chromname, festart, festop
+            continue
+  
         """Check for discontinuous data in the BDG file"""
         if last_start_site < festart and last_start_site != 0:
             msg = "Warning: the BDG file may skip some sites, at site: " + festart.__str__() + " for chrom " + curr_chromname.__str__() + " for BDG " + bdgpath.__str__()
