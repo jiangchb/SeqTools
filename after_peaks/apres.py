@@ -117,7 +117,7 @@ def import_redflagregions(con, ap):
     fin = open(redflagpath, "r")
     lines = fin.readlines()
     if lines.__len__() == 1: # deal with \r as the line break
-        lines = lines.split("\r")
+        lines = lines[0].split("\r")
     
     for l in fin.xreadlines():
         if l.startswith("#"):
