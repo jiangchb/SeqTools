@@ -195,8 +195,8 @@ def import_redflagregions(con, ap):
         cur.execute(sql)
         fetch = cur.fetchall()
         if fetch.__len__() == 0:
-            print "Your red flag file contains the chromosome named " + chromname + " but I cannot find that chromosome in your genomes."
-            exit()
+            print "WARNING: Your red flag file contains the chromosome named " + chromname + " but I cannot find that chromosome in your genomes."
+            continue
         if fetch.__len__() > 1:
             print "EXIT: there are multiple chromosomes named " + chromname
             exit()
