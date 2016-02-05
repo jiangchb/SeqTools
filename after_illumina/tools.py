@@ -397,10 +397,10 @@ def run_peak_calling(con):
         macs_cmd += " --gsize " + genomesize.__str__() 
         macs_cmd += " -B --SPMR "
         macs_cmd += " --name " + pairname
-        macs_cmd += " --qvalue 0.01"
+        macs_cmd += " --qvalue 0.01 "
         #macs_mcd += " ----pvalue"
-        macs_cmd += " --nomodel"
-        macs_cmd += " --shiftsize 78"
+        macs_cmd += " --nomodel "
+        macs_cmd += " --shiftsize 78 "
         if qval != None:
             macs_cmd += "--qvalue " + qval.__str__() # the Q-value cutoff to call significant regions
         macs_commands.append( macs_cmd )
