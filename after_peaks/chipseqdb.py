@@ -416,7 +416,7 @@ def import_summits(summitpath, repid, con):
                 
                 """Verify if this fold-enrichment data is in a red-flag region."""
                 sql = "select count(*) from RedFlagRegions where chromid=" + chr.__str__()
-                sql += " and (start < " + site.__len__() + " and stop > " + site.__len__() + ")"
+                sql += " and (start < " + site.__str__() + " and stop > " + site.__str__() + ")"
                 cur.execute(sql)
                 countrf = cur.fetchone()[0]
                 if countrf > 0:
@@ -553,8 +553,8 @@ def import_foldenrichment(bdgpath, repid, con):
         
         """Verify if this fold-enrichment data is in a red-flag region."""
         sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
-        sql += " and ( (start < " + festart.__len__() + " and stop > " + festart.__len__() + ")"
-        sql += "      or (start < " + festop.__len__() + " and stop > " + festop.__len__() + ") )"
+        sql += " and ( (start < " + festart.__str__() + " and stop > " + festart.__str__() + ")"
+        sql += "      or (start < " + festop.__str__() + " and stop > " + festop.__str__() + ") )"
         cur.execute(sql)
         countrf = cur.fetchone()[0]
         if countrf > 0:
