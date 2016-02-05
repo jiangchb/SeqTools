@@ -155,8 +155,8 @@ def import_redflagregions(con, ap):
         clean_tuples = []
         open_tuple = (tuples[0][0],tuples[0][1]) # the current working tuple
         for ii in xrange(1, tuples.__len__()):
-            thistuple = tuple[ii]
-            lasttuple = tuple[ii-1]
+            thistuple = tuples[ii]
+            lasttuple = tuples[ii-1]
             nexttuple = None
             if ii < tuples.__len__()-1:
                 nexttuple = tuples[ii+1]                
