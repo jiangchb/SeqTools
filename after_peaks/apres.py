@@ -111,6 +111,10 @@ def import_redflagregions(con, ap):
         print "I cannot find your red flag file at ", redflagpath
         exit()
     
+    sql = "delete from RedFlagRegions"
+    cur.execute(sql)
+    con.commit()
+    
     """ 
         Pass 1 -- read the data into the hashtable chromname_tuples
     """
@@ -184,8 +188,25 @@ def import_redflagregions(con, ap):
 #    """
 ##        Pass 3 --  import red flag regions into the DB table...
 #    """
-        print "181:", tuples.__len__(), clean_tuples.__len__()
-    exit()
+        #print "181:", tuples.__len__(), clean_tuples.__len__()
+        """ Insert the regions into the DB """
+        sql = "Select from Chromosomes where name='" + chromname + "'"
+        cur.execute(sql)
+        fetch = cur.fetchall()
+        if fetch.__len__() == 0:
+            print "Your red flag file contains the chromosome named " + chromname + " but I cannot find that chromosome in your genomes."
+            exit()
+        if fetch.__len__() > 1:
+            print "EXIT: there are multiple chromosomes named " + chromname
+            exit()
+        chromid = fetch[0][0]
+        for t in clean_tuples:
+            sql = "insert into RedFlagRegions(chromid, start, stop) "
+            sql += "values(" + chromid.__str__() + "," + t[0].__str__() + "," + t[1].__str__() + ")"
+            cur.execute(sql)
+        con.commit()
+    
+    #exit()
         
     
 
