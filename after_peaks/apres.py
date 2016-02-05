@@ -112,6 +112,7 @@ def import_redflagregions(con, ap):
         exit()
     
     sql = "delete from RedFlagRegions"
+    cur = con.cursor()
     cur.execute(sql)
     con.commit()
     
@@ -191,7 +192,6 @@ def import_redflagregions(con, ap):
         #print "181:", tuples.__len__(), clean_tuples.__len__()
         """ Insert the regions into the DB """
         sql = "Select from Chromosomes where name='" + chromname + "'"
-        cur = con.cursor()
         cur.execute(sql)
         fetch = cur.fetchall()
         if fetch.__len__() == 0:
