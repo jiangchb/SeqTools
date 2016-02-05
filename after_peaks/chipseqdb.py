@@ -401,6 +401,9 @@ def import_summits(summitpath, repid, con):
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
     try:
+        last_chromname = None
+        chromid = None
+        
         for l in fin.xreadlines():
             count += 1
             if count%100==0:
@@ -410,12 +413,18 @@ def import_summits(summitpath, repid, con):
                 """If the summit line has content, and isn't a comment, then process it"""
                 tokens = l.split()
                 chr = tokens[0]
+                if last_chromname == None or last_chromname != chr:
+                    last_chromname = chr
+                    sql = "select id from Chromosomes where name='" + last_chromname.__str__() + "'"
+                    cur.execute(sql)
+                    chromid = int( cur.fetchone()[0] )
+                    
                 site = int( tokens[1] )
                 name = tokens[3]
                 score = float( tokens[4] )
                 
                 """Verify if this fold-enrichment data is in a red-flag region."""
-                sql = "select count(*) from RedFlagRegions where chromid=" + chr.__str__()
+                sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
                 sql += " and (start < " + site.__str__() + " and stop > " + site.__str__() + ")"
                 cur.execute(sql)
                 countrf = cur.fetchone()[0]
