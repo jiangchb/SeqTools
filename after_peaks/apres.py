@@ -115,6 +115,10 @@ def import_redflagregions(con, ap):
     """
     chromname_tuples = {} # key = chrom name, value = list of tuples (start site, stop site)
     fin = open(redflagpath, "r")
+    lines = fin.readlines()
+    if lines.__len__() == 1: # deal with \r as the line break
+        lines = lines.split("\r")
+    
     for l in fin.xreadlines():
         if l.startswith("#"):
             continue
