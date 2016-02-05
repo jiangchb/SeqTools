@@ -120,7 +120,7 @@ def import_redflagregions(con, ap):
     if lines.__len__() == 1: # deal with \r as the line break
         lines = lines[0].split("\r")
     
-    for l in fin.xreadlines():
+    for l in lines:
         if l.startswith("#"):
             continue
         elif l.__len__() < 3:
