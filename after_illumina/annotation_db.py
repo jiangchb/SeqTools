@@ -761,10 +761,8 @@ def validate_configuration_import(con):
         cur.execute(sql)
         y = cur.fetchall()
         if y == None:
-            msg = "Error, the species " + ii[1] + " doesn't have a GENOMESIZE entry."
-            write_error(con, msg)
+            msg = "WARNING: the species " + ii[1] + " doesn't have a GENOMESIZE entry."
             print msg
-            exit()
         if y.__len__() > 1:
             msg = "Error, the species " + ii[1] + " has multiple GENOMESIZE entries."
             write_error(con, msg)
@@ -784,6 +782,8 @@ def validate_configuration_import(con):
             write_error(con, msg)
             print msg
             exit()
+            
+        """OK, at this point, the species has passed the tests."""
         count_good_species += 1
     print "\t", count_good_species, "annotated genomes"
     

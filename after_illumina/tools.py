@@ -359,10 +359,12 @@ def run_peak_calling(con):
         cur.execute(sql)
         speciesid = cur.fetchone()[0]
         
-        genomesize = None
+        genomesize = 14324315 # a default value
         sql = "select genomesize from SpeciesGenomesize where speciesid=" + speciesid.__str__()
         cur.execute(sql)
-        genomesize = int( cur.fetchone()[0] )
+        fetch = cur.fetchone()
+        if fetch != None:
+            genomesize = int( fetch[0] )
         
         sql = "select bampath from SortedBamFiles where readid=" + exp_readid.__str__()
         cur.execute(sql)
