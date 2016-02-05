@@ -209,7 +209,19 @@ def import_redflagregions(con, ap):
     
     #exit()
         
-    
+#def get_redflag_regions(con, speciesid):
+#    cur = con.cursor()
+#    sql = "select chromid, start, stop from RedFlagRegions where chromid in (select id from Chromosomes where species=" + speciesid.__str__() + ") order by chromid, start"
+#    cur.execute(sql)
+#    chromid_tuples = {}
+#    for ii in cur.fetchall():
+#        chromid = ii[0]
+#        start = int(ii[1])
+#        stop = int(ii[2])
+#        if chromid not in chromid_tuples:
+#            chromid_tuples[chromid] = []
+#        chromid_tuples[ chromid ].append( (start,stop) )
+#    return chromid_tuples
 
 def setup_unions(con):    
     clear_unions(con)

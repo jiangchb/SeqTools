@@ -403,8 +403,6 @@ def import_summits(summitpath, repid, con):
     try:
         for l in fin.xreadlines():
             count += 1
-            #sys.stdout.write("\r    --> %.1f%%" % (100*count/float(total_count)) )
-            #sys.stdout.flush()
             if count%100==0:
                 con.commit()
             
@@ -416,10 +414,14 @@ def import_summits(summitpath, repid, con):
                 name = tokens[3]
                 score = float( tokens[4] )
                 
-                #
-                #
-                # continue here, the chr named "Supercontig_3.16_C_tropicalis_MYA-3404" doesn't seem to exist
-                #
+                """Verify if this fold-enrichment data is in a red-flag region."""
+                sql = "select count(*) from RedFlagRegions where chromid=" + chr.__str__()
+                sql += " and (start < " + site.__len__() + " and stop > " + site.__len__() + ")"
+                cur.execute(sql)
+                countrf = cur.fetchone()[0]
+                if countrf > 0:
+                    print "Skipping the summit inside a red flag region:", chr, site, name, score
+                    continue
                 
                 chrid = get_chrom_id(con, chr, speciesid, make_if_missing=True)
                 
@@ -496,9 +498,12 @@ def import_foldenrichment(bdgpath, repid, con):
     cur.execute(sql)
     x = cur.fetchone()
     speciesid = int( x[0] )
-    #print "chipseqdb.py 496 - ", repid, speciesid
     
     total_count = estimate_line_count(bdgpath)
+
+    #""" Get red flag regions to ignore """
+    #rfregions = get_redflag_regions(con, speciesid)
+    #last_rfptr = 0
     
     """Open the BDG file"""
     fin = open(bdgpath, "r")
@@ -546,6 +551,16 @@ def import_foldenrichment(bdgpath, repid, con):
         festop = int(tokens[2])  # stop site of this enrichment window
         eval = float(tokens[3])  # enrichment value across this window
         
+        """Verify if this fold-enrichment data is in a red-flag region."""
+        sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
+        sql += " and ( (start < " + festart.__len__() + " and stop > " + festart.__len__() + ")"
+        sql += "      or (start < " + festop.__len__() + " and stop > " + festop.__len__() + ") )"
+        cur.execute(sql)
+        countrf = cur.fetchone()[0]
+        if countrf > 0:
+            print "Skipping FE data inside a red flag region:", chromname, festart, festop
+            continue
+        
         """Is the chromosome in this line the same chromosome from the previous line?
             If not, then we need to retrieve information about this chromosome, including
             the genes on this chrom."""
@@ -557,9 +572,9 @@ def import_foldenrichment(bdgpath, repid, con):
             curr_chromname = chromname
             chromid = get_chrom_id(con, curr_chromname, speciesid, make_if_missing = True)
             
-            #if chromid == 89:
-                #print "561:", chromid, l
-            
+            """Reset the red flag index pointer"""
+            last_rfptr = 0
+                        
             if chromid == None:
                 """We don't know anything about this chromosome; skip to the next FE window."""
                 msg = "The chromosome named " + curr_chromname.__str__() + " exists in your FE file, but not in your GFF."
@@ -573,8 +588,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
                 pairi = 0 # reset the pair index
                 genes = get_genes_for_chrom(con, chromid)
-                #if genes.__len__() == 0:
-                #    continue
             
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
@@ -585,10 +598,7 @@ def import_foldenrichment(bdgpath, repid, con):
             
             last_start_site = 0
             print "\n\t", curr_chromname
-        
-        #if chromid_genepairs[curr_chromid].__len__() == 0:
-        #    continue
-        
+                
         """Check for discontinuous data in the BDG file"""
         if last_start_site < festart and last_start_site != 0:
             msg = "Warning: the BDG file may skip some sites, at site: " + festart.__str__() + " for chrom " + curr_chromname.__str__() + " for BDG " + bdgpath.__str__()
