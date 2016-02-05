@@ -144,7 +144,7 @@ def import_redflagregions(con, ap):
         
         if chromname not in chromname_tuples:
             chromname_tuples[chromname] = []
-        chromname_tuples[chromname].append( (startsite, stopsite) )
+        chromname_tuples[chromname].append( [startsite, stopsite] )
     
     """
         Pass 2 -- collapse redundant sites
@@ -153,7 +153,7 @@ def import_redflagregions(con, ap):
         """Sort the tuples by start site:"""
         tuples = sorted(chromname_tuples[chromname], key=lambda x: x[0])
         clean_tuples = []
-        open_tuple = (tuples[0][0],tuples[0][1]) # the current working tuple
+        open_tuple = [tuples[0][0],tuples[0][1]] # the current working tuple
         for ii in xrange(1, tuples.__len__()):
             thistuple = tuples[ii]
             lasttuple = tuples[ii-1]
