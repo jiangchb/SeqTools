@@ -102,6 +102,7 @@ def import_intergenic_regions(con):
         
 def import_redflagregions(con, ap):
     redflagpath = ap.getOptionalArg( "--redflagpath" )
+    print redflagpath
     if redflagpath == False:
         """There's no red flag regions to import."""
         return
