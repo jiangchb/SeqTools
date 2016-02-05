@@ -191,7 +191,7 @@ def import_redflagregions(con, ap):
 #    """
         #print "181:", tuples.__len__(), clean_tuples.__len__()
         """ Insert the regions into the DB """
-        sql = "Select chromid from Chromosomes where name='" + chromname + "'"
+        sql = "Select id from Chromosomes where name='" + chromname + "'"
         cur.execute(sql)
         fetch = cur.fetchall()
         if fetch.__len__() == 0:
