@@ -175,10 +175,10 @@ def import_redflagregions(con, ap):
                 open_tuple[1] = thistuple[1]
                 clean_tuples.append( open_tuple )
     
-    """
-        Pass 3 --  import red flag regions into the DB table...
-    """
-    print "181:", tuples.__len__(), clean_tuples.__len__()
+#    """
+##        Pass 3 --  import red flag regions into the DB table...
+#    """
+        print "181:", tuples.__len__(), clean_tuples.__len__()
     exit()
         
     
