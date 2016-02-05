@@ -152,9 +152,31 @@ def import_redflagregions(con, ap):
         chromname_tuples[chromname].append( [startsite, stopsite] )
     
     """
+        Pass 1.5 - check chromosome names
+    """
+    chromname_chromid = {}
+    for chromname in chromname_tuples:
+        sql = "Select id from Chromosomes where name='" + chromname + "'"
+        cur.execute(sql)
+        fetch = cur.fetchall()
+        if fetch.__len__() == 0:
+            print "WARNING: Your red flag file contains the chromosome named " + chromname + " but I cannot find that chromosome in your genomes."
+            continue
+        if fetch.__len__() > 1:
+            print "EXIT: there are multiple chromosomes named " + chromname
+            exit()
+        chromid = int( fetch[0][0] )
+        chromname_chromid[ chromname ] = chromid
+    print chromname_chromid
+    
+    """
         Pass 2 -- collapse redundant sites
     """
     for chromname in chromname_tuples:
+        if chromname not in chromname_chromid:
+            """Skip the chroms. for which we couldn't find genome data."""
+            continue
+        chromid = chromname_chromid[chromname]
         """Sort the tuples by start site:"""
         tuples = sorted(chromname_tuples[chromname], key=lambda x: x[0])
         clean_tuples = []
@@ -186,21 +208,8 @@ def import_redflagregions(con, ap):
                 open_tuple[1] = thistuple[1]
                 clean_tuples.append( open_tuple )
     
-#    """
-##        Pass 3 --  import red flag regions into the DB table...
-#    """
-        #print "181:", tuples.__len__(), clean_tuples.__len__()
+
         """ Insert the regions into the DB """
-        sql = "Select id from Chromosomes where name='" + chromname + "'"
-        cur.execute(sql)
-        fetch = cur.fetchall()
-        if fetch.__len__() == 0:
-            print "WARNING: Your red flag file contains the chromosome named " + chromname + " but I cannot find that chromosome in your genomes."
-            continue
-        if fetch.__len__() > 1:
-            print "EXIT: there are multiple chromosomes named " + chromname
-            exit()
-        chromid = fetch[0][0]
         for t in clean_tuples:
             sql = "insert into RedFlagRegions(chromid, start, stop) "
             sql += "values(" + chromid.__str__() + "," + t[0].__str__() + "," + t[1].__str__() + ")"
@@ -394,7 +403,6 @@ if False == ap.getOptionalToggle("--skip_gff") and False == ap.getOptionalToggle
     resolve_aliasids(con)
 
 import_redflagregions(con, ap)
-exit()
 
 if False == ap.getOptionalToggle("--skip_import"):
     con = import_data(con)
