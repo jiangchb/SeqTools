@@ -354,6 +354,16 @@ def run_peak_calling(con):
         control_readid = ii[2] # Read ID of the experiment
         exp_readid = ii[3] # read ID of the control
         
+        speciesid = None
+        sql = "select speciesid from Reads where id=" + exp_readid.__str__()
+        cur.execute(sql)
+        speciesid = cur.fetchone()[0]
+        
+        genomesize = None
+        sql = "select genomesize from SpeciesGenomesize where speciesid=" + speciesid.__str__()
+        cur.execute(sql)
+        genomesize = int( cur.fetchone()[0] )
+        
         sql = "select bampath from SortedBamFiles where readid=" + exp_readid.__str__()
         cur.execute(sql)
         exp_bampath = cur.fetchone()[0]
@@ -382,7 +392,8 @@ def run_peak_calling(con):
         macs_cmd = get_setting("macs2", con) + " callpeak "
         macs_cmd += " -t " + exp_bampath
         macs_cmd += " -c " + control_bampath
-        macs_cmd += " --gsize 1.43e+07 -B --SPMR "
+        macs_cmd += " --gsize " + genomesize.__str__() 
+        macs_cmd += " -B --SPMR "
         macs_cmd += " --name " + pairname
         macs_cmd += " --qvalue 0.01"
         #macs_mcd += " ----pvalue"

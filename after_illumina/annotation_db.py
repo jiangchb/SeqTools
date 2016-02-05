@@ -29,6 +29,7 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomepath(speciesid INT unique, genomepath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesBowtieindex(speciesid TEXT unique, indexpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomesize(speciesid INT unique, genomesize INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid INT, gffpath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
@@ -479,6 +480,32 @@ def import_configuration(cpath, con):
             cur.execute(sql)
             con.commit()
     
+    for ll in lines:
+        if ll.startswith("GENOMESIZE"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "In your configuration file, this line seems incomplete: " + ll
+                write_error(con, msg)
+                print msg
+                exit()
+            genomename = tokens[2]
+            genomesize = int( tokens[3] )
+            sql = "select from Species where name='" + genomename + "'"
+            cur.execute(sql)
+            fetch = cur.fetchone()
+            if fetch == None:
+                msg = "Your configuration file includes the genome size for species " + genomename
+                msg += ", but I cannot find that species in your database. Ensure that you included "
+                msg += " a line for GENOMEPATH with the species " + genomename
+                write_error(con, msg)
+                print msg
+                exit()
+            speciesid = fetch[0]
+            sql = "insert into SpeciesGenomesize(speciesid, genomesize) values("
+            sql += speciesid.__str__() + "," + genomesize.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
+            
     """Parse lines for GFF entries"""
     for ll in lines:
         if ll.startswith("GFF"):
@@ -706,12 +733,12 @@ def validate_configuration_import(con):
         cur.execute(sql)
         y = cur.fetchall()
         if y == None:
-            msg = "Error, the species " + ii[1] + " doesn't have a GENOME entry."
+            msg = "Error, the species " + ii[1] + " doesn't have a GENOMEPATH entry."
             write_error(con, msg)
             print msg
             exit()
         if y.__len__() > 1:
-            msg = "Error, the species " + ii[1] + " has multiple GENOME entries."
+            msg = "Error, the species " + ii[1] + " has multiple GENOMEPATH entries."
             write_error(con, msg)
             print msg
             exit()
@@ -730,6 +757,19 @@ def validate_configuration_import(con):
             print msg
             exit()
         
+        sql = "select genomesize from SpeciesGenomesize where speciesid=" + ii[0].__str__()
+        cur.execute(sql)
+        y = cur.fetchall()
+        if y == None:
+            msg = "Error, the species " + ii[1] + " doesn't have a GENOMESIZE entry."
+            write_error(con, msg)
+            print msg
+            exit()
+        if y.__len__() > 1:
+            msg = "Error, the species " + ii[1] + " has multiple GENOMESIZE entries."
+            write_error(con, msg)
+            print msg
+            exit()
         
         sql = "select gffpath from GFF where speciesid=" + ii[0].__str__()
         cur.execute(sql)
