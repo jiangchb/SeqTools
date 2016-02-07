@@ -35,30 +35,20 @@ def get_chrom_id(con, name, speciesid, make_if_missing = False):
     cur.execute(sql)
     x = cur.fetchone()
     if x == None:
-#         """The chromosome specified for this summit isn't known to our database.
-#             One possible reason is that the chrom. name in the summit file uses a different
-#             naming format than the GFF."""
-#         tts = name.split("_")
-#         chrnum = int(tts[ tts.__len__()-1 ])
-#         alt_chrom_name = "chr" + int2roman(chrnum).__str__()
-#         sql = "SELECT id FROM Chromosomes WHERE name='" + alt_chrom_name + "' and species=" + speciesid.__str__()                
-#         cur.execute(sql)
-#         x = cur.fetchone() 
-#         if x == None:
-        #print sql
-
-        #print "\n. 361 - Chromosome", name, "doesn't exist." 
         sql = "select name from Species where id=" + speciesid.__str__()
         cur.execute(sql)
         yy = cur.fetchone()
         speciesname = yy[0]
-        msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname
-        print "\n. " + msg
         
         if make_if_missing == False:
+            msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname
+            print "\n. " + msg
             return None
         
         """Make if missing"""
+        msg = "Warning, chromosome " + name + " doesn't exist for species " + speciesname + "."
+        msg += " I am adding this chromosome to the database."
+        print "\n. " + msg
         sql = "insert into Chromosomes (name, species) values('" + name.__str__() 
         sql += "'," + speciesid.__str__() + ")"
         cur.execute(sql)

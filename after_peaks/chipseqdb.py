@@ -401,7 +401,7 @@ def import_summits(summitpath, repid, con):
     chr_site_score = {} # key = chromosome name, value = hash; key = site of summit, value = score for summit
     fin = open(summitpath, "r")
     try:
-        last_chromname = None
+        curr_chromname = None
         chromid = None
         
         for l in fin.xreadlines():
@@ -417,19 +417,10 @@ def import_summits(summitpath, repid, con):
                 name = tokens[3]
                 score = float( tokens[4] )
                                 
-                chrid = get_chrom_id(con, chrname, speciesid, make_if_missing=True)
-
-                if last_chromname == None or last_chromname != chrname:
-                    last_chromname = chrname
-                    sql = "select id from Chromosomes where name='" + last_chromname.__str__() + "'"
-                    cur.execute(sql)
-                    fetch = cur.fetchone()
-                    if fetch != None:
-                        chromid = int( fetch[0] )
-                    else:
-                        msg = "ERROR (424) Your summit path " + summitpath
-                        msg += " references a chromosome named " + last_chromname
-                        msg += " but I cannot find this chromosome in your database."
+                if curr_chromname == None or curr_chromname != chrname:
+                    curr_chromname = chrname
+                    chromid = get_chrom_id(con, curr_chromname, speciesid, make_if_missing=True)
+                
                 """Verify if this fold-enrichment data is in a red-flag region."""
                 sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
                 sql += " and (start < " + site.__str__() + " and stop > " + site.__str__() + ")"
@@ -440,7 +431,7 @@ def import_summits(summitpath, repid, con):
                     continue
                 
                 
-                if chrid != None:                    
+                if chromid != None:                    
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
 
