@@ -412,27 +412,33 @@ def import_summits(summitpath, repid, con):
             if l.__len__() > 0 and False == l.startswith("#"):
                 """If the summit line has content, and isn't a comment, then process it"""
                 tokens = l.split()
-                chr = tokens[0]
-                if last_chromname == None or last_chromname != chr:
-                    last_chromname = chr
-                    sql = "select id from Chromosomes where name='" + last_chromname.__str__() + "'"
-                    cur.execute(sql)
-                    chromid = int( cur.fetchone()[0] )
-                    
+                chrname = tokens[0]                    
                 site = int( tokens[1] )
                 name = tokens[3]
                 score = float( tokens[4] )
-                
+                                
+                chrid = get_chrom_id(con, chrname, speciesid, make_if_missing=True)
+
+                if last_chromname == None or last_chromname != chrname:
+                    last_chromname = chrname
+                    sql = "select id from Chromosomes where name='" + last_chromname.__str__() + "'"
+                    cur.execute(sql)
+                    fetch = cur.fetchone()
+                    if fetch != None:
+                        chromid = int( fetch[0] )
+                    else:
+                        msg = "ERROR (424) Your summit path " + summitpath
+                        msg += " references a chromosome named " + last_chromname
+                        msg += " but I cannot find this chromosome in your database."
                 """Verify if this fold-enrichment data is in a red-flag region."""
                 sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
                 sql += " and (start < " + site.__str__() + " and stop > " + site.__str__() + ")"
                 cur.execute(sql)
                 countrf = cur.fetchone()[0]
                 if countrf > 0:
-                    print "Skipping the summit inside a red flag region:", chr, site, name, score
+                    print "Skipping the summit inside a red flag region:", chrname, site, name, score
                     continue
                 
-                chrid = get_chrom_id(con, chr, speciesid, make_if_missing=True)
                 
                 if chrid != None:                    
                     sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
