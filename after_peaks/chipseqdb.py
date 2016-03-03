@@ -432,7 +432,7 @@ def import_summits(summitpath, repid, con):
                 
                 
                 if chromid != None:                    
-                    sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chrid.__str__() + "," + score.__str__() + ")"
+                    sql = "INSERT INTO Summits (replicate,name,site,chrom,score) VALUES(" + repid.__str__() + ",'" + name + "'," + site.__str__() + "," + chromid.__str__() + "," + score.__str__() + ")"
                     cur.execute(sql)
 
     except:
