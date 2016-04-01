@@ -277,7 +277,6 @@ def write_peak_motif_table(con):
                 scatter_nxm(2, 2, [xvalues,yvalues], ["max motif score","fold-enrichment"], groupname + ".motifs_vs_fe." + motifid_name[ mid ], title="", force_square=False, plot_as_rank = [], skip_identity = False, skip_zeros = False, unit_labels=[], xlab=None, ylab=None)
 
 
-
 ##############################
 #
 # main
@@ -309,8 +308,6 @@ for genename in gene_motif:
     motifname_id[genename] = motifid
     build_motif_table(vcon, motifid, gene_motif[genename])
     
-print "312:", gene_motif
-
 rcur = rcon.cursor()
 speciesid_name = {}
 sql = "select id, name from Species"

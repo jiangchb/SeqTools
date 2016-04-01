@@ -162,6 +162,7 @@ def build_sm2gn(summitpath, chr_gene_sites):
             chr_sumsite_stats[chr][sumsite] = (min_up, closest_up, min_down, closest_down, chr_site_score[chr][sumsite])    
     return chr_sumsite_stats
 
+
 def build_gn2sm(chr_sumsite_stats):
     """Returns gene_summits: gene_summits[gene] = [ (summit site, distance to gene, summit score), (n2), (n3) ]"""
     gene_summits = {}

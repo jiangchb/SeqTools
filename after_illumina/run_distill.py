@@ -45,16 +45,11 @@ con = read_cli(ap)
 print_settings(con)
 validate_configuration_import(con)
 
-# sql = "select * from Annotations"
-# cur.execute(sql)
-# x = cur.fetchall()
-# for ii in x:
-#     print ii
-# exit()
 
 if ap.getOptionalToggle("--load_db_only"):
     "\n. Ending"
     exit()
+
 
 """Jump allows for some steps to be skipped."""
 jump = ap.getOptionalArg("--jump")
@@ -104,7 +99,8 @@ if jump <= 2.4 and stop > 2.4:
     write_filtered_sam(con)
 
 if jump <= 3 and stop > 3:
-    """Convert SAM files to sorted BAM files.
+    """
+        Convert SAM files to sorted BAM files.
         Note: this is where the hybrid/non-hyrbid execution paths reconverge.
     """
     write_sorted_bam(con)

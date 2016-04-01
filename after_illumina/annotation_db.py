@@ -20,6 +20,7 @@ def build_anno_db(con):
     
     """PAIRs"""
     cur.execute("CREATE TABLE IF NOT EXISTS Pairs(id integer primary key, name TEXT unique, controlid INT, taggedid INT)") # controlid and taggedid are IDs Read entries
+    cur.execute("CREATE TABLE IF NOT EXISTS Shiftsizes(pairid integer, shiftsize float)") # controlid and taggedid are IDs Read entries
     
     cur.execute("CREATE TABLE IF NOT EXISTS Comparisons(id integer primary key, name TEXT unique)")
     cur.execute("CREATE TABLE IF NOT EXISTS PairsComparisons(compid INT, pairid INT)") # maps pairs into comparisons
@@ -524,6 +525,7 @@ def import_configuration(cpath, con):
             con.commit()
             #print ". I found an annotation for species", speciesid, "at", gffpath
     
+    
     """Parse lines for READS entries"""
     for ll in lines:
         if ll.startswith("READS"):
@@ -579,6 +581,9 @@ def import_configuration(cpath, con):
             pairname = tokens[1]
             liba = tokens[3] # the name of the first library
             libb = tokens[4] # the name of the second library
+            shiftsize = 78 # the default shift size
+            if tokens.__len__() > 5:
+                shiftsize = tokens[5]
             ida = None # the Reads ID of the control library
             idb = None # the Reads ID of the experiment library
             for libname in [liba, libb]:
@@ -615,6 +620,14 @@ def import_configuration(cpath, con):
                 
             sql = "insert or ignore into Pairs (name, controlid, taggedid) VALUES"
             sql += " ('" + pairname.__str__() + "'," + ida.__str__() + "," + idb.__str__() + ")"
+            cur.execute(sql)
+            con.commit()
+            
+            sql = "SELECT last_insert_rowid()"
+            cur.execute(sql)
+            pairid = cur.fetchone()[0]
+            
+            sql = "insert or replace into Shiftsizes(pairid, shiftsize) values(" + pairid.__str__() + "," + shiftsize.__str__() + ")"
             cur.execute(sql)
             con.commit()
                 

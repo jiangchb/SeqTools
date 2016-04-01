@@ -95,11 +95,12 @@ def import_data(con):
                 validate_summits_fe(repid, con)     
     return con
 
+
 def import_intergenic_regions(con):
     for speciesid in get_species_ids(con):
         map_intergenic_regions(con, speciesid[0])
         
-        
+                
 def import_redflagregions(con, ap):
     redflagpath = ap.getOptionalArg( "--redflagpath" )
     print redflagpath
@@ -453,6 +454,9 @@ if False == ap.getOptionalToggle("--skip_plots"):
 
 if False == ap.getOptionalToggle("--skip_motif_analysis"):
     pass
+    #
+    # continue here -- call the motif_analysis.py script
+    #
 
 #
 # PACKAGE the results    

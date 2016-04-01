@@ -614,6 +614,7 @@ def plot_summits_for_speciesunion(uid, con):
         add_speciesunionfile(cranpath, uid, "", con)
         add_speciesunionfile(re.sub("cran", "pdf", cranpath), uid, "", con)
 
+
 def compute_summits_for_reps_in_group(rgroupid, con):
     """This is a long method (sorry). 
     It correlates the summits from all the replicates in a group,
