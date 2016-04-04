@@ -407,7 +407,7 @@ def run_peak_calling(con):
         # continue here with gsize and shiftsize
         #
         
-        macs_cmd += " --gsize " + genomesize 
+        macs_cmd += " --gsize " + genomesize.__str__()
         macs_cmd += " -B --SPMR "
         macs_cmd += " --name " + pairname
         macs_cmd += " --qvalue 0.01 "
