@@ -815,7 +815,7 @@ def write_viz_config(con):
         gffpath = x[0][0]
         fout.write("GFF = " + gffpath + "\n")
         
-        sql = "select gffpath from IntergenicPaths where speciesid=" + sid.__str__()
+        sql = "select intergenicpath from IntergenicPaths where speciesid=" + sid.__str__()
         cur.execute(sql)
         x = cur.fetchall()
         if x.__len__() == 0:
