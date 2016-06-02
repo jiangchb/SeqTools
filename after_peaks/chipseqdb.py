@@ -41,7 +41,7 @@ def build_db(dbpath = None):
     # These data come from the GFF:
     cur.execute("CREATE TABLE IF NOT EXISTS Species(id INTEGER primary key, name TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Genes(id INTEGER primary key, name TEXT COLLATE NOCASE, start INT, stop INT, chrom INT, strand TEXT)")
-    cur.execute("create table if not exists Intergenics(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)")
+    cur.execute("create table if not exists Intergenics(id INTEGER primary key, chromid INT, start INT, stop INT, strand TEXT, geneid INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS Chromosomes(id INTEGER primary key, name TEXT, species INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFFs(id INTEGER primary key, species INT, filepath TEXT)")
     
@@ -506,10 +506,6 @@ def import_foldenrichment(bdgpath, repid, con):
     speciesid = int( x[0] )
     
     total_count = estimate_line_count(bdgpath)
-
-    #""" Get red flag regions to ignore """
-    #rfregions = get_redflag_regions(con, speciesid)
-    #last_rfptr = 0
     
     """Open the BDG file"""
     fin = open(bdgpath, "r")
@@ -526,9 +522,7 @@ def import_foldenrichment(bdgpath, repid, con):
     genes = None # an ordered list of gene objects, 
                     # it will be filled with data whenever we 
                     # encounter a new chromosome in the BDG file
-        
-    chromid_genepairs = {} # the pair of genes before and after this enrichment window
-    pairi = 0 # working index into chromid_genepairs[curr_chromid]
+
     count = 0 # a count of how many lines we've analyzed -- used for displaying a progress indicator
 
     chromid_summitsites = {} # key = chromosome ID, value = list of summit sites on that chrom.
@@ -580,12 +574,6 @@ def import_foldenrichment(bdgpath, repid, con):
             
             curr_chromid = chromid
             
-            if curr_chromid not in chromid_genepairs:
-                """Get the list of ordered gene pair tuples for this chrom."""
-                chromid_genepairs[curr_chromid] = get_geneorder(con, curr_chromid)
-                pairi = 0 # reset the pair index
-                genes = get_genes_for_chrom(con, chromid)
-            
             if curr_chromid not in chromid_summitsites:
                 """Get the list of summits for this chromosome."""
                 chromid_summitsites[curr_chromid] = {}
@@ -614,7 +602,7 @@ def import_foldenrichment(bdgpath, repid, con):
         last_start_site = festop
     
         """Can we map this enrichment site to a summit?"""        
-        for fesite in range(festart, festop):
+        for fesite in xrange(festart, festop):
             
             """For each site in the enrichment window, is there a known summit at this site?"""
             if fesite in chromid_summitsites[curr_chromid]:              
@@ -627,102 +615,34 @@ def import_foldenrichment(bdgpath, repid, con):
 #                     print "593:", sql
                 cur.execute(sql)
                 con.commit()
-
-            """If the current enrichment window ('festart') is outside the intergenic region defined by the
-                current gene pair, then we need to advance to the next gene pair.
-            """
-            if chromid_genepairs[ curr_chromid ].__len__() == 0:
-                continue 
+        
+        """ Can we amp this enrichment values to a gene?"""
+        for fesite in xrange(festart, festop):
             
-            if genes.__len__() == 0:
-                continue
-
-            if pairi > chromid_genepairs[ curr_chromid ].__len__():
-                continue
+            #Intergenics (chromid, start, stop, strand, geneid)
             
-            this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-            
-            #print "629:", this_gene_pair
-            
-            while (pairi < chromid_genepairs[ curr_chromid ].__len__()-1) and this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < festart and genes[ this_gene_pair[1] ][3] < festart):
-                pairi += 1
-                #if pairi > chromid_genepairs[ curr_chromid ].__len__()-1:
-                #    print "631:", curr_chromid, pairi
-                #    print "631b:", chromid_genepairs[ curr_chromid ][pairi-1]
-                #    print "632:", genes
-                this_gene_pair = chromid_genepairs[ curr_chromid ][pairi]
-            
-            #print "639:"
-            if pairi > chromid_genepairs[ curr_chromid ].__len__()-1:
-                #print "641"
-                continue
-             
-            """Can we map enrichment to both upstream and downstream genes?"""
-            down_ok = False # is there a downstream gene?
-            up_ok = False   # is there an upstream gene?
-            ups_ii = this_gene_pair[0] # the ID of the downstream gene
-            down_ii = this_gene_pair[1]   # the ID of the upstream gene
-            
-            if ups_ii != None:
-                if genes[ups_ii][2] < festart and genes[ups_ii][3] < festart:
-                    if genes[ups_ii][5] == "-":
-                        """Yes, map scores to the downstream gene."""
-                        up_ok = True
-            if down_ii != None:
-                if genes[down_ii][2] > festart and genes[down_ii][3] > festart:
-                    if genes[down_ii][5] == "+":
-                        """Yes, map scores to the upstream gene."""
-                        down_ok = True
-    
-            #if test_flag1 == True:
-            #    print ". 643 - ", up_ok, ups_ii, genes[ups_ii][0], down_ok, down_ii, genes[down_ii][0]
-    
-            if up_ok:     
-                geneid = genes[ups_ii][0]
-                """Initialize some data structures about this gene."""
-                if geneid not in geneid_sum:
-                    geneid_sum[geneid] = 0
-                if geneid not in geneid_n:
-                    geneid_n[geneid] = 0
-                if geneid not in geneid_max:
-                    geneid_max[geneid] = -1
-                if geneid not in geneid_maxsite:
-                    geneid_maxsite[geneid] = 0
+            sql = "select id, geneid from Intergenics where chromid=" + chromid.__str__()
+            sql += " and start > " + fesite.__str__() + " and stop < " + fesite.__str__()
+            cur.exectue(sql)
+            x = cur.fetchall()
+            for ii in x:
+                this_intergenic_id = ii[0]
+                this_gene_id = ii[1]
+                if this_gene_id not in geneid_sum:
+                    geneid_sum[ this_gene_id ] = 0.0
+                geneid_sum[ this_gene_id ] += eval
                 
-                geneid_sum[geneid] += eval
-                geneid_n[geneid] += 1
+                if this_gene_id not in geneid_max:
+                    geneid_max[ this_gene_id ] = eval
+                    geneid_maxsite[ this_gene_id ] = fesite
+                elif geneid_max[ this_gene_id ] < eval:
+                    geneid_max[ this_gene_id ] = eval
+                    geneid_maxsite[ this_gene_id ] = fesite   
                 
-                """Is this fe value larger than we've seen before?"""
-                if eval > geneid_max[geneid]:
-                    geneid_max[geneid] = eval
-                    geneid_maxsite[geneid] = fesite - genes[ups_ii][2]
-            
-            if down_ok:     
-                geneid = genes[down_ii][0]
-                """Initialize some data structures about this gene."""
-                if geneid not in geneid_sum:
-                    geneid_sum[geneid] = 0
-                if geneid not in geneid_n:
-                    geneid_n[geneid] = 0
-                if geneid not in geneid_max:
-                    geneid_max[geneid] = -1
-                if geneid not in geneid_maxsite:
-                    geneid_maxsite[geneid] = 0
-
-                geneid_sum[geneid] += eval
-                geneid_n[geneid] += 1
-                
-                """Is this fe value larger than we've seen before?"""
-                if eval > geneid_max[geneid]:
-                    geneid_max[geneid] = eval
-                    geneid_maxsite[geneid] = genes[down_ii][2] - fesite
-                        
-#             if fesite == 1720362:
-#                 print "666:", up_ok, ups_ii, down_ok, down_ii
-            # The following print statement is too noisy:
-            #if up_ok == False and down_ok == False:
-            #    print "\n. FE data at site", ii, "doesn't map to any regulatory regions. ( Chrom:", curr_chromname, ")"
-            
+                if this_gene_id not in geneid_n:
+                    geneid_n[this_gene_id] = 0
+                geneid_n[this_gene_id] += 1
+                    
     fin.close()
         
     """Finally, write all our findings into the table EnrichmentStats."""
@@ -961,54 +881,49 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
         exit()
     return (None, None, None, None)
     
-def map_intergenic_regions(con, speciesid, chroms=None):
+    
+def map_intergenic_regions(con, speciesid, intergenic_path):
     """This methods fills the DB table named Intergenics""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
+    
+    print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con), " using intergenic file", intergenic_path
+      
     cur = con.cursor()
-             
-    if chroms == None:
-        chroms = get_chrom_ids(con, speciesid)
-    count = 0    
-
-    for chrid in chroms:
-        sql = "delete from Intergenics where chromid=" + chrid.__str__()
+   
+    fin = open(intergenic_path, "r")
+    for l in fin.xreadlines():
+        tokens = l.split()
+        if tokens.__len__() < 5:
+            continue
+        chrom_name = tokens[0]
+        chromid = get_chrom_id(con, chrom_name, speciesid, make_if_missing = False)
+        
+        start = int(tokens[1])
+        stop = int(tokens[2])
+        gene_name = tokens[3]
+        strand = tokens[4]
+    
+        geneid = None
+        sql = "select id from Genes where name='" + gene_name + "' and chrom=" + chromid.__str__()
+        cur.execute(sql)
+        x = cur.fetchone()
+        if x == None or x.__len__() == 0:
+            print "\n. I cannot find a Gene entry for the gene named", gene_name, "in your intergenic file."
+            continue
+        geneid = x[0]
+        
+        sql = "insert or replace into Intergenics (chromid, start, stop, strand, geneid)"
+        sql += " values(" + chromid.__str__() + "," + start.__str__() + ","
+        sql += stop.__str__() + ",'" + strand.__str__() + "'," + geneid.__str__()
+        sql += ")"
         cur.execute(sql)
         con.commit()
-        
-    print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con)
-    
-    for chrid in chroms:
-        genes = get_genes_for_chrom(con, chrid) #genes is a list = id, name, start, stop, chrom, strand
-        genepairs = get_geneorder(con, chrid)
-        for count, pair in enumerate(genepairs):
-            leftgeneid = pair[0]
-            rightgeneid = pair[1]
-            downstreamgeneid = "'NULL'"
-            upstreamgeneid = "'NULL'"
-            start = 1
-            stop = "'NULL'"
-            if leftgeneid != None:
-                leftgene = genes[leftgeneid]
-                start = max( leftgene[2], leftgene[3])
-                if leftgene[5] == "-" and leftgene[2] < leftgene[3]:
-                    downstreamgeneid = leftgeneid.__str__()
-                
-            if rightgeneid != None:
-                rightgene = genes[rightgeneid]
-                stop = max(rightgene[2], rightgene[3])
-                if rightgene[5] == "+" and rightgene[3] > rightgene[2]:
-                    upstreamgeneid = rightgeneid.__str__()
-                
-            sql = "insert or replace into Intergenics (downstreamgeneid, upstreamgeneid, chromid, start, stop)"
-            sql += " values(" + downstreamgeneid + "," + upstreamgeneid + ","
-            sql += chrid.__str__() + "," + start.__str__() + "," + stop.__str__()
-            sql += ")"
-            cur.execute(sql)
-        con.commit()
-        
-        sql = "select count(*) from Intergenics where chromid=" + chrid.__str__()
+           
+    chromids = get_chrom_ids(con, speciesid)
+    for chromid in chromids:       
+        sql = "select count(*) from Intergenics where chromid=" + chromid.__str__()
         cur.execute(sql)
         count_inserted = cur.fetchone()[0]
-        print ". Found", count_inserted, "in chromosome", get_chrom_name(con, chrid)
+        print ". Found", count_inserted, "intergenic regions for chromosome", get_chrom_name(con, chromid)
             
             
 def map_summits2genes(con, repid, speciesid=None, chroms=None):
@@ -1034,72 +949,47 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
         chroms = get_chrom_ids(con, speciesid)
     
     count = 0    
-    #try:
+
     for chrid in chroms:
-        genes = get_genes_for_chrom(con, chrid)
         summits = get_summits(con, repid, chrid)
-        
-        genepairs = get_geneorder(con, chrid)
-        
-        if genepairs.__len__() < 1 or genes.__len__() == 0:
-            write_log(con, "There are no genes on chromosome ID " + chrid.__str__() + ".", code=None)
-            continue
-        
-        pairi = 0
-        
+            
         for s in summits:
             sid = s[0] # summit ID
             sumsite = s[3] # summit site in the genome
             score = s[5] # summit score
             
-            this_gene_pair = genepairs[pairi]
-            while (pairi < genepairs.__len__()-1) and this_gene_pair[1] != None and (genes[ this_gene_pair[1] ][2] < sumsite and genes[ this_gene_pair[1] ][3] < sumsite):
-                pairi += 1
-                this_gene_pair = genepairs[pairi]
+            summit_name = None
+            sql = "select name from Summits where id=" + sid.__str__()
+            cur.execute(sql)
+            summit_name = cur.fetchone()[0]
             
-            if pairi > genepairs.__len__()-1:
-                continue
+            #sql = "insert or replace into Intergenics (chromid, start, stop, geneid)"
+            sql = "Select id, geneid, strand, start, stop from Intergenics where chromid=" + chrid.__str__()
+            sql += " and start >" + sumsite.__str__() + " and stop < " + sumsite.__str__()
+            cur.execute(sql)
+            x = cur.fetchall()
+            for ii in x:
+                this_intergenic_id = ii[0]
+                this_geneid = ii[1]
+                this_strand = ii[2]
+                this_start = ii[3]
+                this_stop = ii[4]
                 
-            """Can we map enrichment to both upstream and downstream genes?"""
-            down_ok = False # is there a downstream gene?
-            up_ok = False   # is there an upstream gene?
-            up_ii = this_gene_pair[0] # the ID of the downstream gene
-            down_ii = this_gene_pair[1]   # the ID of the upstream gene
+                this_genename = get_genename(this_geneid, con)
+                
+                if this_strand == "+":
+                    distance = this_start - sumsite
+                elif this_start == "-":
+                    distance = sumsite - this_stop
             
-            if up_ii != None:
-                if genes[up_ii][2] < sumsite and genes[up_ii][3] < sumsite:
-                    if genes[up_ii][5] == "-":
-                        """Yes, map scores to the downstream gene."""
-                        up_ok = True
-            if down_ii != None:
-                if genes[down_ii][2] > sumsite and genes[down_ii][3] > sumsite:
-                    if genes[down_ii][5] == "+":
-                        """Yes, map scores to the upstream gene."""
-                        down_ok = True
-
-            #(closest_up, min_up, closest_down, min_down) = get_genes4site(con, repid, sumsite, chrid, speciesid=None)
-
-            if up_ok and up_ii != None:
-                distance = abs(sumsite - genes[up_ii][2])
                 sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + genes[up_ii][0].__str__() + "," 
+                sql += " VALUES(" + this_geneid.__str__() + "," 
                 sql += sid.__str__() + ","
                 sql += distance.__str__() + ") "         
                 cur.execute(sql) 
-            if down_ok and down_ii != None:
-                distance = abs(genes[down_ii][2] - sumsite)
-                sql = "INSERT INTO GeneSummits (gene,summit,distance)" 
-                sql += " VALUES(" + genes[down_ii][0].__str__() + "," 
-                sql += sid.__str__() + ","
-                sql += distance.__str__() + ") "           
-                cur.execute(sql) 
-            
-            if down_ok == None and up_ok == None:
-                print "\n. I cannot find a nearby gene for summit ID", sid, " in replicate", repid
-#     except:
-#         print "\n. An error occurred (980). I'm rolling-back changes to the table GeneSummits."
-#         print sys.exc_info()[0]
-#         con.rollback()
+                
+                print "\n. Mapping summit", summit_name, " to gene", this_genename
+
     con.commit()
     return con
                 

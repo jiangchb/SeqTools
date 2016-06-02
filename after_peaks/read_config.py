@@ -46,6 +46,11 @@ def read_config(path):
             #    exit()
             params["species"][curr_species]["gff"] = gffpath
         
+        elif l.startswith("INTERGENIC"):
+            intergenicpath = l.split("=")[1]
+            intergenicpath = re.sub(" ", "", intergenicpath)
+            params["species"][curr_species]["intergenicpath"] = intergenicpath
+        
         elif l.startswith("NAME"):
             name = l.split("=")[1]
             name = re.sub(" ", "", name)
@@ -145,5 +150,6 @@ def validate_config(params):
                     if repgroup not in params["species"][species]["rgroups"]:
                         print "\n. Error, repgroup", repgroup, "is references by union", unionname, "but it's undefined!"
                         exit()
-    
+        if "intergenicpath" not in params["species"][species]:
+            print "\. Error, you did not specify an INTERGENIC path for species", species   
     return True

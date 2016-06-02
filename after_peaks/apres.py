@@ -103,7 +103,12 @@ def import_data(con):
 
 def import_intergenic_regions(con):
     for speciesid in get_species_ids(con):
-        map_intergenic_regions(con, speciesid[0])
+        species_name = get_species_name(speciesid, con)
+        
+        intergenic_path = ap.params["species"][species_name]["intergenicpath"]
+        if False == os.path.exists(intergenic_path):
+            print "\n. Error, I cannot find the intergenic path:", intergenic_path
+        map_intergenic_regions(con, speciesid[0], intergenic_path)
         
                 
 def import_redflagregions(con, ap):
@@ -410,10 +415,10 @@ if False == ap.getOptionalToggle("--skip_gff") and False == ap.getOptionalToggle
 
 import_redflagregions(con, ap)
 
+import_intergenic_regions(con)
+
 if False == ap.getOptionalToggle("--skip_import"):
     con = import_data(con)
-
-import_intergenic_regions(con)
 
 #
 # ANALYSIS

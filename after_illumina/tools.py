@@ -830,6 +830,22 @@ def write_viz_config(con):
         gffpath = x[0][0]
         fout.write("GFF = " + gffpath + "\n")
         
+        sql = "select gffpath from IntergenicPaths where speciesid=" + sid.__str__()
+        cur.execute(sql)
+        x = cur.fetchall()
+        if x.__len__() == 0:
+            msg = "(732) Error, the species " + s + " has no INTERGENIC entry."
+            write_error(con, msg)
+            print msg
+            exit()
+        elif x.__len__() > 1:
+            msg = "(737) Error, the species " + s + " has multiple INTERGENIC entries."
+            write_error(con, msg)
+            print msg
+            exit()            
+        intergenicpath = x[0][0]        
+        fout.write("INTERGENIC = " + intergenicpath + "\n")
+        
         for compid in speciesid_paircompids[sid]:
             """At this point, compid is in the species sid"""
             sql = "select name from Comparisons where id=" + compid.__str__()

@@ -32,6 +32,7 @@ def build_anno_db(con):
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesBowtieindex(speciesid TEXT unique, indexpath TEXT)")
     cur.execute("CREATE TABLE IF NOT EXISTS SpeciesGenomesize(speciesid INT unique, genomesize INT)")
     cur.execute("CREATE TABLE IF NOT EXISTS GFF(speciesid INT, gffpath TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS IntergenicPaths(speciesid INT, intergenicpath TEXT)")
     
     """All annotations will have an entry in BowtieOutput, 
         but only hybrid annotations will also have an entry in FilteredBowtieOutput."""
@@ -404,6 +405,8 @@ def import_configuration(cpath, con):
     cur.execute(sql)
     sql = "delete from GFF"
     cur.execute(sql)
+    sql = "delete from IntergenicPaths"
+    cur.execute(sql)
     sql = "delete from PairsComparisons"
     cur.execute(sql)
     sql = "delete from Comparisons"
@@ -525,7 +528,23 @@ def import_configuration(cpath, con):
             con.commit()
             #print ". I found an annotation for species", speciesid, "at", gffpath
     
-    
+    """Parse lines for GFF entries"""
+    for ll in lines:
+        if ll.startswith("INTERGENIC"):
+            tokens = ll.split()
+            if tokens.__len__() < 3:
+                msg = "This line in your configuration file doesn't have enough columns: " + ll
+                write_error(con, msg)
+                print msg
+                exit()    
+            species = tokens[1]
+            speciesid = import_species(con, species)
+            intergenicpath = tokens[2]
+            sql = "insert or replace into IntergenicPaths (speciesid, intergenicpath) VALUES("
+            sql += "'" + speciesid.__str__() + "','" + intergenicpath + "')"
+            cur.execute(sql)
+            con.commit()
+
     """Parse lines for READS entries"""
     for ll in lines:
         if ll.startswith("READS"):
@@ -810,69 +829,6 @@ def validate_configuration_import(con):
     xx = cur.fetchone()
     print "\t", xx[0], "comparisons between experiments"
 
-#
-# depricated -- HybridPairs table is now filled during the read_configuration
-#
-# def get_hybrid_pairs(con):
-#     cur = con.cursor()
-#     cur.execute("DELETE from HybridPairs")
-#     con.commit()
-#     
-#     hannoids = [] # hannoids is a list of hybrid annotations IDS
-#     sql = "select annoid from Hybrids"
-#     cur.execute(sql)
-#     x = cur.fetchall()
-#     for ii in x:
-#         hannoids.append( ii[0] )
-#     seen_annoids = []
-#         
-#     for annoid in hannoids:
-#         
-#         if annoid in seen_annoids:
-#             continue # skip, we've already paired this one.
-#         
-#         """Get the two species that form this hybrid"""
-#         sql = "select species1, species2 from Hybrids where annoid=" + annoid.__str__()
-#         cur.execute(sql)
-#         x = cur.fetchone()
-#         if x == None:
-#             print "\n. An error occurred - 157 - ", annoid
-#             exit()
-#         species1 = x[0]
-#         species2 = x[1]
-#         
-#         print "302:", species1, species2
-#         
-#         """Get the library_name (i.e. ID)"""
-#         sql = "select library_name, strain from Annotations where annoid=" + annoid.__str__()
-#         cur.execute(sql)
-#         x = cur.fetchone()
-#         if x == None:
-#             print "\n. An error occurred - 164 - ", annoid
-#             exit()
-#         library_name = x[0]
-#         strain = x[1]
-#                 
-#         """Get the annotation ID for the paired annotation."""
-#         sql = "select annoid from Annotations where species='" + species2.__str__() + "' and strain='" + strain.__str__() + "'"
-#         print sql
-#         cur.execute(sql)
-#         x = cur.fetchone()
-#         print "318:", x
-#         if x == None:
-#             print "\n. An error occurred - 171 -", annoid
-#             exit()
-#         the_other_annoiid = x[0]
-#         
-#         if the_other_annoiid in seen_annoids:
-#             continue
-#         
-#         seen_annoids.append( the_other_annoiid )
-#         seen_annoids.append( annoid )
-#         sql = "insert or replace into HybridPairs (annoid1, annoid2) VALUES("
-#         sql += annoid.__str__() + "," + the_other_annoiid.__str__() + ")"
-#         cur.execute(sql)
-#         con.commit()
 
 def write_log(con, message, code=None):
     """
