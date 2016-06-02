@@ -492,8 +492,8 @@ def import_configuration(cpath, con):
                 write_error(con, msg)
                 print msg
                 exit()
-            genomename = tokens[2]
-            genomesize = int( tokens[3] )
+            genomename = tokens[1]
+            genomesize = int( tokens[2] )
             sql = "select from Species where name='" + genomename + "'"
             cur.execute(sql)
             fetch = cur.fetchone()
