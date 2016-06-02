@@ -507,7 +507,7 @@ def import_configuration(cpath, con):
                 print msg
                 exit()
             speciesid = fetch[0]
-            sql = "select count(*) from SpeciesGenomesize where speciesid = " + speciesid
+            sql = "select count(*) from SpeciesGenomesize where speciesid = " + speciesid.__str__()
             cur.execute(sql)
             count = cur.fetchone()[0]
             if count == 0:
