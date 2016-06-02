@@ -551,7 +551,6 @@ def import_foldenrichment(bdgpath, repid, con):
         festop = int(tokens[2])  # stop site of this enrichment window
         eval = float(tokens[3])  # enrichment value across this window
         
-        
         """Is the chromosome in this line the same chromosome from the previous line?
             If not, then we need to retrieve information about this chromosome, including
             the genes on this chrom."""
@@ -584,7 +583,7 @@ def import_foldenrichment(bdgpath, repid, con):
             last_start_site = 0
             print "\n\t", curr_chromname
 
-        """Verify if this fold-enrichment data is in a red-flag region."""
+        """Check if this fold-enrichment data is in a red-flag region."""
         sql = "select count(*) from RedFlagRegions where chromid=" + chromid.__str__()
         sql += " and ( (start < " + festart.__str__() + " and stop > " + festart.__str__() + ")"
         sql += "      or (start < " + festop.__str__() + " and stop > " + festop.__str__() + ") )"
@@ -611,16 +610,11 @@ def import_foldenrichment(bdgpath, repid, con):
                 sql = "insert into SummitsEnrichment (summit, max_enrichment) "
                 sql += " VALUES(" + summitid.__str__() + ","
                 sql += eval.__str__() + ")"
-#                 if fesite == 1720362:
-#                     print "593:", sql
                 cur.execute(sql)
                 con.commit()
         
         """ Can we amp this enrichment values to a gene?"""
-        for fesite in xrange(festart, festop):
-            
-            #Intergenics (chromid, start, stop, strand, geneid)
-            
+        for fesite in xrange(festart, festop):            
             sql = "select id, geneid from Intergenics where chromid=" + chromid.__str__()
             sql += " and start > " + fesite.__str__() + " and stop < " + fesite.__str__()
             cur.exectue(sql)
@@ -642,7 +636,6 @@ def import_foldenrichment(bdgpath, repid, con):
                 if this_gene_id not in geneid_n:
                     geneid_n[this_gene_id] = 0
                 geneid_n[this_gene_id] += 1
-                    
     fin.close()
         
     """Finally, write all our findings into the table EnrichmentStats."""
@@ -653,8 +646,8 @@ def import_foldenrichment(bdgpath, repid, con):
             if geneid_n[geneid] > 0:
                 count += 1
                 if count%5000==0:
-                    #sys.stdout.write(".")
-                    #sys.stdout.flush()
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
                     con.commit()
                 sql = "INSERT INTO EnrichmentStats (repid, geneid, maxenrich, meanenrich, sumenrich, maxenrichsite)  "
                 sql += "VALUES(" + repid.__str__() + "," + geneid.__str__()
@@ -935,9 +928,7 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             genes on these chromosomes)."""
 
     cur = con.cursor()    
-    
     print "\n. Mapping summits to nearby genes. . ."
-    
     if speciesid == None:
         sql = "select species from Replicates where id=" + repid.__str__()
         cur.execute(sql)
@@ -946,12 +937,9 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             print "\n. Error 857: there is no species defined for replicate ID", repid
             exit()
         speciesid = int( x[0] )
-    
     if chroms == None:
         chroms = get_chrom_ids(con, speciesid)
     
-    count = 0    
-
     for chrid in chroms:
         summits = get_summits(con, repid, chrid)
             
@@ -965,7 +953,6 @@ def map_summits2genes(con, repid, speciesid=None, chroms=None):
             cur.execute(sql)
             summit_name = cur.fetchone()[0]
             
-            #sql = "insert or replace into Intergenics (chromid, start, stop, geneid)"
             sql = "Select id, geneid, strand, start, stop from Intergenics where chromid=" + chrid.__str__()
             sql += " and start >" + sumsite.__str__() + " and stop < " + sumsite.__str__()
             cur.execute(sql)

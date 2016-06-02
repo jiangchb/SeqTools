@@ -1275,16 +1275,7 @@ def compute_enrichments_for_reps_in_group(rgroupid, con):
         for geneid in repid_festats[repid]:
             if geneid not in geneids:
                 geneids.append( geneid )
-    
-#     """Sanity Check: repid_festats[x] must be the same length for all x."""
-#     for ii in range(0, repids.__len__()-2):
-#         this_repid = repids[ii]
-#         that_repid = repids[ii+1]
-#         if repid_festats[this_repid].__len__() != repid_festats[that_repid].__len__():
-#             print "\n. Error, chipseqdb_plot.py 1136, festats not the same length for", repid_repname[this_repid], "and", repid_repname[that_repid]
-#             print "\.", repid_festats[this_repid].__len__().__str__() + " vs. " + repid_festats[that_repid].__len__().__str__()
-#             exit()
-    
+        
     geneids_inall = []
     maxfe = []
     meanfe = []
