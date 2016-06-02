@@ -494,7 +494,7 @@ def import_configuration(cpath, con):
                 exit()
             genomename = tokens[1]
             genomesize = int( tokens[2] )
-            sql = "select from Species where name='" + genomename + "'"
+            sql = "select id from Species where name='" + genomename + "'"
             cur.execute(sql)
             fetch = cur.fetchone()
             if fetch == None:
