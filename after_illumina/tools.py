@@ -516,6 +516,7 @@ def check_fe(con):
     print "\n. The fold-enrichment bedgraph files are OK."
     return
 
+
 def bam2bedgraph(con):
     """Converts sorted BAM files to Bedgraph files."""
     print "\n. Converting sorted BAMs to bedgraph files."
@@ -573,6 +574,7 @@ def bam2bedgraph(con):
             os.system(get_setting("mpirun",con) + " " + scriptpath)
         else:
             os.system("source " + scriptpath)
+
 
 def check_bedgraphs(con):
     cur = con.cursor()
@@ -690,19 +692,7 @@ def bed2wig(con):
         sql += "','" + wigpath + "')"
         cur.execute(sql)
         con.commit()
-
-    #scriptpath = "run_bed2wig.sh"
-    #fout = open(scriptpath, "w")
-    #for c in commands:
-    #    print c
-    #    fout.write(c + "\n")
-    #fout.close()
-    
-    #if get_setting("practice_mode", con) == "0":
-    #    if get_setting("use_mpi", con) == "1":
-    #        os.system( get_setting("mpirun",con) + " " + scriptpath ) 
-    #    else:
-    #        os.system("source " + scriptpath)  
+ 
     
 def check_wig(con):
     cur = con.cursor()
