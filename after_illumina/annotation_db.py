@@ -403,6 +403,8 @@ def import_configuration(cpath, con):
     cur.execute(sql)
     sql = "delete from SpeciesGenomepath"
     cur.execute(sql)
+    sql = "delete from SpeciesGenomesize"
+    cur.execute(sql)
     sql = "delete from GFF"
     cur.execute(sql)
     sql = "delete from IntergenicPaths"
