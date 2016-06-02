@@ -507,10 +507,14 @@ def import_configuration(cpath, con):
                 print msg
                 exit()
             speciesid = fetch[0]
-            sql = "insert into SpeciesGenomesize(speciesid, genomesize) values("
-            sql += speciesid.__str__() + "," + genomesize.__str__() + ")"
+            sql = "select count(*) from SpeciesGenomesize where speciesid = " + speciesid
             cur.execute(sql)
-            con.commit()
+            count = cur.fetchone()[0]
+            if count == 0:
+                sql = "insert into SpeciesGenomesize(speciesid, genomesize) values("
+                sql += speciesid.__str__() + "," + genomesize.__str__() + ")"
+                cur.execute(sql)
+                con.commit()
             
     """Parse lines for GFF entries"""
     for ll in lines:
