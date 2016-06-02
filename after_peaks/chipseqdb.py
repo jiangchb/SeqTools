@@ -883,7 +883,9 @@ def get_genes4site(con, repid, site, chromid, speciesid=None):
     
     
 def map_intergenic_regions(con, speciesid, intergenic_path):
-    """This methods fills the DB table named Intergenics""" #(id INTEGER primary key, downstreamgeneid INT, upstreamgeneid INT, chromid INT, start INT, stop INT)
+    """This methods fills the DB table named Intergenics
+        by reading the intergenic definitions in the file at
+        at the path intergenic_path""" 
     
     print "\n. Mapping intergenic regions for species", get_species_name(speciesid, con), " using intergenic file", intergenic_path
       
