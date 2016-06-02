@@ -1,6 +1,8 @@
 #
-# This script processes ChIP-Seq results from FASTQ to (mapped) SAM to (sorted) BAM
-# to fold-enrichment track and summit list.
+# run_distill.py
+#
+# This is the top-level script for the ChIP-Seq Analysis Pipeline.
+# This script calls functions in other Python scripts included in this project.
 #
 
 import re, os, sys, time
@@ -12,8 +14,6 @@ from html_tools import *
 from argParser import ArgParser
 ap = ArgParser(sys.argv)
 
-#no FE data
-
 def splash():
     print "======================================================================"
     print "."
@@ -21,35 +21,29 @@ def splash():
     print "."
     print ". A pipeline to process your FASTQ reads."
     print "."
-    print ". Written by Victor Hanson-Smith -- victorhansonsmith@gmail.com"
-    print "."
-    print ". Last Updated: January 2014"
+    print ". Last Updated: May 2016"
     print "."
     print ". This program does the following steps:"
-    print "\t1. Maps reads to reference genome (bowtie)"
-    print "\t2. Separates reads from hybrid genomes (optional)"
-    print "\t3. Sorts all reads and creates BAM files (samtools)"
-    print "\t4. Finds peaks (macs2)"
-    print "\t5. Calculates fold-enrichment (macs2)"
-    print "\t6. Compares peaks and fold-enrichments across "
+    print "\t. Maps reads to reference genome (bowtie)"
+    print "\t. Separates reads from hybrid genomes (optional)"
+    print "\t. Sorts all reads and creates BAM files (samtools)"
+    print "\t. Finds peaks (macs2)"
+    print "\t. Calculates fold-enrichment (macs2)"
+    print "\t. Compares peaks and fold-enrichments across "
     print "\t\treplicates conditions, and species."
     print ""
     print "======================================================================" 
 
 splash()
 
-
-
 """read_cli reads the command-line, the annotation file, and creates a SQLite3 database."""
 con = read_cli(ap)
 print_settings(con)
 validate_configuration_import(con)
 
-
 if ap.getOptionalToggle("--load_db_only"):
     "\n. Ending"
     exit()
-
 
 """Jump allows for some steps to be skipped."""
 jump = ap.getOptionalArg("--jump")
@@ -81,7 +75,7 @@ if jump <= 2 and stop > 2:
     for ii in x:
         extract_matched_reads(ii[0], con)
 
-"""Build a map of which annotations map to which species."""
+# depricated: hybrid pairs are now mapped during when we read the configuration
 # if jump <= 2.1 and stop > 2.1:
 #     get_hybrid_pairs(con)
 
@@ -147,15 +141,12 @@ if jump <= 7 and stop > 7:
     """Write a *.config file for the apres.py script"""
     write_viz_config(con)
 #
-# launch APRES
+# launch the code in the folder named after_peaks:
+#
 vizdbpath = None
 if jump <= 8 and stop > 8:
     """Launch the apres.py script."""
     vizdbpath = launch_viz(con)
-    
-#if jump <= 9 and stop > 9:
-#    if vizdbpath != None:
-#        write_html_results(con, vizdbpath)
 
 print "\n. ChIP-Seq distillation is complete.  Goodbye."
 exit()

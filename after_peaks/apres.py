@@ -1,6 +1,10 @@
 #
-# APRES ChIP-Seq
-# (Analaysis Pipeline for Replicate ExperimentS)
+# This is the top-level script for the after_peaks part
+# of the ChIP-Seq pipeline.
+#
+# This script is launched by the script after_illumina/run_distill.py,
+# although you can also launch it on its own.
+# 
 #
 
 from read_config import *
@@ -22,6 +26,7 @@ def splash():
     print "."
     print ". Written by Victor Hanson-Smith -- victorhansonsmith@gmail.com"
     print "============================================================================="
+
 #
 # Build, or add to, the database
 #
@@ -430,7 +435,6 @@ if False == ap.getOptionalToggle("--skip_analysis"):
         setup_speciesunions(con)
         correlate_species(con)    
 
-#IDR
 #
 # continue here:
 # plot FE versus summit score.
@@ -446,17 +450,6 @@ if False == ap.getOptionalToggle("--skip_plots"):
         plot_unions(con)
     if False == ap.getOptionalToggle("--skip_speciesplot"):
         plot_species(con)
-
-#
-# More Stats
-#
-#test_species_overlap(con)
-
-if False == ap.getOptionalToggle("--skip_motif_analysis"):
-    pass
-    #
-    # continue here -- call the motif_analysis.py script
-    #
 
 #
 # PACKAGE the results    

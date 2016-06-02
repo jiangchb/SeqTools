@@ -1,6 +1,3 @@
-#
-#
-#
 import os, sys, re
 
 def read_config(path):
@@ -132,13 +129,7 @@ def validate_config(params):
     """This method validates that the definitions within the configuration file
     are internally consistent. e.g., unions don't reference undefined replicate 
     groups, etc."""
-    
-#     for species in params["species"]:
-#         for repgroup in params["species"][species]["rgroups"]:
-#             for rep in params["species"][species]["rgroups"][repgroup]["reps"]:
-#                 print "119:", species, repgroup, rep
-#     exit()
-    
+        
     for species in params["species"]:
         if "rgroups" not in params["species"][species]:
             print "\n. Error: the species", species, "contains no replicate groups."
@@ -148,13 +139,6 @@ def validate_config(params):
             if "reps" not in params["species"][species]["rgroups"][repgroup]:
                 print "\n. Error: the replicate group", repgroup, "contains no replicates."
                 exit()
-#             for rep in params["species"][species]["rgroups"][repgroup]["reps"]:
-#                 if "summitpath" not in params["species"][species]["rgroups"][repgroup]["reps"][rep]:
-#                     print "\n. Error: you didn't define a SUMMITS line for species", species, "repgroup", repgroup, "replicate", rep
-#                     exit()
-#                 if "bdgpath" not in params["species"][species]["rgroups"][repgroup]["reps"][rep]:
-#                     print "\n. Error: you didn't define an ENRICHMENTS line for replicate", repgroup, "repgroup", repgroup, "replicate", rep
-#                     exit()
         if "unions" in params["species"][species]:
             for unionname in params["species"][species]["unions"]:
                 for repgroup in params["species"][species]["unions"][unionname]:

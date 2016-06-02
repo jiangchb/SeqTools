@@ -874,58 +874,9 @@ def write_viz_config(con):
                 
     fout.close()
               
-#         sql = "select distinct strain from Annotations where species='" + s + "'"
-#         sql += " and Annotations.annoid in (select exp_annoid from MacsRun)"
-#         
-#         #sql = "select distinct strain from Annotations where species='" + s + "'"
-#         cur.execute(sql)
-#         x = cur.fetchall()
-#         for ii in x:
-#             strain = ii[0]
-#             repgroups.append( strain )
-#         for strain in repgroups:
-#             fout.write("\tREPGROUP " + strain + "-" + s + "\n")
-#             
-#             replicates = []
-#             sql = "select distinct replicate from Annotations where species='" + s + "' and strain='" + strain + "'"
-#             cur.execute(sql)
-#             x = cur.fetchall()
-#             for ii in x:
-#                 replicates.append( ii[0] )
-#             
-#             for ii in range(0, replicates.__len__() ):
-#                 fout.write("\t\tREPLICATE " + (ii+1).__str__() + "\n")
-#                 annoids = []
-#                 #sql += "where "
-#                 sql = "select exp_annoid from MacsRun where exp_annoid in (select annoid from Annotations where species='" + s + "' and strain='" + strain + "' and replicate=" + replicates[ii].__str__() + ")"
-#                 cur.execute(sql)
-#                 x = cur.fetchall()
-#                 for ii in x:
-#                     annoids.append( ii[0] )
-#                 
-#                 for id in annoids:
-#                     sql = "select summits_path from MacsPeakPaths where exp_annoid=" + id.__str__()
-#                     cur.execute(sql)
-#                     x = cur.fetchall()
-#                     if x.__len__() < 1:
-#                         print "\n. An error occurred. Checkpoint 413"
-#                         exit()
-#                     summitpath = x[0][0]
-#                     fout.write("\t\tSUMMITS = " + summitpath + "\n")
-# 
-#                     sql = "select bdgpath from MacsFE where exp_annoid=" + id.__str__()
-#                     cur.execute(sql)
-#                     x = cur.fetchall()
-#                     if x.__len__() < 1:
-#                         print "\n. An error occurred. Checkpoint 413"
-#                         exit()
-#                     bdgpath = x[0][0]
-#                     fout.write("\t\tENRICHMENTS = " + bdgpath + "\n")
-#                 
-#                 pass
-
+              
 def launch_viz(con):
-    """Launches the APRES visualization scripts.
+    """This function launches the APRES visualization scripts.
         Upon completion, returns the path to the APRES database,
         or None if the DB wasn't created."""
     cur = con.cursor()
