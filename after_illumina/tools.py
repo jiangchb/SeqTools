@@ -394,18 +394,13 @@ def run_peak_calling(con):
         macs_cmd = get_setting("macs2", con) + " callpeak "
         macs_cmd += " -t " + exp_bampath
         macs_cmd += " -c " + control_bampath
-        #macs_cmd += " --gsize " + genomesize.__str__() 
         
-
         shiftsize = 78 # a default value
         sql = "select shiftsize from Shiftsizes where pairid = " + pairid.__str__()
         cur.execute(sql)
         fetch = cur.fetchone()
         if fetch != None:
             shiftsize = fetch[0]       
-        #
-        # continue here with gsize and shiftsize
-        #
         
         macs_cmd += " --gsize " + genomesize.__str__()
         macs_cmd += " -B --SPMR "
