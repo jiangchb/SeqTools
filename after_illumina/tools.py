@@ -873,10 +873,9 @@ def write_viz_config(con):
                 print "\t", summitspath
                 
     fout.close()
-              
-              
+                    
 def launch_viz(con):
-    """This function launches the APRES visualization scripts.
+    """This function lwaunches the APRES visualization scripts.
         Upon completion, returns the path to the APRES database,
         or None if the DB wasn't created."""
     cur = con.cursor()
@@ -892,7 +891,11 @@ def launch_viz(con):
     
     redflagpath = get_setting("redflagpath", con)
     
-    c = "python /common/REPOSITORY/SeqTools/after_peaks/apres.py "
+    print "\n. I'm setting up to launch the scripts after_peaks from the path /common/REPOSITORY/SeqTools.may2016"
+    print ". If you'd like to use a different version of these scripts, modify the script named after_illumina/tools.py"
+    print "in the method named 'launch_viz' to suite your needs."
+    
+    c = "python /common/REPOSITORY/SeqTools.may2016/after_peaks/apres.py "
     c += "--dbpath " + vizdbpath
     c += " --pillarspath " + get_setting("pillars_path", con)
     c += " --configpath " + vcpath
