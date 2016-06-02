@@ -407,7 +407,7 @@ def run_peak_calling(con):
         macs_cmd += " --name " + pairname
         macs_cmd += " --qvalue 0.01 "
         macs_cmd += " --nomodel "
-        macs_cmd += " --shiftsize " + shiftsize.__str__()
+        macs_cmd += " --shiftsize " + int(shiftsize).__str__()
         if qval != None:
             macs_cmd += "--qvalue " + qval.__str__() # the Q-value cutoff to call significant regions
         macs_commands.append( macs_cmd )
